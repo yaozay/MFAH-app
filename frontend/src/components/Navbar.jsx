@@ -7,7 +7,7 @@ export default function Navbar() {
         
         {/* Logo */}
         <div className="flex items-center">
-          <span className="text-2xl font-bold tracking-tight text-white">HOUSTON MFA</span>
+          <span className="text-2xl font-bold tracking-tight text-white">HTX MFA</span>
         </div>
 
         {/* Navigation */}
