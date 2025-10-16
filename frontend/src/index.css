@@ -1,68 +1,26 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Provide a utility fallback in case the config hasn't hot-reloaded yet */
+@layer utilities {
+  .shadow-soft { @apply shadow-lg; }
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    --bg: theme(colors.mfah.bg);
+    --card: theme(colors.mfah.card);
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  html, body, #root { height: 100%; }
+  body { @apply bg-neutral-950 text-neutral-100; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-soft transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-violet-500; }
+  .btn-primary { @apply bg-violet-600; }
+  .btn-ghost { @apply bg-transparent hover:bg-neutral-800/60; }
+  .input { @apply w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-violet-500; }
+  .card { @apply rounded-2xl bg-neutral-900/60 p-5 shadow-soft; }
+  .h1 { @apply text-2xl md:text-3xl font-semibold tracking-tight; }
 }
