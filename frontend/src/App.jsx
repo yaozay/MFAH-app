@@ -6,6 +6,8 @@ import Membership from "./components/Membership.jsx";
 import Tickets from "./components/Tickets.jsx";
 import Artists from "./components/Artists.jsx";
 import Artworks from "./components/Artworks.jsx";
+import Login from "./components/Login.jsx";
+import SignUp from "./components/SignUp.jsx";
 
 export default function App() {
   return (
@@ -19,6 +21,9 @@ export default function App() {
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/artists" element={<Artists />} />
           <Route path="/artworks" element={<Artworks />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          {/* Fallback to Home for unknown routes */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

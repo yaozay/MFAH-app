@@ -45,9 +45,17 @@ export default function Navbar() {
           >
             TICKETS
           </NavLink>
-          <button className="text-lg font-medium text-white hover:text-rose-300 transition">
+          <NavLink 
+            to="/login" 
+            className={({ isActive }) =>
+              "text-lg font-medium transition " +
+              (isActive
+                ? "text-rose-300"
+                : "text-white hover:text-rose-300")
+            }
+          >
             LOGIN
-          </button>
+          </NavLink>
         </nav>
       </div>
     </header>
