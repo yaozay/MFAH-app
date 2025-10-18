@@ -1,40 +1,64 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-export default function SignUp() {
-  const navigate = useNavigate();
+export default function Signup() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+    setError("");
+    setSuccess("");
+
+    const { firstName, lastName, email, password, confirmPassword } = formData;
+
+    // Frontend validation
+    if (!email || !password || !confirmPassword) {
+      setError("Email and password are required");
       return;
     }
-    
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      alert("Please fill in all fields!");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
-    console.log("Sign up data:", formData);
-    alert("Account created successfully!");
-    navigate("/login");
+    try {
+      const res = await fetch("http://localhost:3000/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role: "visitor" }), // role hardcoded for now
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Registration failed");
+        return;
+      }
+
+      setSuccess("Account created successfully! Redirecting to login...");
+      setTimeout(() => navigate("/login"), 2000);
+
+    } catch (err) {
+      console.error(err);
+      setError("Server error, try again later.");
+    }
   };
 
   return (
@@ -93,6 +117,9 @@ export default function SignUp() {
             onChange={handleChange}
             className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
           />
+
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {success && <p className="text-green-600 text-sm">{success}</p>}
 
           <button
             type="submit"
