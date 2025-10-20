@@ -1,83 +1,53 @@
-require("dotenv").config();
-const bcrypt = require("bcryptjs");
-const getParseData = require("../utils/getParseData");
-const db = require("../../db");
+import { Router } from "express";
+import bcrypt from "bcryptjs";
+import { pool } from "../db.js";
 
-const handleRegister = (req, res) => {
-  getParseData(req)
-    .then(async (data) => {
-      console.log("Received data:", data);
-      let { firstName, lastName, email, password, role } = data;
+const router = Router();
 
-      // Normalize inputs
-      firstName = (firstName || "").trim();
-      lastName = (lastName || "").trim();
-      email = (email || "").trim().toLowerCase();
-      password = (password || "").trim();
-      role = (role || "visitor").trim();
 
-      if (!email || !password) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(
-          JSON.stringify({ error: "Email and password are required" })
-        );
-      }
+router.post("/register", async (req, res) => {
+  try {
+    const { email, password, first_name, last_name, role } = req.body || {};
 
-      // Check if email already exists 
-      db.execute("SELECT * FROM Users WHERE email = ?", [email], async (err, results) => {
-        if (err) {
-          console.error("Database error:", err);
-          res.writeHead(500, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ error: "Internal Server Error" }));
-        }
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
 
-        if (results.length > 0) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ error: "Email already registered" }));
-        }
+    // sanitize role
+    const allowed = ["admin", "employee", "visitor"];
+    const finalRole = allowed.includes(role) ? role : "visitor";
 
-        try {
-          // Hash password
-          const hashedPassword = await bcrypt.hash(password, 10);
+    // check duplicate
+    const [existing] = await pool.execute(
+      "SELECT user_id FROM Users WHERE email = ?",
+      [email]
+    );
+    if (existing.length) {
+      return res.status(409).json({ error: "Email already registered" });
+    }
 
-          // Insert user with lowercase email
-          db.execute(
-            "INSERT INTO Users (first_name, last_name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
-            [firstName, lastName, email, hashedPassword, role],
-            (err, results) => {
-              if (err) {
-                console.error("Database error on insert:", err);
-                res.writeHead(500, { "Content-Type": "application/json" });
-                return res.end(JSON.stringify({ error: "Internal Server Error" }));
-              }
+    const hash = await bcrypt.hash(password, 11);
 
-              res.writeHead(201, { "Content-Type": "application/json" });
-              res.end(
-                JSON.stringify({
-                  message: "User registered successfully",
-                  userId: results.insertId,
-                  firstName,
-                  lastName,
-                  email,
-                  role,
-                })
-              );
-            }
-          );
-        } catch (hashError) {
-          console.error("Password hash error:", hashError);
-          res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Internal Server Error" }));
-        }
-      });
-    })
-    .catch((error) => {
-      console.error("Error parsing request body:", error);
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Invalid data" }));
-    });
-};
+    await pool.execute(
+      `INSERT INTO Users (email, password, role, first_name, last_name)
+       VALUES (?, ?, ?, ?, ?)`,
+      [email, hash, finalRole, first_name || null, last_name || null]
+    );
 
-module.exports = {
-  handleRegister,
-};
+    const [rows] = await pool.execute(
+      "SELECT user_id, email, role, first_name, last_name, created_at, updated_at FROM Users WHERE email = ?",
+      [email]
+    );
+    const user = rows[0];
+
+    return res.status(201).json({ user });
+  } catch (e) {
+    console.error("register error:", e.message);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+export default router;

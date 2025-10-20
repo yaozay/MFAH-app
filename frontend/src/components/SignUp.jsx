@@ -11,10 +11,11 @@ export default function Signup() {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
@@ -22,7 +23,11 @@ export default function Signup() {
     setError("");
     setSuccess("");
 
-    const { firstName, lastName, email, password, confirmPassword } = formData;
+    const first_name = formData.firstName.trim();
+    const last_name = formData.lastName.trim();
+    const email = formData.email.trim().toLowerCase();
+    const password = formData.password.trim();
+    const confirmPassword = formData.confirmPassword.trim();
 
     // Frontend validation
     if (!email || !password || !confirmPassword) {
@@ -39,25 +44,28 @@ export default function Signup() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/register", {
+      setLoading(true);
+      const res = await fetch("http://localhost:4000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role: "visitor" }), // role hardcoded for now
+        // role defaults to visitor; you can change this if needed
+        body: JSON.stringify({ email, password, first_name, last_name, role: "visitor" }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Registration failed");
+        setError(data.error || "Registration failed");
         return;
       }
 
       setSuccess("Account created successfully! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 2000);
-
+      setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
       console.error(err);
       setError("Server error, try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,6 +106,7 @@ export default function Signup() {
             value={formData.email}
             onChange={handleChange}
             className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
+            autoComplete="email"
           />
 
           <input
@@ -107,6 +116,7 @@ export default function Signup() {
             value={formData.password}
             onChange={handleChange}
             className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
+            autoComplete="new-password"
           />
 
           <input
@@ -116,6 +126,7 @@ export default function Signup() {
             value={formData.confirmPassword}
             onChange={handleChange}
             className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
+            autoComplete="new-password"
           />
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
@@ -123,9 +134,10 @@ export default function Signup() {
 
           <button
             type="submit"
-            className="w-full bg-gray-300 hover:bg-gray-400 text-neutral-900 font-bold py-3 rounded-lg transition text-sm"
+            disabled={loading}
+            className="w-full bg-gray-300 hover:bg-gray-400 disabled:opacity-60 text-neutral-900 font-bold py-3 rounded-lg transition text-sm"
           >
-            CREATE ACCOUNT
+            {loading ? "Creating..." : "CREATE ACCOUNT"}
           </button>
         </form>
 

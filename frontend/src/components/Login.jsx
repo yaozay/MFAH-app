@@ -7,9 +7,10 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
@@ -26,7 +27,9 @@ export default function Login() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/login", {
+      setLoading(true);
+      // ⬇️ Your backend login endpoint
+      const res = await fetch("http://localhost:4000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -39,17 +42,23 @@ export default function Login() {
         return;
       }
 
-      // Store JWT and user info
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userEmail", data.email);
-      localStorage.setItem("userRole", data.role);
-      localStorage.setItem("userId", data.id);
+      // Backend returns { accessToken, user: { user_id, email, role, first_name, last_name } }
+      const token = data.accessToken;
+      const user = data.user || {};
 
-      setSuccess(`Welcome back, ${data.email}! Redirecting...`);
-      setTimeout(() => navigate("/"), 1000);
+      // Store JWT and user info (same keys you used, but mapped to backend shape)
+      localStorage.setItem("token", token);
+      localStorage.setItem("userEmail", user.email || "");
+      localStorage.setItem("userRole", user.role || "visitor");
+      localStorage.setItem("userId", String(user.user_id ?? ""));
+
+      setSuccess(`Welcome back, ${user.email || "user"}! Redirecting...`);
+      setTimeout(() => navigate("/"), 800);
     } catch (err) {
       console.error("Login error:", err);
       setError("Server error, please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,6 +84,7 @@ export default function Login() {
             value={formData.email}
             onChange={handleChange}
             className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
+            autoComplete="email"
           />
 
           <input
@@ -84,12 +94,14 @@ export default function Login() {
             value={formData.password}
             onChange={handleChange}
             className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
+            autoComplete="current-password"
           />
 
           <div className="text-right">
             <button
               type="button"
               className="text-xs font-bold text-neutral-900 hover:underline"
+              onClick={() => alert("TODO: implement password reset")}
             >
               FORGOT PASSWORD?
             </button>
@@ -97,9 +109,10 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full bg-gray-300 hover:bg-gray-400 text-neutral-900 font-bold py-3 rounded-lg transition text-sm"
+            disabled={loading}
+            className="w-full bg-gray-300 hover:bg-gray-400 disabled:opacity-60 text-neutral-900 font-bold py-3 rounded-lg transition text-sm"
           >
-            LOGIN
+            {loading ? "Logging in..." : "LOGIN"}
           </button>
         </form>
 

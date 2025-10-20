@@ -1,32 +1,33 @@
-const http = require("http");
-const { handleLogin } = require("./routes/login");
-const { handleRegister } = require("./routes/register");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { ping } from "./db.js";
+import loginRouter from "./routes/login.js";
+import registerRouter from "./routes/register.js";
 
-const PORT = 3000;
+dotenv.config();
 
-const server = http.createServer((req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+const app = express();
+const PORT = Number(process.env.PORT || 4000);
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-  // Preflight
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
+app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.use(express.json());
 
-  // Routing logic
-  if (req.url === "/login" && req.method === "POST") {
-    handleLogin(req, res);
-  } else if (req.url === "/register" && req.method === "POST") {
-    handleRegister(req, res);
-  } else {
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Not found" }));
+// health route checks DB too
+app.get("/api/health", async (_, res) => {
+  try {
+    const ok = await ping();
+    res.json({ ok });
+  } catch {
+    res.status(500).json({ ok: false });
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+// auth routes
+app.use("/api/auth", registerRouter);
+app.use("/api/auth", loginRouter);
+
+app.listen(PORT, () => {
+  console.log(`API running on http://localhost:${PORT}`);
 });

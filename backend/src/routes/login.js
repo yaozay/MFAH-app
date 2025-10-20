@@ -1,86 +1,74 @@
-require("dotenv").config();
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const getParseData = require("../utils/getParseData");
-const db = require("../../db");
+import { Router } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { pool } from "../db.js";
+import { requireAuth } from "../utils/requireAuth.js";
+import { requireAnyRole } from "../utils/authorize.js";
 
-const SECRET_KEY = process.env.SECRET_KEY;
+const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+const ACCESS_TTL = process.env.JWT_ACCESS_TTL || "15m";
 
-const handleLogin = (req, res) => {
-  getParseData(req)
-    .then((data) => {
-      console.log("Received data:", data);
-      let { email, password } = data;
 
-      // Normalize inputs
-      email = (email || "").trim().toLowerCase();
-      password = (password || "").trim();
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
 
-      if (!email || !password) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(
-          JSON.stringify({ error: "Email and password are required" })
-        );
-      }
+    const [rows] = await pool.execute(
+      "SELECT user_id, email, password, role, first_name, last_name FROM Users WHERE email = ?",
+      [email]
+    );
+    if (!rows.length) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+    const dbUser = rows[0];
 
-      // Query DB for user
-      db.execute("SELECT * FROM Users WHERE email = ?", [email], async (err, results) => {
-        if (err) {
-          console.error("Database error:", err);
-          res.writeHead(500, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ error: "Internal Server Error" }));
-        }
+    const ok = await bcrypt.compare(password, dbUser.password);
+    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
-        if (results.length === 0) {
-          res.writeHead(401, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ error: "Invalid credentials" }));
-        }
+    const payload = {
+      sub: dbUser.user_id,
+      email: dbUser.email,
+      role: dbUser.role, // 'admin' | 'employee' | 'visitor'
+    };
+    const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TTL });
 
-        const user = results[0];
-
-        // Check bcrypt password
-        try {
-          const passwordMatch = await bcrypt.compare(password, user.password);
-          if (!passwordMatch) {
-            res.writeHead(401, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify({ error: "Invalid credentials" }));
-          }
-        } catch (err) {
-          console.error("Bcrypt error:", err);
-          res.writeHead(500, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ error: "Internal Server Error" }));
-        }
-
-        // Create JWT
-        const token = jwt.sign(
-          {
-            id: user.user_id,
-            email: user.email,
-            role: user.role,
-          },
-          SECRET_KEY,
-          { expiresIn: "2h" }
-        );
-
-        // Send response
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            token,
-            id: user.user_id,
-            email: user.email,
-            role: user.role,
-          })
-        );
-      });
-    })
-    .catch((error) => {
-      console.error("Error parsing request body:", error);
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Invalid data" }));
+    return res.json({
+      accessToken,
+      user: {
+        user_id: dbUser.user_id,
+        email: dbUser.email,
+        role: dbUser.role,
+        first_name: dbUser.first_name,
+        last_name: dbUser.last_name,
+      },
     });
-};
+  } catch (e) {
+    console.error("login error:", e.message);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
-module.exports = {
-  handleLogin,
-};
+
+router.get("/me", requireAuth, async (req, res) => {
+  // req.user is set by requireAuth
+  res.json({ user: req.user });
+});
+
+router.post("/logout", requireAuth, async (req, res) => {
+  res.status(204).end();
+});
+
+router.get(
+  "/protected/admin-or-employee",
+  requireAuth,
+  requireAnyRole(["admin", "employee"]),
+  (req, res) => {
+    res.json({ ok: true, message: `Hello ${req.user.role}` });
+  }
+);
+
+export default router;
