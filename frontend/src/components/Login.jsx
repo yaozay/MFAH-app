@@ -1,32 +1,56 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
+
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.email || !formData.password) {
-      alert("Please fill in all fields!");
+    setError("");
+    setSuccess("");
+
+    const email = formData.email.trim().toLowerCase();
+    const password = formData.password.trim();
+
+    if (!email || !password) {
+      setError("Email and password are required");
       return;
     }
 
-    console.log("Login data:", formData);
-    alert("Login successful!");
-    navigate("/");
+    try {
+      const res = await fetch("http://localhost:3000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      // Store JWT and user info
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("userRole", data.role);
+      localStorage.setItem("userId", data.id);
+
+      setSuccess(`Welcome back, ${data.email}! Redirecting...`);
+      setTimeout(() => navigate("/"), 1000);
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Server error, please try again later.");
+    }
   };
 
   return (
@@ -39,6 +63,9 @@ export default function Login() {
         <h2 className="text-4xl font-black text-center text-neutral-900 mb-10">
           LOGIN
         </h2>
+
+        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+        {success && <p className="text-green-600 text-sm mb-4">{success}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <input
