@@ -7,7 +7,7 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
-const ACCESS_TTL = process.env.JWT_ACCESS_TTL || "15m";
+const ACCESS_TTL = process.env.JWT_ACCESS_TTL || "7d";
 
 
 router.post("/login", async (req, res) => {

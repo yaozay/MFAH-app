@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import { ping } from "./db.js";
 import loginRouter from "./routes/login.js";
 import registerRouter from "./routes/register.js";
+import artistsRouter from "./routes/artists.js";
+import artworksRouter from "./routes/artworks.js";
+
 
 dotenv.config();
 
@@ -27,6 +30,9 @@ app.get("/api/health", async (_, res) => {
 // auth routes
 app.use("/api/auth", registerRouter);
 app.use("/api/auth", loginRouter);
+app.use("/api/artists", artistsRouter);
+app.use("/api/artworks", artworksRouter);
+
 
 app.listen(PORT, () => {
   console.log(`API running on http://localhost:${PORT}`);

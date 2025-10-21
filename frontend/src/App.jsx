@@ -1,35 +1,69 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import Navbar from "./components/Navbar.jsx";
-import Home from "./components/Home.jsx";
-import Events from "./components/Events.jsx";
-import Membership from "./components/Membership.jsx";
-import Tickets from "./components/Tickets.jsx";
-import Artists from "./components/Artists.jsx";
-import Artworks from "./components/Artworks.jsx";
-import Login from "./components/Login.jsx";
-import SignUp from "./components/SignUp.jsx";
+import { ProtectedRoute, RoleRoute } from "./components/RouteGuards";
+import DashboardAdmin from "./components/DashboardAdmin";
+import DashboardEmployee from "./components/DashboardEmployee";
+import DashboardVisitor from "./components/DashboardVisitor";
+import Forbidden from "./components/Forbidden";
+import Artists from "./components/Artists";
+import Artworks from "./components/Artworks";
+import Home from "./components/Home";
+import Login from "./components/Login";
+import SignUp from "./components/SignUp";  
+import Navbar from "./components/Navbar";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
+    <>
       <Navbar />
-      <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/membership" element={<Membership />} />
-          <Route path="/tickets" element={<Tickets />} />
-          <Route path="/artists" element={<Artists />} />
-          <Route path="/artworks" element={<Artworks />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          {/* Fallback to Home for unknown routes */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-      <footer className="container mt-16 mb-8 text-center text-xs text-neutral-400 bg-white">
-        © {new Date().getFullYear()} MFAH Student Project
-      </footer>
-    </div>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />  
+        <Route path="/forbidden" element={<Forbidden />} />
+
+        <Route
+          path="/admin"
+          element={
+            <RoleRoute allowed={["admin"]}>
+              <DashboardAdmin />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/employee"
+          element={
+            <RoleRoute allowed={["admin", "employee"]}>
+              <DashboardEmployee />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/visitor"
+          element={
+            <ProtectedRoute>
+              <DashboardVisitor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/artists"
+          element={
+            <ProtectedRoute>
+              <Artists />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/artworks"
+          element={
+            <ProtectedRoute>
+              <Artworks />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

@@ -1,19 +1,34 @@
-const BASE = 'http://localhost:4000/api';
+import { useAuth } from "./auth";
 
-export async function api(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+// Hook version if you need inside components
+export function useApi() {
+  const { token } = useAuth();
+  return (path, options = {}) =>
+    fetch(`http://localhost:4000${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }).then(async (r) => {
+      const data = await r.json().catch(() => null);
+      if (!r.ok) throw data || { error: "Request failed" };
+      return data;
+    });
+}
+
+// Plain helper if you import directly (and manually pass token)
+export async function api(path, options = {}, token) {
+  const res = await fetch(`http://localhost:4000${path}`, {
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
-  if (!res.ok) {
-    let msg = 'Request failed';
-    try {
-        msg = (await res.json()).error || msg;
-      } catch (e) {
-        // intentionally ignored
-      }
-      
-    throw new Error(msg);
-  }
-  return res.json();
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw data || { error: "Request failed" };
+  return data;
 }

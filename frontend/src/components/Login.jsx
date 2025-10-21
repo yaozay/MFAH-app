@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../lib/auth.jsx"; 
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth(); // from AuthContext
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -16,7 +17,6 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     const email = formData.email.trim().toLowerCase();
     const password = formData.password.trim();
@@ -28,7 +28,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      // ⬇️ Your backend login endpoint
+
       const res = await fetch("http://localhost:4000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,18 +42,22 @@ export default function Login() {
         return;
       }
 
-      // Backend returns { accessToken, user: { user_id, email, role, first_name, last_name } }
-      const token = data.accessToken;
-      const user = data.user || {};
+      // ✅ backend returns { accessToken, user }
+      const { accessToken, user } = data;
 
-      // Store JWT and user info (same keys you used, but mapped to backend shape)
-      localStorage.setItem("token", token);
-      localStorage.setItem("userEmail", user.email || "");
-      localStorage.setItem("userRole", user.role || "visitor");
-      localStorage.setItem("userId", String(user.user_id ?? ""));
+      if (!accessToken || !user) {
+        setError("Invalid response from server");
+        return;
+      }
 
-      setSuccess(`Welcome back, ${user.email || "user"}! Redirecting...`);
-      setTimeout(() => navigate("/"), 800);
+      // ✅ save to context/localStorage
+      login(accessToken, user);
+
+      // ✅ redirect by role
+      if (user.role === "admin") navigate("/admin");
+      else if (user.role === "employee") navigate("/employee");
+      else navigate("/visitor");
+
     } catch (err) {
       console.error("Login error:", err);
       setError("Server error, please try again later.");
@@ -74,7 +78,6 @@ export default function Login() {
         </h2>
 
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-        {success && <p className="text-green-600 text-sm mb-4">{success}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <input
@@ -119,7 +122,10 @@ export default function Login() {
         <div className="text-center mt-6">
           <p className="text-neutral-900 text-sm font-medium">
             Don't have an account?{" "}
-            <Link to="/signup" className="underline hover:no-underline font-bold">
+            <Link
+              to="/signup"
+              className="underline hover:no-underline font-bold"
+            >
               CREATE ACCOUNT
             </Link>
           </p>
