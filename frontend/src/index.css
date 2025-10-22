@@ -4,7 +4,9 @@
 
 /* Provide a utility fallback in case the config hasn't hot-reloaded yet */
 @layer utilities {
-  .shadow-soft { @apply shadow-lg; }
+  .shadow-soft {
+    @apply shadow-lg;
+  }
 }
 
 @layer base {
@@ -12,15 +14,114 @@
     --bg: theme(colors.mfah.bg);
     --card: theme(colors.mfah.card);
   }
-  html, body, #root { height: 100%; }
-  body { @apply bg-neutral-950 text-neutral-100; }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-neutral-950 text-neutral-100;
+  }
 }
 
 @layer components {
-  .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-soft transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-violet-500; }
-  .btn-primary { @apply bg-violet-600; }
-  .btn-ghost { @apply bg-transparent hover:bg-neutral-800/60; }
-  .input { @apply w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-violet-500; }
-  .card { @apply rounded-2xl bg-neutral-900/60 p-5 shadow-soft; }
-  .h1 { @apply text-2xl md:text-3xl font-semibold tracking-tight; }
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-soft transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-violet-500;
+  }
+
+  .btn-primary {
+    @apply bg-violet-600;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent hover:bg-neutral-800/60;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-violet-500;
+  }
+
+  .card {
+    @apply rounded-2xl bg-neutral-900/60 p-5 shadow-soft;
+  }
+
+  .h1 {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight;
+  }
+}
+
+/* Base calendar background */
+.rbc-calendar {
+  background-color: #fff !important;
+  color: #000 !important;
+  font-family: "Segoe UI", sans-serif;
+  border-radius: 10px;
+}
+
+/* Each day cell background */
+.rbc-day-bg {
+  background-color: #fff !important;
+  border-color: #e5e7eb !important;
+  /* light gray borders */
+}
+
+/* Day numbers */
+.rbc-button-link {
+  color: #000 !important;
+  font-weight: 500;
+}
+
+/* Current day highlight */
+.rbc-today {
+  background-color: #fdf2f8 !important;
+  /* soft rose tint */
+}
+
+/* Header row (Sun, Mon, etc.) */
+.rbc-header {
+  background-color: #f9fafb !important;
+  /* very light gray */
+  color: #000 !important;
+  font-weight: 600;
+  border-color: #e5e7eb !important;
+}
+
+/* Toolbar (Month/Week/Day, navigation) */
+.rbc-toolbar {
+  background-color: #fff !important;
+  color: #000 !important;
+}
+
+.rbc-toolbar button {
+  background: transparent !important;
+  color: #000 !important;
+  border: 1px solid #ccc !important;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #fca5a5 !important;
+  /* rose-400 */
+  color: #fff !important;
+  border: none !important;
+}
+
+/* Event cards */
+.rbc-event {
+  background-color: #fca5a5 !important;
+  /* rose-400 */
+  border: none !important;
+  color: #111 !important;
+  font-weight: 600;
+}
+
+/* Dim the off-range days (next/previous month) */
+.rbc-off-range-bg {
+  background-color: #f9fafb !important;
+  color: #aaa !important;
 }

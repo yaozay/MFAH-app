@@ -10,6 +10,7 @@ import Home from "./components/Home";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import Navbar from "./components/Navbar";
+import Events from "./components/Events";
 import Footer from "./components/Footer";
 
 export default function App() {
@@ -62,11 +63,10 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route path="/events" element={<Events />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Footer />
     </>
-
   );
 }
