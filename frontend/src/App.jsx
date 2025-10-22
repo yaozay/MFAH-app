@@ -8,8 +8,9 @@ import Artists from "./components/Artists";
 import Artworks from "./components/Artworks";
 import Home from "./components/Home";
 import Login from "./components/Login";
-import SignUp from "./components/SignUp";  
+import SignUp from "./components/SignUp";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 export default function App() {
   return (
@@ -18,7 +19,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />  
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/forbidden" element={<Forbidden />} />
 
         <Route
@@ -61,9 +62,11 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Footer />
     </>
+
   );
 }
