@@ -1,28 +1,36 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute, RoleRoute } from "./components/RouteGuards";
+
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+
+import Home from "./components/Home";
+import Events from "./components/Events";
+import Login from "./components/Login";
+import SignUp from "./components/SignUp";
+import Forbidden from "./components/Forbidden";
+
 import DashboardAdmin from "./components/DashboardAdmin";
 import DashboardEmployee from "./components/DashboardEmployee";
 import DashboardVisitor from "./components/DashboardVisitor";
-import Forbidden from "./components/Forbidden";
+
 import Artists from "./components/Artists";
 import Artworks from "./components/Artworks";
-import Home from "./components/Home";
-import Login from "./components/Login";
-import SignUp from "./components/SignUp";
-import Navbar from "./components/Navbar";
-import Events from "./components/Events";
-import Footer from "./components/Footer";
+import Reports from "./components/Reports"; // ✅ missing import added
 
 export default function App() {
   return (
     <>
       <Navbar />
       <Routes>
+        {/* Public */}
         <Route path="/" element={<Home />} />
+        <Route path="/events" element={<Events />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forbidden" element={<Forbidden />} />
 
+        {/* Dashboards */}
         <Route
           path="/admin"
           element={
@@ -47,23 +55,34 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Staff-only data pages */}
         <Route
           path="/artists"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowed={["admin", "employee"]}>
               <Artists />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
           path="/artworks"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowed={["admin", "employee"]}>
               <Artworks />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
-        <Route path="/events" element={<Events />} />
+        <Route
+          path="/reports"
+          element={
+            <RoleRoute allowed={["admin", "employee"]}>
+              <Reports />
+            </RoleRoute>
+          }
+        />
+
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Footer />

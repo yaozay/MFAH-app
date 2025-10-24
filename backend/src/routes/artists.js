@@ -5,20 +5,24 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
-// (A) LIST — any authenticated role can view
+// (A) LIST — any authenticated user can view
 router.get("/", requireAuth, async (_req, res) => {
-  const [rows] = await pool.execute(
-    "SELECT artist_id, full_name, birth_year, death_year, nationality, bio FROM Artists ORDER BY full_name"
-  );
-  res.json(rows);
+  try {
+    const [rows] = await pool.execute(
+      `SELECT artist_id, full_name, birth_year, death_year, nationality, bio
+       FROM Artists
+       ORDER BY full_name`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /artists error:", err);
+    res.status(500).json({ error: "Failed to fetch artists" });
+  }
 });
 
 // (B) CREATE — admin + employee
-router.post(
-  "/",
-  requireAuth,
-  requireAnyRole(["admin", "employee"]),
-  async (req, res) => {
+router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
+  try {
     const { full_name, birth_year, death_year, nationality, bio } = req.body || {};
     if (!full_name) return res.status(400).json({ error: "Full name is required" });
 
@@ -29,15 +33,15 @@ router.post(
     );
 
     res.status(201).json({ message: "Artist created" });
+  } catch (err) {
+    console.error("POST /artists error:", err);
+    res.status(500).json({ error: "Failed to create artist" });
   }
-);
+});
 
 // (C) UPDATE — admin + employee
-router.put(
-  "/:id",
-  requireAuth,
-  requireAnyRole(["admin", "employee"]),
-  async (req, res) => {
+router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
+  try {
     const { id } = req.params;
     const { full_name, birth_year, death_year, nationality, bio } = req.body || {};
 
@@ -49,19 +53,22 @@ router.put(
     );
 
     res.json({ message: "Artist updated" });
+  } catch (err) {
+    console.error("PUT /artists/:id error:", err);
+    res.status(500).json({ error: "Failed to update artist" });
   }
-);
+});
 
 // (D) DELETE — admin only
-router.delete(
-  "/:id",
-  requireAuth,
-  requireAnyRole(["admin"]),
-  async (req, res) => {
+router.delete("/:id", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
+  try {
     const { id } = req.params;
     await pool.execute("DELETE FROM Artists WHERE artist_id=?", [id]);
     res.json({ message: "Artist deleted" });
+  } catch (err) {
+    console.error("DELETE /artists/:id error:", err);
+    res.status(500).json({ error: "Failed to delete artist" });
   }
-);
+});
 
 export default router;

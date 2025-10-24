@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { useAuth } from "../lib/auth.jsx";
+import { useAuth } from "../lib/auth";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -24,7 +24,7 @@ export default function Navbar() {
 
         {/* Navigation */}
         <nav className="flex items-center gap-10">
-          {/* Always visible to any logged-in user */}
+          {/* Public links */}
           <NavLink to="/events" className={linkStyle}>
             EVENTS
           </NavLink>
@@ -35,16 +35,23 @@ export default function Navbar() {
             TICKETS
           </NavLink>
 
-          {/* Authenticated routes */}
+          {/* Authenticated sections */}
           {user && (
             <>
-              {/* Shared by all roles */}
-              <NavLink to="/artists" className={linkStyle}>
-                ARTISTS
-              </NavLink>
-              <NavLink to="/artworks" className={linkStyle}>
-                ARTWORKS
-              </NavLink>
+              {/* Admin + Employee shared links */}
+              {(user.role === "admin" || user.role === "employee") && (
+                <>
+                  <NavLink to="/artists" className={linkStyle}>
+                    ARTISTS
+                  </NavLink>
+                  <NavLink to="/artworks" className={linkStyle}>
+                    ARTWORKS
+                  </NavLink>
+                  <NavLink to="/reports" className={linkStyle}>
+                    REPORTS
+                  </NavLink>
+                </>
+              )}
 
               {/* Role-specific dashboards */}
               {user.role === "admin" && (

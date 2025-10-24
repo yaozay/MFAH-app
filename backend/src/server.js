@@ -8,6 +8,9 @@ import artistsRouter from "./routes/artists.js";
 import artworksRouter from "./routes/artworks.js";
 import eventsRouter from "./routes/events.js";
 
+import reportsRouter from "./routes/reports.js";
+
+
 dotenv.config();
 
 const app = express();
@@ -33,6 +36,7 @@ app.use("/api/auth", loginRouter);
 app.use("/api/artists", artistsRouter);
 app.use("/api/artworks", artworksRouter);
 app.use("/api/events", eventsRouter);
+app.use("/api/reports", reportsRouter);
 
 
 app.listen(PORT, () => {
