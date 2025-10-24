@@ -38,4 +38,19 @@ router.get("/modern-artworks", requireAuth, requireAnyRole(["admin","employee"])
   }
 });
 
+// (C) Report: All employees, ordered by salary, descending
+router.get("/employees", requireAuth, requireAnyRole(["admin"]), async(_req, res)=>{
+  try{
+    const [rows] = await pool.execute(`
+    SELECT employee_id, first_name, last_name, department_id, employee_role, hire_date, salary
+    FROM Employees
+    ORDER BY salary DESC;
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /reports/employee report", err);
+    res.status(500).json({error: "could not fetch employee report"});
+  }
+    });
+
 export default router;
