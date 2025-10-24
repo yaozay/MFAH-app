@@ -65,9 +65,9 @@ export default function Reports() {
               <tbody>
                 {artworksPerArtist.map((a) => (
                   <tr key={a.artist_id} className="odd:bg-white even:bg-rose-50">
-                    <td className="px-4 py-2">{a.artist_id}</td>
-                    <td className="px-4 py-2 font-medium">{a.artist_name}</td>
-                    <td className="px-4 py-2">{a.artwork_count}</td>
+                    <td className="px-4 py-2 text-black">{a.artist_id}</td>
+                    <td className="px-4 py-2 font-medium text-black">{a.artist_name}</td>
+                    <td className="px-4 py-2 text-black">{a.artwork_count}</td>
                   </tr>
                 ))}
               </tbody>
@@ -97,10 +97,10 @@ export default function Reports() {
               <tbody>
                 {modernArtworks.map((art, idx) => (
                   <tr key={idx} className="odd:bg-white even:bg-rose-50">
-                    <td className="px-4 py-2 font-medium">{art.title}</td>
-                    <td className="px-4 py-2">{art.year_created || "—"}</td>
-                    <td className="px-4 py-2">{art.art_type || "—"}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 font-medium text-black">{art.title}</td>
+                    <td className="px-4 py-2 text-black">{art.year_created || "—"}</td>
+                    <td className="px-4 py-2 text-black">{art.art_type || "—"}</td>
+                    <td className="px-4 py-2 text-black">
                       {art.estimated_price
                         ? `$${art.estimated_price.toLocaleString()}`
                         : "—"}
