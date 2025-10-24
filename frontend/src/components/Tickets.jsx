@@ -62,19 +62,19 @@ export default function Tickets() {
               <div className="flex items-center gap-4 mt-4">
                 <label className="text-neutral-700 font-medium">Quantity:</label>
                 <div className="flex items-center gap-2 border border-neutral-300 rounded">
-                  <button 
+                  <button
                     onClick={() => handleQuantityChange(ticket.id, (selectedTickets[ticket.id] || 0) - 1)}
                     className="px-4 py-2 text-neutral-600 hover:bg-neutral-100"
                   >
                     −
                   </button>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     value={selectedTickets[ticket.id] || 0}
                     onChange={(e) => handleQuantityChange(ticket.id, parseInt(e.target.value) || 0)}
-                    className="w-12 text-center border-l border-r border-neutral-300 py-2"
+                    className="w-12 text-center border-l border-r border-neutral-300 py-2 text-black"
                   />
-                  <button 
+                  <button
                     onClick={() => handleQuantityChange(ticket.id, (selectedTickets[ticket.id] || 0) + 1)}
                     className="px-4 py-2 text-neutral-600 hover:bg-neutral-100"
                   >
@@ -89,7 +89,7 @@ export default function Tickets() {
         {/* Checkout Summary */}
         <div className="bg-neutral-50 rounded-lg p-8 border-2 border-neutral-200">
           <h3 className="text-2xl font-bold text-neutral-900 mb-6">Order Summary</h3>
-          
+
           <div className="space-y-3 mb-6 pb-6 border-b border-neutral-300">
             {Object.entries(selectedTickets).map(([id, qty]) => {
               if (qty === 0) return null;

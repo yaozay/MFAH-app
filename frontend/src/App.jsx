@@ -9,6 +9,8 @@ import Events from "./components/Events";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import Forbidden from "./components/Forbidden";
+import Membership from "./components/Membership";
+import Tickets from "./components/Tickets";
 
 import DashboardAdmin from "./components/DashboardAdmin";
 import DashboardEmployee from "./components/DashboardEmployee";
@@ -16,7 +18,7 @@ import DashboardVisitor from "./components/DashboardVisitor";
 
 import Artists from "./components/Artists";
 import Artworks from "./components/Artworks";
-import Reports from "./components/Reports"; // ✅ missing import added
+import Reports from "./components/Reports";
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forbidden" element={<Forbidden />} />
+        <Route path="/membership" element={<Membership />} />
+        <Route path="/tickets" element={<Tickets />} />
 
         {/* Dashboards */}
         <Route

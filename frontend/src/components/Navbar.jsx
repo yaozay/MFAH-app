@@ -17,9 +17,12 @@ export default function Navbar() {
       <div className="container flex h-20 items-center justify-between px-6 lg:px-12">
         {/* Logo */}
         <div className="flex items-center">
-          <span className="text-2xl font-bold tracking-tight text-white">
+          <NavLink
+            to={"/DashboardVisitor"}
+            className="text-2xl font-bold tracking-tight text-white hover:text-rose-300 transition"
+          >
             HOUSTON MFA
-          </span>
+          </NavLink>
         </div>
 
         {/* Navigation */}
