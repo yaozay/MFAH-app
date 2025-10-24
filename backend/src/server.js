@@ -7,6 +7,7 @@ import registerRouter from "./routes/register.js";
 import artistsRouter from "./routes/artists.js";
 import artworksRouter from "./routes/artworks.js";
 import eventsRouter from "./routes/events.js";
+import employeeReportsRouter from "./employeeReports.js";
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use("/api/auth", loginRouter);
 app.use("/api/artists", artistsRouter);
 app.use("/api/artworks", artworksRouter);
 app.use("/api/events", eventsRouter);
+app.use("/api", employeeReportsRouter);
 
 
 app.listen(PORT, () => {

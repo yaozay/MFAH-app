@@ -46,6 +46,11 @@ export default function Navbar() {
                 ARTWORKS
               </NavLink>
 
+              {/*Employee Report link*/}
+              <NavLink to="/employees" className={linkStyle}>
+                EMPLOYEE
+                </NavLink>
+
               {/* Role-specific dashboards */}
               {user.role === "admin" && (
                 <NavLink to="/admin" className={linkStyle}>

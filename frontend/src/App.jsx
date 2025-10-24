@@ -12,6 +12,7 @@ import SignUp from "./components/SignUp";
 import Navbar from "./components/Navbar";
 import Events from "./components/Events";
 import Footer from "./components/Footer";
+import Employees from "./components/EmployeeReport";
 
 export default function App() {
   return (
@@ -63,6 +64,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path = "/employees"
+          element = {
+            <ProtectedRoute>
+              <Employees />
+            </ProtectedRoute>
+          }
+          />
         <Route path="/events" element={<Events />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
