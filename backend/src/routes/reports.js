@@ -38,4 +38,41 @@ router.get("/modern-artworks", requireAuth, requireAnyRole(["admin","employee"])
   }
 });
 
+router.get("/employees.csv", async (_req, res) => {
+  try {
+
+    const [rows] = await pool.query(`
+      SELECT 
+        e.employee_id,
+        e.first_name,
+        e.last_name
+      FROM Employees e
+      ORDER BY e.employee_id;
+    `);
+
+    const header = ["employee_id", "first_name", "last_name"];
+
+    const csv = [
+      header.join(","), 
+      ...rows.map(r =>
+        [r.employee_id, r.first_name, r.last_name]
+          .map(v => (v ?? "").toString().replaceAll('"', '""')) 
+          .map(v => /[",\n]/.test(v) ? `"${v}"` : v)           
+          .join(",")
+      ),
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="employee_basic_report.csv"'
+    );
+
+    res.status(200).send(csv);
+  } catch (err) {
+    console.error("GET /api/reports/employees.csv error:", err);
+    res.status(500).send("Failed to generate report backend");
+  }
+});
+
 export default router;
