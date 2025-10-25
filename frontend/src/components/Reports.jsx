@@ -6,6 +6,7 @@ export default function Reports() {
   // removed unused user destructure
   const [artworksPerArtist, setArtworksPerArtist] = useState([]);
   const [modernArtworks, setModernArtworks] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -14,21 +15,34 @@ export default function Reports() {
       try {
         const token = localStorage.getItem("token");
 
-        const [r1, r2] = await Promise.all([
+        const [r1, r2, r3] = await Promise.all([
           fetch("http://localhost:4000/api/reports/artworks-per-artist", {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch("http://localhost:4000/api/reports/modern-artworks", {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch("http://localhost:4000/api/reports/employees", {
+            headers: { Authorization: `Bearer ${token}`},
+          }),
         ]);
 
-        if (!r1.ok || !r2.ok) throw new Error("Error fetching reports");
+        console.log("Statuses:", {
+          artworks: r1.status,
+          modern: r2.status,
+          employees: r3.status,
+        });
+
+        if (!r1.ok || !r2.ok || !r3.ok) throw new Error("Error fetching reports");
 
         const data1 = await r1.json();
         const data2 = await r2.json();
+        const data3 = await r3.json();
+
         setArtworksPerArtist(data1);
         setModernArtworks(data2);
+        setEmployees(data3);
+
       } catch (err) {
         console.error("Reports fetch error:", err);
         setError("Failed to load reports");
@@ -114,6 +128,46 @@ export default function Reports() {
           <p className="text-neutral-500">No data found.</p>
         )}
       </section>
+      {/* Employees Report */}
+<section>
+  <h2 className="text-2xl font-semibold text-rose-800 mb-4">
+    Employee Report (by Salary)
+  </h2>
+  {employees.length > 0 ? (
+    <div className="overflow-x-auto border border-neutral-300 rounded-xl">
+      <table className="w-full border-collapse text-sm">
+        <thead className="bg-rose-200 text-neutral-900">
+          <tr>
+            <th className="px-4 py-3 text-left">Employee ID</th>
+            <th className="px-4 py-3 text-left">First Name</th>
+            <th className="px-4 py-3 text-left">Last Name</th>
+            <th className="px-4 py-3 text-left">Department ID</th>
+            <th className="px-4 py-3 text-left">Role</th>
+            <th className="px-4 py-3 text-left">Hire Date</th>
+            <th className="px-4 py-3 text-left">Salary ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {employees.map((e) => (
+            <tr key={e.employee_id} className="odd:bg-white even:bg-rose-50">
+              <td className="px-4 py-2 text-black">{e.employee_id}</td>
+              <td className="px-4 py-2 text-black">{e.first_name}</td>
+              <td className="px-4 py-2 text-black">{e.last_name}</td>
+              <td className="px-4 py-2 text-black">{e.department_id}</td>
+              <td className="px-4 py-2 text-black">{e.role}</td>
+              <td className="px-4 py-2 text-black">{e.hire_date}</td>
+              <td className="px-4 py-2 text-black">
+                {e.salary ? `$${e.salary.toLocaleString()}` : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <p className="text-neutral-500">No data found.</p>
+  )}
+</section>
     </div>
   );
 }
