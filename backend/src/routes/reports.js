@@ -1,10 +1,8 @@
 import { Router } from "express";
 import { pool } from "../db.js";
-//import { requireAuth } from "../utils/requireAuth.js";
-//import { requireAnyRole } from "../utils/authorize.js";
-
-import { stringify } from "csv-stringify/sync"; // npm i csv-stringify
-
+// import { requireAuth } from "../utils/requireAuth.js";
+// import { requireAnyRole } from "../utils/authorize.js";
+import { stringify } from "csv-stringify/sync";
 
 const router = Router();
 
@@ -25,7 +23,7 @@ router.get("/artworks-per-artist"/*, requireAuth, requireAnyRole(["admin","emplo
   }
 });
 
-// (B) Report: artworks created after 1900 (example “modern” filter)
+// (B) Report: artworks created after 1900
 router.get("/modern-artworks"/*, requireAuth, requireAnyRole(["admin","employee"])*/, async (_req, res) => {
   try {
     const [rows] = await pool.execute(`
@@ -41,9 +39,9 @@ router.get("/modern-artworks"/*, requireAuth, requireAnyRole(["admin","employee"
   }
 });
 
+// (C1) CSV: basic employees export
 router.get("/employees.csv", async (_req, res) => {
   try {
-
     const [rows] = await pool.query(`
       SELECT 
         e.employee_id,
@@ -54,23 +52,18 @@ router.get("/employees.csv", async (_req, res) => {
     `);
 
     const header = ["employee_id", "first_name", "last_name"];
-
     const csv = [
-      header.join(","), 
+      header.join(","),
       ...rows.map(r =>
         [r.employee_id, r.first_name, r.last_name]
-          .map(v => (v ?? "").toString().replaceAll('"', '""')) 
-          .map(v => /[",\n]/.test(v) ? `"${v}"` : v)           
+          .map(v => (v ?? "").toString().replaceAll('"', '""'))
+          .map(v => /[",\n]/.test(v) ? `"${v}"` : v)
           .join(",")
       ),
     ].join("\n");
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="employee_basic_report.csv"'
-    );
-
+    res.setHeader("Content-Disposition", 'attachment; filename="employee_basic_report.csv"');
     res.status(200).send(csv);
   } catch (err) {
     console.error("GET /api/reports/employees.csv error:", err);
@@ -78,11 +71,9 @@ router.get("/employees.csv", async (_req, res) => {
   }
 });
 
-//Admin employee Request (This is queries the employee tables)
-
-router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), */ async (req, res) => {
+// (C2) Employees: filter/sort/paginate (now includes salary + CSV option)
+router.get("/employees"/*, requireAuth, requireAnyRole(["admin"])*/, async (req, res) => {
   try {
-    // 1) Read query params
     const {
       q = "",
       department_id = "",
@@ -94,24 +85,25 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
       format = "json",
     } = req.query;
 
-    // 2) Sorting whitelist
+    // Sorting whitelist (added salary)
     const SORT_MAP = {
       id: "e.employee_id",
       name: "e.last_name",
       role: "e.employee_role",
-      dept: "department_name",  // alias we select below
+      dept: "department_name",
       hired: "e.hire_date",
       phone: "e.phone",
+      salary: "e.salary",
     };
     const sortCol = SORT_MAP[sort] || SORT_MAP.id;
     const sortDir = String(dir).toLowerCase() === "desc" ? "DESC" : "ASC";
 
-    // 3) Pagination
+    // Pagination
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSz  = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
     const offset  = (pageNum - 1) * pageSz;
 
-    // 4) WHERE builder
+    // WHERE builder
     const where = [];
     const params = [];
 
@@ -130,7 +122,7 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
 
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-    // 5) Count total
+    // Count total
     const countSql = `
       SELECT COUNT(*) AS total
       FROM Employees e
@@ -140,7 +132,7 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
     const [countRows] = await pool.query(countSql, params);
     const total = countRows[0]?.total ?? 0;
 
-    // 6) Page data
+    // Page data (now selecting salary)
     const dataSql = `
       SELECT
         e.employee_id,
@@ -150,6 +142,7 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
         e.phone,
         e.employee_role,
         e.hire_date,
+        e.salary,
         d.name AS department_name
       FROM Employees e
       LEFT JOIN Departments d ON d.department_id = e.department_id
@@ -159,10 +152,10 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
     `;
     const [rows] = await pool.query(dataSql, [...params, pageSz, offset]);
 
-    // 7) CSV or JSON
+    // CSV or JSON
     if (format === "csv") {
       const header = [
-        "employee_id","first_name","last_name","email","phone_number","employee_role","department_name","hire_date"
+        "employee_id","first_name","last_name","email","phone","employee_role","department_name","hire_date","salary"
       ];
       const csv = [
         header.join(","),
@@ -175,7 +168,8 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
             r.phone,
             r.employee_role,
             r.department_name,
-            (r.hire_date && r.hire_date.toISOString?.().slice(0,10)) || r.hire_date || ""
+            (r.hire_date && r.hire_date.toISOString?.().slice(0,10)) || r.hire_date || "",
+            r.salary
           ]
           .map(v => (v ?? "").toString().replaceAll('"', '""'))
           .map(v => /[",\n]/.test(v) ? `"${v}"` : v)
