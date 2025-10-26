@@ -20,6 +20,9 @@ import Artists from "./components/Artists";
 import Artworks from "./components/Artworks";
 import Reports from "./components/Reports";
 
+import EmployeeForm from "./components/EmployeeForm.jsx";
+
+
 export default function App() {
   return (
     <>
@@ -85,6 +88,17 @@ export default function App() {
             </RoleRoute>
           }
         />
+
+        <Route
+          path="/employee-form"
+          element={
+            <RoleRoute allowed={["admin"]}>
+              <EmployeeForm />
+            </RoleRoute>
+          }
+        />
+
+        
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
