@@ -33,7 +33,7 @@ export default function EmployeeForm() {
     }
     // Otherwise, go back to Admin dashboard route
     navigate("/admin", { replace: true });
-    
+
   };
 
   // load on edit
@@ -117,7 +117,7 @@ export default function EmployeeForm() {
         method: "DELETE",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        
+
       });
       if (!res.ok) throw new Error(`Delete failed (${res.status})`);
       goBack("EMPLOYEE_DELETED");
@@ -126,7 +126,7 @@ export default function EmployeeForm() {
     } finally {
       setSaving(false);
     }
-    
+
   };
 
   return (
@@ -187,7 +187,7 @@ export default function EmployeeForm() {
       </div>
 
       <div className="flex gap-2 pt-2">
-        <button className="btn bg-violet-600 text-white" onClick={onSave} disabled={saving}>
+        <button className="btn bg-rose-500 text-white" onClick={onSave} disabled={saving}>
           {id ? "Apply Changes" : "Add Employee"}
         </button>
 

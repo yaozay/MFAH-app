@@ -86,41 +86,41 @@ export default function DashboardAdmin() {
 
 
   // === ADD: popup opener, delete, and postMessage listener ===
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
-const openEmployeeForm = (id) => {
-  if (id) navigate(`/employee-form?id=${id}`);
-  else navigate("/employee-form");
-};
+  const openEmployeeForm = (id) => {
+    if (id) navigate(`/employee-form?id=${id}`);
+    else navigate("/employee-form");
+  };
 
-const onDelete = async (id) => {
-  const ok = window.confirm("Are you sure you want to delete this employee?");
-  if (!ok) return;
-  try {
-    const res = await fetch(`${API_BASE}/api/employees/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (!res.ok) throw new Error(`Delete failed (${res.status})`);
-    window.location.reload();
-    // re-trigger fetch
-    setApplied((p) => ({ ...p }));
-  } catch (e) {
-    alert(String(e?.message || e));
-  }
-};
-
-useEffect(() => {
-  const handler = (e) => {
-    if (!e?.data) return;
-    if (e.data.type === "EMPLOYEE_SAVED" || e.data.type === "EMPLOYEE_DELETED") {
-      setApplied((p) => ({ ...p })); // re-trigger fetch
+  const onDelete = async (id) => {
+    const ok = window.confirm("Are you sure you want to delete this employee?");
+    if (!ok) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/employees/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      window.location.reload();
+      // re-trigger fetch
+      setApplied((p) => ({ ...p }));
+    } catch (e) {
+      alert(String(e?.message || e));
     }
   };
-  window.addEventListener("message", handler);
-  return () => window.removeEventListener("message", handler);
-}, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (!e?.data) return;
+      if (e.data.type === "EMPLOYEE_SAVED" || e.data.type === "EMPLOYEE_DELETED") {
+        setApplied((p) => ({ ...p })); // re-trigger fetch
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
 
 
@@ -270,7 +270,7 @@ useEffect(() => {
           <option value="hired">Hire Date</option>
         </select>
 
-        
+
         <select
           className="input"
           value={dir}
@@ -279,7 +279,7 @@ useEffect(() => {
           <option value="asc">Asc</option>
           <option value="desc">Desc</option>
         </select>
-        
+
 
         <select
           className="input w-28"
@@ -296,28 +296,28 @@ useEffect(() => {
         </select>
 
         {/* Pressing Enter anywhere in this form triggers this submit button */}
-        <button type="submit" className="btn bg-violet-600 text-white">
+        <button type="submit" className="btn bg-rose-500 text-white">
           Apply to see changes
         </button>
 
-        
+
         {/* Download does NOT submit the form */}
         <button
           type="button"
-          className="btn bg-violet-600 text-white"
+          className="btn bg-rose-500 text-white"
           onClick={downloadCsv}
         >
-           Download CSV
+          Download CSV
         </button>
       </form>
 
       <button
-          type="button"
-          className="btn bg-violet-600 text-white"
-          onClick={() => openEmployeeForm()}
-        >
-          + Add Employee
-        </button>
+        type="button"
+        className="btn bg-rose-500 text-white"
+        onClick={() => openEmployeeForm()}
+      >
+        + Add Employee
+      </button>
 
       {/* Table (render your rows) */}
       <div className="rounded-xl border border-neutral-800 overflow-x-auto">
@@ -353,7 +353,7 @@ useEffect(() => {
                     <div className="flex gap-2">
                       <button
                         className="btn btn-ghost"
-                        onClick={() => openEmployeeForm(r.employee_id)} 
+                        onClick={() => openEmployeeForm(r.employee_id)}
                       >
                         Edit
                       </button>
