@@ -45,6 +45,8 @@ export default function DashboardAdmin() {
 
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 
 const token = localStorage.getItem("token")
 
@@ -81,6 +83,47 @@ export default function DashboardAdmin() {
     error: null,
   });
   const [loading, setLoading] = useState(false);
+
+
+  // === ADD: popup opener, delete, and postMessage listener ===
+const navigate = useNavigate();
+
+const openEmployeeForm = (id) => {
+  if (id) navigate(`/employee-form?id=${id}`);
+  else navigate("/employee-form");
+};
+
+const onDelete = async (id) => {
+  const ok = window.confirm("Are you sure you want to delete this employee?");
+  if (!ok) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/employees/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+    window.location.reload();
+    // re-trigger fetch
+    setApplied((p) => ({ ...p }));
+  } catch (e) {
+    alert(String(e?.message || e));
+  }
+};
+
+useEffect(() => {
+  const handler = (e) => {
+    if (!e?.data) return;
+    if (e.data.type === "EMPLOYEE_SAVED" || e.data.type === "EMPLOYEE_DELETED") {
+      setApplied((p) => ({ ...p })); // re-trigger fetch
+    }
+  };
+  window.addEventListener("message", handler);
+  return () => window.removeEventListener("message", handler);
+}, []);
+
+
+
 
   // build query string from APPLIED filters
   const query = useMemo(() => {
@@ -257,6 +300,7 @@ export default function DashboardAdmin() {
           Apply to see changes
         </button>
 
+        
         {/* Download does NOT submit the form */}
         <button
           type="button"
@@ -266,6 +310,14 @@ export default function DashboardAdmin() {
            Download CSV
         </button>
       </form>
+
+      <button
+          type="button"
+          className="btn bg-violet-600 text-white"
+          onClick={() => openEmployeeForm()}
+        >
+          + Add Employee
+        </button>
 
       {/* Table (render your rows) */}
       <div className="rounded-xl border border-neutral-800 overflow-x-auto">
@@ -284,6 +336,7 @@ export default function DashboardAdmin() {
                 <th className="px-3 py-2 text-left">Department</th>
                 <th className="px-3 py-2 text-left">Email</th>
                 <th className="px-3 py-2 text-left">Phone</th>
+                <th className="px-3 py-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -295,12 +348,29 @@ export default function DashboardAdmin() {
                   <td className="px-3 py-2">{r.employee_role}</td>
                   <td className="px-3 py-2">{r.department_name}</td>
                   <td className="px-3 py-2">{r.email}</td>
-                  <td className="px-3 py-2">{r.phone}</td> 
+                  <td className="px-3 py-2">{r.phone}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-2">
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => openEmployeeForm(r.employee_id)} 
+                      >
+                        Edit
+                      </button>
+                      {/* you already have onDelete; wire it here if you want */}
+                      <button
+                        className="btn btn-ghost text-red-400"
+                        onClick={() => onDelete(r.employee_id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {!loading && data.rows.length === 0 && (
                 <tr>
-                  <td className="px-3 py-4" colSpan={6}>
+                  <td className="px-3 py-4" colSpan={8}>
                     No results.
                   </td>
                 </tr>
