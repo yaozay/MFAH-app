@@ -101,6 +101,7 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
       role: "e.employee_role",
       dept: "department_name",  // alias we select below
       hired: "e.hire_date",
+      phone: "e.phone",
     };
     const sortCol = SORT_MAP[sort] || SORT_MAP.id;
     const sortDir = String(dir).toLowerCase() === "desc" ? "DESC" : "ASC";
@@ -146,6 +147,7 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
         e.first_name,
         e.last_name,
         e.email,
+        e.phone,
         e.employee_role,
         e.hire_date,
         d.name AS department_name
@@ -160,7 +162,7 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
     // 7) CSV or JSON
     if (format === "csv") {
       const header = [
-        "employee_id","first_name","last_name","email","employee_role","department_name","hire_date"
+        "employee_id","first_name","last_name","email","phone_number","employee_role","department_name","hire_date"
       ];
       const csv = [
         header.join(","),
@@ -170,6 +172,7 @@ router.get("/employees", /* requireAuth, requireAnyRole(["admin","employee"]), *
             r.first_name,
             r.last_name,
             r.email,
+            r.phone,
             r.employee_role,
             r.department_name,
             (r.hire_date && r.hire_date.toISOString?.().slice(0,10)) || r.hire_date || ""

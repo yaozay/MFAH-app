@@ -184,7 +184,7 @@ export default function DashboardAdmin() {
       <form className="flex flex-wrap gap-2 items-end" onSubmit={onApply}>
         <input
           className="input"
-          placeholder="Search name/email"
+          placeholder="Search name/email/phone"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -283,6 +283,7 @@ export default function DashboardAdmin() {
                 <th className="px-3 py-2 text-left">Role</th>
                 <th className="px-3 py-2 text-left">Department</th>
                 <th className="px-3 py-2 text-left">Email</th>
+                <th className="px-3 py-2 text-left">Phone</th>
               </tr>
             </thead>
             <tbody>
@@ -294,6 +295,7 @@ export default function DashboardAdmin() {
                   <td className="px-3 py-2">{r.employee_role}</td>
                   <td className="px-3 py-2">{r.department_name}</td>
                   <td className="px-3 py-2">{r.email}</td>
+                  <td className="px-3 py-2">{r.phone}</td> 
                 </tr>
               ))}
               {!loading && data.rows.length === 0 && (
