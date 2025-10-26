@@ -23,7 +23,7 @@ export default function Reports() {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch("http://localhost:4000/api/reports/employees", {
-            headers: { Authorization: `Bearer ${token}`},
+            headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
 
@@ -59,7 +59,7 @@ export default function Reports() {
 
   return (
     <div className="p-8 space-y-12">
-      <h1 className="text-3xl font-bold text-neutral-900 mb-6">Reports Dashboard</h1>
+      <h1 className="text-3xl font-bold text-white mb-6">Reports Dashboard</h1>
 
       {/* Artworks per Artist */}
       <section>
@@ -129,45 +129,45 @@ export default function Reports() {
         )}
       </section>
       {/* Employees Report */}
-<section>
-  <h2 className="text-2xl font-semibold text-rose-800 mb-4">
-    Employee Report (by Salary)
-  </h2>
-  {employees.length > 0 ? (
-    <div className="overflow-x-auto border border-neutral-300 rounded-xl">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-rose-200 text-neutral-900">
-          <tr>
-            <th className="px-4 py-3 text-left">Employee ID</th>
-            <th className="px-4 py-3 text-left">First Name</th>
-            <th className="px-4 py-3 text-left">Last Name</th>
-            <th className="px-4 py-3 text-left">Department ID</th>
-            <th className="px-4 py-3 text-left">Role</th>
-            <th className="px-4 py-3 text-left">Hire Date</th>
-            <th className="px-4 py-3 text-left">Salary ($)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {employees.map((e) => (
-            <tr key={e.employee_id} className="odd:bg-white even:bg-rose-50">
-              <td className="px-4 py-2 text-black">{e.employee_id}</td>
-              <td className="px-4 py-2 text-black">{e.first_name}</td>
-              <td className="px-4 py-2 text-black">{e.last_name}</td>
-              <td className="px-4 py-2 text-black">{e.department_id}</td>
-              <td className="px-4 py-2 text-black">{e.role}</td>
-              <td className="px-4 py-2 text-black">{e.hire_date}</td>
-              <td className="px-4 py-2 text-black">
-                {e.salary ? `$${e.salary.toLocaleString()}` : "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  ) : (
-    <p className="text-neutral-500">No data found.</p>
-  )}
-</section>
+      <section>
+        <h2 className="text-2xl font-semibold text-rose-800 mb-4">
+          Employee Report (by Salary)
+        </h2>
+        {employees.length > 0 ? (
+          <div className="overflow-x-auto border border-neutral-300 rounded-xl">
+            <table className="w-full border-collapse text-sm">
+              <thead className="bg-rose-200 text-neutral-900">
+                <tr>
+                  <th className="px-4 py-3 text-left">Employee ID</th>
+                  <th className="px-4 py-3 text-left">First Name</th>
+                  <th className="px-4 py-3 text-left">Last Name</th>
+                  <th className="px-4 py-3 text-left">Department ID</th>
+                  <th className="px-4 py-3 text-left">Role</th>
+                  <th className="px-4 py-3 text-left">Hire Date</th>
+                  <th className="px-4 py-3 text-left">Salary ($)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((e) => (
+                  <tr key={e.employee_id} className="odd:bg-white even:bg-rose-50">
+                    <td className="px-4 py-2 text-black">{e.employee_id}</td>
+                    <td className="px-4 py-2 text-black">{e.first_name}</td>
+                    <td className="px-4 py-2 text-black">{e.last_name}</td>
+                    <td className="px-4 py-2 text-black">{e.department_id}</td>
+                    <td className="px-4 py-2 text-black">{e.role}</td>
+                    <td className="px-4 py-2 text-black">{e.hire_date}</td>
+                    <td className="px-4 py-2 text-black">
+                      {e.salary ? `$${e.salary.toLocaleString()}` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-neutral-500">No data found.</p>
+        )}
+      </section>
     </div>
   );
 }
