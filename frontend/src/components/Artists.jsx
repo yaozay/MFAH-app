@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 
+
+const API = import.meta.env.VITE_API_BASE;
+
+
 export default function Artists() {
   const [artists, setArtists] = useState([]);
   const [formData, setFormData] = useState({
@@ -21,7 +25,7 @@ export default function Artists() {
     setError("");
     setSuccess("");
     try {
-      const res = await fetch("/api/artists", {
+      const res = await fetch(`${API}/api/artists`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       const data = await res.json();
@@ -40,7 +44,7 @@ export default function Artists() {
     setError("");
     setSuccess("");
     const method = editingId ? "PUT" : "POST";
-    const url = editingId ? `/api/artists/${editingId}` : "/api/artists";
+    const url = editingId ? `${API}/api/artists/${editingId}` : `${API}/api/artists`;
 
     try {
       const res = await fetch(url, {
@@ -84,7 +88,7 @@ export default function Artists() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this artist?")) return;
     try {
-      const res = await fetch(`/api/artists/${id}`, {
+      const res = await fetch(`${API}/api/artists/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });

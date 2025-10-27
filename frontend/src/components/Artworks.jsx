@@ -15,9 +15,10 @@ export default function Artworks() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  const API = import.meta.env.VITE_API_BASE;
+
+  useEffect(() => { fetchAll(); }, []);
+
 
   const fetchAll = async () => {
     setError("");
@@ -26,8 +27,8 @@ export default function Artworks() {
       const token = localStorage.getItem("token");
 
       const [artworksRes, artistsRes] = await Promise.all([
-        fetch("/api/artworks", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/artists", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/api/artworks`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/api/artists`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       const artworksData = await artworksRes.json();
@@ -54,7 +55,7 @@ export default function Artworks() {
     setSuccess("");
 
     const method = editingId ? "PUT" : "POST";
-    const url = editingId ? `/api/artworks/${editingId}` : "/api/artworks";
+    const url = editingId ? `${API}/api/artworks/${editingId}` : `${API}/api/artworks`;
 
     // normalize payload (empty strings -> null for optional fields)
     const payload = {
@@ -103,7 +104,7 @@ export default function Artworks() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this artwork?")) return;
     try {
-      const res = await fetch(`/api/artworks/${id}`, {
+      const res = await fetch(`${API}/api/artworks/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
