@@ -11,17 +11,14 @@ export default function Home() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* 🖼️ Background image */}
+      {/* Background image */}
       <img
         src="/art.png"
         alt="Museum Interior"
         className="absolute inset-0 w-full h-full object-cover object-center animate-fadePan"
       />
 
-      {/* 🩶 Dark overlay for contrast */}
       <div className="absolute inset-0 bg-black/40" />
-
-      {/* ✨ Centered text content */}
       <div className="relative z-10 text-center text-white px-6">
         <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-4">
           Welcome
