@@ -7,22 +7,40 @@ import registerRouter from "./routes/register.js";
 import artistsRouter from "./routes/artists.js";
 import artworksRouter from "./routes/artworks.js";
 import eventsRouter from "./routes/events.js";
-
 import reportsRouter from "./routes/reports.js";
-
 import employeesRouter from "./routes/employees.js";
-
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+// both local dev and Vercel production
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://mfah-app.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(
+          new Error(`CORS blocked for origin: ${origin}`)
+        );
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// health route checks DB too
+
 app.get("/api/health", async (_, res) => {
   try {
     const ok = await ping();
