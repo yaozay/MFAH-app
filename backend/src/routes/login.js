@@ -32,7 +32,9 @@ router.post("/login", async (req, res) => {
     const payload = {
       sub: dbUser.user_id,
       email: dbUser.email,
-      role: dbUser.role, // 'admin' | 'employee' | 'visitor'
+      role: dbUser.role,
+      first_name: dbUser.first_name,
+      last_name: dbUser.last_name,
     };
     const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TTL });
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../lib/auth.jsx"; 
+import { useAuth } from "../lib/auth.jsx";
 
 const API = import.meta.env.VITE_API_BASE;
 
@@ -44,7 +44,7 @@ export default function Login() {
         return;
       }
 
-      // ✅ backend returns { accessToken, user }
+      //backend returns { accessToken, user }
       const { accessToken, user } = data;
 
       if (!accessToken || !user) {
@@ -52,10 +52,10 @@ export default function Login() {
         return;
       }
 
-      // ✅ save to context/localStorage
+      //save to context/localStorage
       login(accessToken, user);
 
-      // ✅ redirect by role
+      //redirect by role
       if (user.role === "admin") navigate("/admin");
       else if (user.role === "employee") navigate("/employee");
       else navigate("/visitor");
