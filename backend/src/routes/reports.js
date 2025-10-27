@@ -190,4 +190,61 @@ router.get("/employees"/*, requireAuth, requireAnyRole(["admin"])*/, async (req,
   }
 });
 
+
+//admin metrics
+// Monthly performance metrics for admin dashboard
+router.get("/admin-metrics", async (req, res) => {
+  const { start, end } = req.query;
+  if (!start || !end) {
+    return res.status(400).json({ error: "start and end are required (YYYY-MM-DD)" });
+  }
+
+  try {
+    // Total Visitors
+    const [[{ total_visitors }]] = await pool.query(
+      `SELECT COUNT(*) AS total_visitors
+         FROM Visitors v
+        WHERE v.last_visit >= ? AND v.last_visit < DATE_ADD(?, INTERVAL 1 DAY)`,
+      [start, end]
+    );
+
+    // Ticket Sales (use total_price + date)
+    const [[{ ticket_sales }]] = await pool.query(
+      `SELECT COALESCE(SUM(t.total_price), 0) AS ticket_sales
+         FROM Ticket_Sales t
+        WHERE t.date >= ? AND t.date < DATE_ADD(?, INTERVAL 1 DAY)`,
+      [start, end]
+    );
+
+    // Shop Sales
+    const [[{ shop_sales }]] = await pool.query(
+      `SELECT COALESCE(SUM(g.total_price), 0) AS shop_sales
+        FROM Gift_Shop_Transactions g
+        WHERE g.sale_date >= ? AND g.sale_date < DATE_ADD(?, INTERVAL 1 DAY)`,
+      [start, end]
+    );
+
+    // New Memberships
+    const [[{ new_memberships }]] = await pool.query(
+      `SELECT COUNT(*) AS new_memberships
+        FROM Memberships m
+        WHERE m.start_date >= ? AND m.start_date < DATE_ADD(?, INTERVAL 1 DAY)`,
+      [start, end]
+    );
+
+    res.json({
+      total_visitors: Number(total_visitors || 0),
+      ticket_sales: Number(ticket_sales || 0),
+      shop_sales: Number(shop_sales || 0),
+      new_memberships: Number(new_memberships || 0),
+    });
+  } catch (err) {
+    console.error("GET /reports/admin-metrics error:", err);
+    res.status(500).json({ error: "Failed to fetch admin metrics" });
+  }
+});
+
+
+
+
 export default router;
