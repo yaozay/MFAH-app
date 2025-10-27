@@ -5,6 +5,8 @@ import enUS from "date-fns/locale/en-US";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 const locales = { "en-US": enUS };
+const API = import.meta.env.VITE_API_BASE;
+
 
 const localizer = dateFnsLocalizer({
   format,
@@ -19,7 +21,7 @@ export default function Events() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/events")
+    fetch(`${API}/api/events`)
       .then((res) => res.json())
       .then((data) => {
         // Parse into real Date objects

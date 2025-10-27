@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 // removed: import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
+const API = import.meta.env.VITE_API_BASE;
+
 export default function Reports() {
   // removed unused user destructure
   const [artworksPerArtist, setArtworksPerArtist] = useState([]);
@@ -16,13 +18,13 @@ export default function Reports() {
         const token = localStorage.getItem("token");
 
         const [r1, r2, r3] = await Promise.all([
-          fetch("http://localhost:4000/api/reports/artworks-per-artist", {
+          fetch(`${API}/api/reports/artworks-per-artist`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch("http://localhost:4000/api/reports/modern-artworks", {
+          fetch(`${API}/api/reports/modern-artworks`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch("http://localhost:4000/api/reports/employees", {
+          fetch(`${API}/api/reports/employees`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

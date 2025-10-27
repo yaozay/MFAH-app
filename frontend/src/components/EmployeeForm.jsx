@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 const token = localStorage.getItem("token");
-const API_BASE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
-  "http://localhost:4000";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 export default function EmployeeForm() {
   const [params] = useSearchParams();

@@ -1,10 +1,12 @@
 import { useAuth } from "./auth";
 
+const API = import.meta.env.VITE_API_BASE;
+
 // Hook version if you need inside components
 export function useApi() {
   const { token } = useAuth();
   return (path, options = {}) =>
-    fetch(`http://localhost:4000${path}`, {
+    fetch(`${API}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -20,7 +22,7 @@ export function useApi() {
 
 // Plain helper if you import directly (and manually pass token)
 export async function api(path, options = {}, token) {
-  const res = await fetch(`http://localhost:4000${path}`, {
+  const res = await fetch(`${API}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

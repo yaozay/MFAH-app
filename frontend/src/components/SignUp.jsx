@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+
+const API = import.meta.env.VITE_API_BASE;
+
+
 export default function Signup() {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -45,7 +49,7 @@ export default function Signup() {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:4000/api/auth/register", {
+      const res = await fetch(`${API}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // role defaults to visitor; you can change this if needed
