@@ -125,3 +125,24 @@
   background-color: #f9fafb !important;
   color: #aaa !important;
 }
+
+@keyframes fadePan {
+  0% {
+    opacity: 0;
+    transform: scale(1.05) translateY(20px);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.02) translateY(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(-10px);
+  }
+}
+
+.animate-fadePan {
+  animation: fadePan 4s ease-out forwards;
+}
