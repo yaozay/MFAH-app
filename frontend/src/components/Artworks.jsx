@@ -19,7 +19,6 @@ export default function Artworks() {
 
   useEffect(() => { fetchAll(); }, []);
 
-
   const fetchAll = async () => {
     setError("");
     setSuccess("");
@@ -57,7 +56,6 @@ export default function Artworks() {
     const method = editingId ? "PUT" : "POST";
     const url = editingId ? `${API}/api/artworks/${editingId}` : `${API}/api/artworks`;
 
-    // normalize payload (empty strings -> null for optional fields)
     const payload = {
       title: formData.title,
       artist_id: formData.artist_id ? Number(formData.artist_id) : null,
@@ -130,145 +128,223 @@ export default function Artworks() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-10 flex flex-col items-center">
-      <div className="w-full max-w-3xl bg-zinc-900 rounded-2xl shadow-lg p-8">
-        <h2 className="text-2xl font-semibold mb-4 text-center text-rose-300">
-          Artwork Data Entry
-        </h2>
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50 px-6 py-10">
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-lg border border-rose-100 p-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent mb-2">
+            Artwork Management
+          </h1>
+          <p className="text-neutral-600 text-lg">
+            Manage your museum's artwork collection
+          </p>
+        </div>
 
-        {error && <p className="text-red-500 text-center mb-2">{error}</p>}
-        {success && <p className="text-green-400 text-center mb-2">{success}</p>}
-
-        {/* FORM */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 bg-zinc-800 rounded-xl p-5">
-          <input
-            type="text"
-            name="title"
-            placeholder="Title (required)"
-            value={formData.title}
-            onChange={handleChange}
-            required
-            className="bg-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-400"
-          />
-
-          {/* Artist selector */}
-          <select
-            name="artist_id"
-            value={formData.artist_id}
-            onChange={handleChange}
-            className="bg-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-400"
-          >
-            <option value="">Select Artist (optional)</option>
-            {artists.map((ar) => (
-              <option key={ar.artist_id} value={ar.artist_id}>
-                {ar.full_name}
-              </option>
-            ))}
-          </select>
-
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="number"
-              name="year_created"
-              placeholder="Year Created"
-              value={formData.year_created}
-              onChange={handleChange}
-              className="bg-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-400"
-            />
-            <input
-              type="text"
-              name="art_type"
-              placeholder="Art Type (e.g., Oil on Canvas)"
-              value={formData.art_type}
-              onChange={handleChange}
-              className="bg-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-400"
-            />
+        {/* Alerts */}
+        {error && (
+          <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-md">
+            <strong>Error:</strong> {error}
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="date"
-              name="acquisition_date"
-              placeholder="Acquisition Date"
-              value={formData.acquisition_date}
-              onChange={handleChange}
-              className="bg-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-400"
-            />
-            <input
-              type="number"
-              step="0.01"
-              name="estimated_price"
-              placeholder="Estimated Price (USD)"
-              value={formData.estimated_price}
-              onChange={handleChange}
-              className="bg-zinc-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-400"
-            />
+        )}
+        {success && (
+          <div className="bg-emerald-50 border-2 border-emerald-200 text-emerald-700 px-6 py-4 rounded-xl shadow-md">
+            <strong>Success!</strong> {success}
           </div>
+        )}
 
-          <div className="flex gap-3 mt-2">
-            <button
-              type="submit"
-              className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2 rounded-md transition"
-            >
-              {editingId ? "Update Artwork" : "Add Artwork"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-semibold py-2 px-4 rounded-md transition"
+        {/* Form */}
+        <div className="bg-white rounded-2xl shadow-lg border border-rose-100 p-8">
+          <h2 className="text-2xl font-bold text-neutral-800 mb-6">
+            {editingId ? "Edit Artwork" : "Add New Artwork"}
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                placeholder="e.g., Starry Night"
+                value={formData.title}
+                onChange={handleChange}
+                required
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Artist
+              </label>
+              <select
+                name="artist_id"
+                value={formData.artist_id}
+                onChange={handleChange}
+                className="input"
               >
-                Cancel
+                <option value="">Select Artist (optional)</option>
+                {artists.map((ar) => (
+                  <option key={ar.artist_id} value={ar.artist_id}>
+                    {ar.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Year Created
+                </label>
+                <input
+                  type="number"
+                  name="year_created"
+                  placeholder="e.g., 1889"
+                  value={formData.year_created}
+                  onChange={handleChange}
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Art Type
+                </label>
+                <input
+                  type="text"
+                  name="art_type"
+                  placeholder="e.g., Oil on Canvas"
+                  value={formData.art_type}
+                  onChange={handleChange}
+                  className="input"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Acquisition Date
+                </label>
+                <input
+                  type="date"
+                  name="acquisition_date"
+                  value={formData.acquisition_date}
+                  onChange={handleChange}
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Estimated Price (USD)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="estimated_price"
+                  placeholder="e.g., 1000000"
+                  value={formData.estimated_price}
+                  onChange={handleChange}
+                  className="input"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                className="flex-1 btn bg-gradient-to-r from-rose-500 to-rose-600 text-white hover:from-rose-600 hover:to-rose-700 shadow-md"
+              >
+                {editingId ? "💾 Update Artwork" : "➕ Add Artwork"}
               </button>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="btn btn-ghost"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* Artwork List */}
+        <div className="bg-white rounded-2xl shadow-lg border border-rose-100 p-8">
+          <h2 className="text-2xl font-bold text-neutral-800 mb-6">
+            Collection ({artworks.length} artworks)
+          </h2>
+
+          <div className="space-y-3">
+            {artworks.map((a) => (
+              <div
+                key={a.artwork_id}
+                className="bg-gradient-to-r from-rose-50 to-amber-50 border-2 border-neutral-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-neutral-800 mb-2">
+                      {a.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 text-sm text-neutral-600 mb-2">
+                      {a.artist_name && (
+                        <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
+                          👤 {a.artist_name}
+                        </span>
+                      )}
+                      {a.year_created && (
+                        <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
+                          📅 {a.year_created}
+                        </span>
+                      )}
+                      {a.art_type && (
+                        <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
+                          🎨 {a.art_type}
+                        </span>
+                      )}
+                      {a.estimated_price != null && (
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full border border-emerald-300 font-semibold">
+                          💰 ${Number(a.estimated_price).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    {a.acquisition_date && (
+                      <p className="text-sm text-neutral-500">
+                        Acquired: {new Date(a.acquisition_date).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 md:flex-col">
+                    <button
+                      onClick={() => handleEdit(a)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium shadow-sm"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(a.artwork_id)}
+                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium shadow-sm"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {artworks.length === 0 && (
+              <div className="text-center py-12 text-neutral-500">
+                <p className="text-lg">No artworks in the collection yet.</p>
+                <p className="text-sm mt-2">Use the form above to add your first artwork.</p>
+              </div>
             )}
           </div>
-        </form>
-
-        <hr className="my-6 border-zinc-700" />
-
-        {/* LIST */}
-        <h3 className="text-xl font-semibold mb-3 text-rose-300">Existing Artworks</h3>
-
-        <ul className="flex flex-col gap-3">
-          {artworks.map((a) => (
-            <li
-              key={a.artwork_id}
-              className="bg-zinc-800 p-4 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between"
-            >
-              <div>
-                <p className="font-semibold text-lg">{a.title}</p>
-                <p className="text-sm text-zinc-400">
-                  {a.year_created ?? "-"} • {a.artist_name ?? "Unknown"}
-                </p>
-                <p className="text-sm text-zinc-400">
-                  {a.art_type ?? "-"} {a.acquisition_date ? `• Acq: ${a.acquisition_date.slice(0,10)}` : ""}{" "}
-                  {a.estimated_price != null ? `• $${Number(a.estimated_price).toLocaleString()}` : ""}
-                </p>
-              </div>
-
-              <div className="flex gap-2 mt-2 md:mt-0">
-                <button
-                  onClick={() => handleEdit(a)}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-md text-sm transition"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(a.artwork_id)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm transition"
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
-
-          {artworks.length === 0 && (
-            <li className="bg-zinc-800 p-6 rounded-lg text-center text-neutral-400">
-              No artworks yet.
-            </li>
-          )}
-        </ul>
+        </div>
       </div>
     </div>
   );

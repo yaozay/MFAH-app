@@ -21,122 +21,282 @@
     height: 100%;
   }
 
+  /* Light theme background with gradient */
   body {
-    @apply bg-neutral-950 text-neutral-100;
+    @apply bg-gradient-to-br from-rose-50 via-white to-amber-50 text-neutral-800 antialiased;
+    min-height: 100vh;
   }
 }
 
 @layer components {
+  /* Buttons - Light Theme */
   .btn {
-    @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-soft transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-violet-500;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply bg-violet-600;
+    @apply bg-gradient-to-r from-rose-500 to-rose-600 text-white hover:from-rose-600 hover:to-rose-700 focus:ring-rose-300;
   }
 
   .btn-ghost {
-    @apply bg-transparent hover:bg-neutral-800/60;
+    @apply bg-transparent border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-100 hover:border-neutral-400 focus:ring-neutral-300;
   }
 
+  /* Input fields - Light Theme */
   .input {
-    @apply w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-violet-500;
+    @apply w-full px-4 py-2.5 rounded-lg border-2 border-neutral-200 bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all duration-200;
   }
 
+  /* Cards - Light Theme */
   .card {
-    @apply rounded-2xl bg-neutral-900/60 p-5 shadow-soft;
+    @apply rounded-xl bg-white shadow-lg border border-neutral-200 p-6 transition-all duration-200 hover:shadow-xl;
   }
 
+  /* Headings */
   .h1 {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight;
+    @apply text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent;
+  }
+
+  /* Tables - Light Theme */
+  table {
+    @apply border-separate border-spacing-0;
+  }
+
+  thead th {
+    @apply bg-gradient-to-r from-rose-100 to-amber-100 text-neutral-800 font-semibold border-b-2 border-rose-200 px-4 py-3 text-left;
+  }
+
+  tbody tr {
+    @apply hover:bg-rose-50/50 transition-colors duration-150;
+  }
+
+  tbody td {
+    @apply border-b border-neutral-100 px-4 py-3;
   }
 }
 
+/* React Big Calendar - Light Theme Overrides */
+
 /* Base calendar background */
 .rbc-calendar {
-  background-color: #fff !important;
-  color: #000 !important;
-  font-family: "Segoe UI", sans-serif;
-  border-radius: 10px;
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  border-radius: 12px;
+  border: 2px solid #fecaca !important;
+  overflow: hidden;
 }
 
 /* Each day cell background */
 .rbc-day-bg {
-  background-color: #fff !important;
-  border-color: #e5e7eb !important;
-  /* light gray borders */
+  background-color: #ffffff !important;
+  border-color: #f3f4f6 !important;
 }
 
 /* Day numbers */
 .rbc-button-link {
-  color: #000 !important;
+  color: #374151 !important;
   font-weight: 500;
 }
 
 /* Current day highlight */
 .rbc-today {
-  background-color: #fdf2f8 !important;
-  /* soft rose tint */
+  background-color: #fef2f2 !important;
+  border: 2px solid #fecaca !important;
 }
 
 /* Header row (Sun, Mon, etc.) */
 .rbc-header {
-  background-color: #f9fafb !important;
-  /* very light gray */
-  color: #000 !important;
+  background: linear-gradient(to right, #ffe4e6, #fef3c7) !important;
+  color: #1f2937 !important;
   font-weight: 600;
-  border-color: #e5e7eb !important;
+  border-color: #fecaca !important;
+  padding: 12px 8px;
 }
 
 /* Toolbar (Month/Week/Day, navigation) */
 .rbc-toolbar {
-  background-color: #fff !important;
-  color: #000 !important;
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  padding: 16px;
+  border-bottom: 2px solid #fecaca;
+  margin-bottom: 0 !important;
 }
 
 .rbc-toolbar button {
-  background: transparent !important;
-  color: #000 !important;
-  border: 1px solid #ccc !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
 }
 
 .rbc-toolbar button:hover {
-  background-color: #f3f4f6 !important;
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
 }
 
 .rbc-toolbar button.rbc-active {
-  background-color: #fca5a5 !important;
-  /* rose-400 */
-  color: #fff !important;
+  background: linear-gradient(to right, #f43f5e, #fb923c) !important;
+  color: #ffffff !important;
   border: none !important;
+  box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.3) !important;
+}
+
+.rbc-toolbar-label {
+  font-weight: 700 !important;
+  font-size: 1.25rem !important;
+  color: #1f2937 !important;
 }
 
 /* Event cards */
 .rbc-event {
-  background-color: #fca5a5 !important;
-  /* rose-400 */
+  background: linear-gradient(135deg, #f43f5e, #fb7185) !important;
   border: none !important;
-  color: #111 !important;
-  font-weight: 600;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  box-shadow: 0 2px 4px rgba(244, 63, 94, 0.2) !important;
+  transition: all 0.2s !important;
+}
+
+.rbc-event:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(244, 63, 94, 0.3) !important;
+}
+
+.rbc-event-label {
+  font-size: 0.75rem !important;
+  color: #ffffff !important;
+}
+
+.rbc-event-content {
+  font-size: 0.875rem !important;
+}
+
+/* Selected event */
+.rbc-selected {
+  background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
 }
 
 /* Dim the off-range days (next/previous month) */
-.rbc-off-range-bg {
-  background-color: #f9fafb !important;
-  color: #aaa !important;
+.rbc-off-range {
+  color: #9ca3af !important;
 }
 
+.rbc-off-range-bg {
+  background-color: #fafafa !important;
+}
+
+/* Month view specific */
+.rbc-month-view {
+  border: 2px solid #f3f4f6 !important;
+  border-radius: 0 0 12px 12px !important;
+  background-color: #ffffff !important;
+}
+
+.rbc-month-row {
+  border-color: #f3f4f6 !important;
+}
+
+/* Week/Day view */
+.rbc-time-view {
+  border: 2px solid #f3f4f6 !important;
+  border-radius: 0 0 12px 12px !important;
+  background-color: #ffffff !important;
+}
+
+.rbc-time-header {
+  border-color: #f3f4f6 !important;
+}
+
+.rbc-time-content {
+  border-color: #f3f4f6 !important;
+}
+
+.rbc-timeslot-group {
+  border-color: #f3f4f6 !important;
+}
+
+.rbc-time-slot {
+  border-color: #f9fafb !important;
+}
+
+.rbc-current-time-indicator {
+  background-color: #f43f5e !important;
+  height: 2px !important;
+}
+
+/* Agenda view */
+.rbc-agenda-view {
+  background-color: #ffffff !important;
+  border-radius: 12px !important;
+  border: 2px solid #f3f4f6 !important;
+}
+
+.rbc-agenda-table {
+  border-color: #f3f4f6 !important;
+}
+
+.rbc-agenda-date-cell {
+  background-color: #fef2f2 !important;
+  color: #1f2937 !important;
+}
+
+.rbc-agenda-time-cell {
+  color: #6b7280 !important;
+}
+
+.rbc-agenda-event-cell {
+  color: #1f2937 !important;
+}
+
+/* Show more link */
+.rbc-show-more {
+  background-color: #fef2f2 !important;
+  color: #f43f5e !important;
+  font-weight: 600 !important;
+  border-radius: 4px !important;
+  padding: 2px 8px !important;
+  transition: all 0.2s !important;
+}
+
+.rbc-show-more:hover {
+  background-color: #fce7e7 !important;
+  color: #dc2626 !important;
+}
+
+/* Overlay for show more popup */
+.rbc-overlay {
+  background-color: #ffffff !important;
+  border: 2px solid #fecaca !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+  padding: 12px !important;
+}
+
+.rbc-overlay-header {
+  background: linear-gradient(to right, #ffe4e6, #fef3c7) !important;
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+  border-radius: 8px 8px 0 0 !important;
+  margin: -12px -12px 12px -12px !important;
+}
+
+/* Animations */
 @keyframes fadePan {
   0% {
     opacity: 0;
     transform: scale(1.05) translateY(20px);
   }
-
   50% {
     opacity: 1;
     transform: scale(1.02) translateY(0);
   }
-
   100% {
     opacity: 1;
     transform: scale(1) translateY(-10px);
@@ -145,4 +305,83 @@
 
 .animate-fadePan {
   animation: fadePan 4s ease-out forwards;
+}
+
+/* Custom scrollbar for light theme */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-neutral-100 rounded-lg;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-rose-300 rounded-lg;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-rose-400;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #fda4af #f5f5f5;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse animation for status indicators */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Slide in animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
 }
