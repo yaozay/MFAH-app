@@ -1,10 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useAuth } from "../lib/auth";
 
 // Minimal Employee Portal – avoids duplicating Artists/Artworks/Reports UIs
 // Shows quick actions only (you already have top‑nav routes for those pages)
 export default function DashboardEmployee() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // OPTIONAL: auto‑redirect employees straight to Artists
   // Uncomment if you prefer skipping this page entirely
@@ -15,7 +17,10 @@ export default function DashboardEmployee() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Employee Portal</h1>
-      <p className="text-sm opacity-80">Welcome! Use the quick actions below to manage content.</p>
+      <p className="text-sm opacity-80">
+        Welcome{user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""}!
+        Use the quick actions below to manage content.
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <PortalCard
@@ -31,12 +36,19 @@ export default function DashboardEmployee() {
           cta="Open Artworks"
         />
         <PortalCard
+          title="Manage Events"
+          desc="Create, update, or delete events."
+          to="/events"
+          cta="Open Events"
+        />
+        <PortalCard
           title="View Reports"
           desc="See collection and activity insights (read‑only)."
           to="/reports"
           cta="Open Reports"
         />
       </div>
+
 
 
     </div>

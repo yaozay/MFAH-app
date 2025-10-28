@@ -5,7 +5,6 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
 import Home from "./components/Home";
-import Events from "./components/Events";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import Forbidden from "./components/Forbidden";
@@ -21,6 +20,7 @@ import Artworks from "./components/Artworks";
 import Reports from "./components/Reports";
 
 import EmployeeForm from "./components/EmployeeForm.jsx";
+import EventsPage from "./components/EventsPage.jsx";
 
 
 export default function App() {
@@ -30,7 +30,7 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Home />} />
-        <Route path="/events" element={<Events />} />
+        <Route path="/events" element={<EventsPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forbidden" element={<Forbidden />} />
@@ -98,7 +98,7 @@ export default function App() {
           }
         />
 
-        
+
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
