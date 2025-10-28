@@ -6,7 +6,7 @@ const API = import.meta.env.VITE_API_BASE;
 export function useApi() {
   const { token } = useAuth();
   return (path, options = {}) =>
-    fetch(`${API}`, {
+    fetch(`${API}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -22,7 +22,7 @@ export function useApi() {
 
 // Plain helper if you import directly (and manually pass token)
 export async function api(path, options = {}, token) {
-  const res = await fetch(`${API}`, {
+  const res = await fetch(`${API}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

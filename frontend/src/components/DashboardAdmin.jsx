@@ -46,6 +46,7 @@ export default function DashboardAdmin() {
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 
 
 const token = localStorage.getItem("token")
@@ -53,6 +54,7 @@ const token = localStorage.getItem("token")
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 export default function DashboardAdmin() {
+  const { user } = useAuth();
   // ---- STAGED (what the user is editing) ----
   const [q, setQ] = useState("");
   const [departmentId, setDepartmentId] = useState("");
@@ -120,66 +122,66 @@ export default function DashboardAdmin() {
     return () => window.removeEventListener("message", handler);
   }, []);
 
-//Changes so admin can see some metrics
+  //Changes so admin can see some metrics
 
-const now = new Date();
-const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-const [selectedMonth, setSelectedMonth] = useState(defaultMonth); // NEW
+  const now = new Date();
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth); // NEW
 
-const [metrics, setMetrics] = useState({
-  total_visitors: 0,
-  ticket_sales: 0,
-  shop_sales: 0,
-  new_memberships: 0,
-});
-const [metricsLoading, setMetricsLoading] = useState(false); // NEW
-const [metricsError, setMetricsError] = useState(null);      // NEW
+  const [metrics, setMetrics] = useState({
+    total_visitors: 0,
+    ticket_sales: 0,
+    shop_sales: 0,
+    new_memberships: 0,
+  });
+  const [metricsLoading, setMetricsLoading] = useState(false); // NEW
+  const [metricsError, setMetricsError] = useState(null);      // NEW
 
-const firstDayISO = (yyyyMm) => `${yyyyMm}-01`;
-const lastDayISO = (yyyyMm) => {
-  const [y, m] = yyyyMm.split("-").map((s) => parseInt(s, 10));
-  const d = new Date(y, m, 0); // last day of month
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-};
+  const firstDayISO = (yyyyMm) => `${yyyyMm}-01`;
+  const lastDayISO = (yyyyMm) => {
+    const [y, m] = yyyyMm.split("-").map((s) => parseInt(s, 10));
+    const d = new Date(y, m, 0); // last day of month
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  };
 
-const fmtInt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n ?? 0);
-const fmtCurrency = (n) =>
-  new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" })
-    .format(Number.isFinite(n) ? n : 0);
+  const fmtInt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n ?? 0);
+  const fmtCurrency = (n) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" })
+      .format(Number.isFinite(n) ? n : 0);
 
-useEffect(() => {
-  let ignore = false;
-  (async () => {
-    setMetricsLoading(true);
-    setMetricsError(null);
-    try {
-      const start = firstDayISO(selectedMonth);
-      const end = lastDayISO(selectedMonth);
-      const qs = new URLSearchParams({ start, end }).toString();
-      const res = await fetch(`${API_BASE}/api/reports/admin-metrics?${qs}`, {
-        credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      if (!res.ok) throw new Error(`Metrics request failed: ${res.status}`);
-      const json = await res.json();
-      if (!ignore) {
-        setMetrics({
-          total_visitors: Number(json.total_visitors ?? 0),
-          ticket_sales: Number(json.ticket_sales ?? 0),
-          shop_sales: Number(json.shop_sales ?? 0),
-          new_memberships: Number(json.new_memberships ?? 0),
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      setMetricsLoading(true);
+      setMetricsError(null);
+      try {
+        const start = firstDayISO(selectedMonth);
+        const end = lastDayISO(selectedMonth);
+        const qs = new URLSearchParams({ start, end }).toString();
+        const res = await fetch(`${API_BASE}/api/reports/admin-metrics?${qs}`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
+        if (!res.ok) throw new Error(`Metrics request failed: ${res.status}`);
+        const json = await res.json();
+        if (!ignore) {
+          setMetrics({
+            total_visitors: Number(json.total_visitors ?? 0),
+            ticket_sales: Number(json.ticket_sales ?? 0),
+            shop_sales: Number(json.shop_sales ?? 0),
+            new_memberships: Number(json.new_memberships ?? 0),
+          });
+        }
+      } catch (err) {
+        if (!ignore) setMetricsError(String(err.message || err));
+      } finally {
+        if (!ignore) setMetricsLoading(false);
       }
-    } catch (err) {
-      if (!ignore) setMetricsError(String(err.message || err));
-    } finally {
-      if (!ignore) setMetricsLoading(false);
-    }
-  })();
-  return () => { ignore = true; };
-}, [selectedMonth]);
+    })();
+    return () => { ignore = true; };
+  }, [selectedMonth]);
 
 
 
@@ -279,48 +281,52 @@ useEffect(() => {
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-      <p>Full control over Artists, Artworks, and Reports.</p>
+      <p className="text-sm opacity-80">
+        Welcome{user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""}!</p>
+      <p className="text-sm opacity-80">
+        Full control over Artists, Artworks, and Reports
+      </p>
 
       {/* Monthly performance strip */}
-    <section className="space-y-3">
-      <div className="flex items-end justify-between gap-3">
-        <h2 className="text-xl font-semibold">Monthly performance</h2>
-        <div className="flex items-center gap-2">
-          <label className="text-sm opacity-80">Month</label>
-          <input
-            type="month"
-            className="input"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          />
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-xl font-semibold">Monthly performance</h2>
+          <div className="flex items-center gap-2">
+            <label className="text-sm opacity-80">Month</label>
+            <input
+              type="month"
+              className="input"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
 
-      {metricsLoading ? (
-        <div className="p-4">Loading metrics…</div>
-      ) : metricsError ? (
-        <div className="p-4 text-red-400">Failed to load metrics: {metricsError}</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-2xl border border-neutral-800 p-4">
-            <div className="text-sm opacity-75">Total visitors</div>
-            <div className="text-2xl font-semibold mt-1">{fmtInt(metrics.total_visitors)}</div>
+        {metricsLoading ? (
+          <div className="p-4">Loading metrics…</div>
+        ) : metricsError ? (
+          <div className="p-4 text-red-400">Failed to load metrics: {metricsError}</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="rounded-2xl border border-neutral-800 p-4">
+              <div className="text-sm opacity-75">Total visitors</div>
+              <div className="text-2xl font-semibold mt-1">{fmtInt(metrics.total_visitors)}</div>
+            </div>
+            <div className="rounded-2xl border border-neutral-800 p-4">
+              <div className="text-sm opacity-75">Total ticket sales</div>
+              <div className="text-2xl font-semibold mt-1">{fmtCurrency(metrics.ticket_sales)}</div>
+            </div>
+            <div className="rounded-2xl border border-neutral-800 p-4">
+              <div className="text-sm opacity-75">Total shop sales</div>
+              <div className="text-2xl font-semibold mt-1">{fmtCurrency(metrics.shop_sales)}</div>
+            </div>
+            <div className="rounded-2xl border border-neutral-800 p-4">
+              <div className="text-sm opacity-75">New memberships</div>
+              <div className="text-2xl font-semibold mt-1">{fmtInt(metrics.new_memberships)}</div>
+            </div>
           </div>
-          <div className="rounded-2xl border border-neutral-800 p-4">
-            <div className="text-sm opacity-75">Total ticket sales</div>
-            <div className="text-2xl font-semibold mt-1">{fmtCurrency(metrics.ticket_sales)}</div>
-          </div>
-          <div className="rounded-2xl border border-neutral-800 p-4">
-            <div className="text-sm opacity-75">Total shop sales</div>
-            <div className="text-2xl font-semibold mt-1">{fmtCurrency(metrics.shop_sales)}</div>
-          </div>
-          <div className="rounded-2xl border border-neutral-800 p-4">
-            <div className="text-sm opacity-75">New memberships</div>
-            <div className="text-2xl font-semibold mt-1">{fmtInt(metrics.new_memberships)}</div>
-          </div>
-        </div>
-      )}
-    </section>
+        )}
+      </section>
 
 
 
