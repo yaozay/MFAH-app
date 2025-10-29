@@ -220,7 +220,7 @@ export default function Artists() {
                 type="submit"
                 className="flex-1 btn bg-gradient-to-r from-rose-500 to-rose-600 text-white hover:from-rose-600 hover:to-rose-700 shadow-md"
               >
-                {editingId ? "💾 Update Artist" : "➕ Add Artist"}
+                {editingId ? "Update Artist" : "➕ Add Artist"}
               </button>
               {editingId && (
                 <button
@@ -254,10 +254,10 @@ export default function Artists() {
                     </h3>
                     <div className="flex flex-wrap gap-3 text-sm text-neutral-600 mb-2">
                       <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
-                        📅 {artist.birth_year || "?"} – {artist.death_year || "?"}
+                        {artist.birth_year || "?"} – {artist.death_year || "?"}
                       </span>
                       <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
-                        🌍 {artist.nationality || "Unknown"}
+                        {artist.nationality || "Unknown"}
                       </span>
                     </div>
                     {artist.bio && (
@@ -272,13 +272,13 @@ export default function Artists() {
                       onClick={() => handleEdit(artist)}
                       className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium shadow-sm"
                     >
-                      ✏️ Edit
+                      Edit
                     </button>
                     <button
                       onClick={() => handleDelete(artist.artist_id)}
                       className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium shadow-sm"
                     >
-                      🗑️ Delete
+                      Delete
                     </button>
                   </div>
                 </div>

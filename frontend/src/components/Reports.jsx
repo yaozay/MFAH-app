@@ -260,7 +260,7 @@ export default function Reports() {
       <section className="bg-white rounded-2xl shadow-lg border border-rose-100 overflow-hidden">
         <div className="bg-gradient-to-r from-rose-100 to-amber-100 px-8 py-6 border-b-2 border-rose-200">
           <h2 className="text-2xl font-bold text-neutral-800">
-            📊 Artworks per Artist
+            Artworks per Artist
           </h2>
           <p className="text-neutral-600 mt-1">Collection distribution by artist</p>
         </div>
@@ -301,7 +301,7 @@ export default function Reports() {
       <section className="bg-white rounded-2xl shadow-lg border border-rose-100 overflow-hidden">
         <div className="bg-gradient-to-r from-rose-100 to-amber-100 px-8 py-6 border-b-2 border-rose-200">
           <h2 className="text-2xl font-bold text-neutral-800">
-            🎨 Modern Artworks (After 1900)
+            Modern Artworks (After 1900)
           </h2>
           <p className="text-neutral-600 mt-1">Contemporary and modern art pieces</p>
         </div>
@@ -355,7 +355,7 @@ export default function Reports() {
       {/* ===== NEW: Exhibition Popularity (replaces Employee Directory) ===== */}
       <section className="bg-white rounded-2xl shadow-lg border border-rose-100 overflow-hidden">
         <div className="bg-gradient-to-r from-rose-100 to-amber-100 px-8 py-6 border-b-2 border-rose-200">
-          <h2 className="text-2xl font-bold text-neutral-800">🏛️ Exhibition Popularity</h2>
+          <h2 className="text-2xl font-bold text-neutral-800">Exhibition Popularity</h2>
           <p className="text-neutral-600 mt-1">
             Title search, date range filters, sorting & CSV export
           </p>
