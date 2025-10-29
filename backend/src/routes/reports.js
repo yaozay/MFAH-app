@@ -189,7 +189,163 @@ router.get("/employees"/*, requireAuth, requireAnyRole(["admin"])*/, async (req,
     return res.status(500).json({ error: err?.message || "Failed to fetch report" });
   }
 });
+// (D) Exhibition Popularity — date-robust + exact ticket-type labels + exhibition run-date filter
+router.get("/exhibition-popularity", async (req, res) => {
+  try {
+    const {
+      q = "",
+      from = "",           // YYYY-MM-DD (optional)
+      to = "",             // YYYY-MM-DD (optional)
+      sort = "total_revenue",
+      dir = "desc",
+      page = "1",
+      pageSize = "10",
+      format = "json",
+    } = req.query;
 
+    const SORT_MAP = {
+      title: "e.title",
+      run_days: "run_days",
+      total_tickets: "total_tickets",
+      total_revenue: "total_revenue",
+      adult: "adult",
+      senior: "senior",
+      youth: "youth",
+      child: "child",
+      start_date: "e.start_date",
+      end_date: "e.end_date",
+    };
+    const sortCol = SORT_MAP[sort] || SORT_MAP.total_revenue;
+    const sortDir = String(dir).toLowerCase() === "asc" ? "ASC" : "DESC";
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const pageSz  = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
+    const offset  = (pageNum - 1) * pageSz;
+
+    // ---- Title search (on Exhibitions) ----
+    const where = [];
+    const whereParams = [];
+    if (q) {
+      where.push("e.title LIKE ?");
+      whereParams.push(`%${q}%`);
+    }
+
+    // ---- Exhibition run-date filter (overlap with [from, to]) ----
+    // Keep only exhibitions that intersect the requested date window.
+    const exhibitDateConds = [];
+    const exhibitDateParams = [];
+    if (from && to) {
+      exhibitDateConds.push("(e.end_date >= ? AND e.start_date <= ?)");
+      exhibitDateParams.push(from, to);
+    } else if (from) {
+      exhibitDateConds.push("e.end_date >= ?");
+      exhibitDateParams.push(from);
+    } else if (to) {
+      exhibitDateConds.push("e.start_date <= ?");
+      exhibitDateParams.push(to);
+    }
+
+    const combinedWhereParts = [...where, ...exhibitDateConds];
+    const combinedWhereParams = [...whereParams, ...exhibitDateParams];
+    const whereSql = combinedWhereParts.length ? `WHERE ${combinedWhereParts.join(" AND ")}` : "";
+
+    // ---- Ticket sales date filter (works for DATE or DATETIME) ----
+    const salesDateWhere = [];
+    const salesDateParams = [];
+    if (from) {
+      salesDateWhere.push(`DATE(t.date) >= ?`);
+      salesDateParams.push(from);
+    }
+    if (to) {
+      salesDateWhere.push(`DATE(t.date) <= ?`);
+      salesDateParams.push(to);
+    }
+    const salesDateSql = salesDateWhere.length ? `WHERE ${salesDateWhere.join(" AND ")}` : "";
+
+    // ---- Count exhibitions AFTER applying title + run-date filters ----
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM Exhibitions e
+      ${whereSql}
+    `;
+    const [countRows] = await pool.query(countSql, combinedWhereParams);
+    const total = Number(countRows?.[0]?.total || 0);
+
+    // ---- Data: filter Ticket_Sales in subquery; LEFT JOIN preserves zero-sales rows ----
+    const dataSql = `
+      SELECT
+        e.exhibition_id,
+        e.title,
+        e.start_date,
+        e.end_date,
+        DATEDIFF(e.end_date, e.start_date) + 1 AS run_days,
+        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Adult' THEN 1 ELSE 0 END), 0) AS adult,
+        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Senior' THEN 1 ELSE 0 END), 0) AS senior,
+        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Youth' THEN 1 ELSE 0 END), 0) AS youth,
+        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Child' THEN 1 ELSE 0 END), 0) AS child,
+        COALESCE(COUNT(fs.ticket_type), 0) AS total_tickets,
+        COALESCE(SUM(fs.total_price), 0.00) AS total_revenue
+      FROM Exhibitions e
+      LEFT JOIN (
+        SELECT t.exhibition_id, t.ticket_type, t.total_price
+        FROM Ticket_Sales t
+        ${salesDateSql}
+      ) fs ON fs.exhibition_id = e.exhibition_id
+      ${whereSql}
+      GROUP BY e.exhibition_id, e.title, e.start_date, e.end_date
+      ORDER BY ${sortCol} ${sortDir}, e.exhibition_id ASC
+      LIMIT ? OFFSET ?
+    `;
+    const [rows] = await pool.query(
+      dataSql,
+      [...salesDateParams, ...combinedWhereParams, pageSz, offset]
+    );
+
+    if (format === "csv") {
+      const header = [
+        "exhibition_id","title","start_date","end_date",
+        "run_days","total_tickets","total_revenue",
+        "adult","senior","youth","child"
+      ];
+      const toMMDDYYYY = (d) => {
+        if (!d) return "";
+        const date = typeof d === "string" ? new Date(d) : d;
+        if (isNaN(date)) return "";
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const dd = String(date.getDate()).padStart(2, "0");
+        const yyyy = date.getFullYear();
+        return `${mm}/${dd}/${yyyy}`;
+      };
+      const csv = [
+        header.join(","),
+        ...rows.map((r) =>
+          [
+            r.exhibition_id,
+            r.title,
+            toMMDDYYYY(r.start_date),
+            toMMDDYYYY(r.end_date),
+            r.run_days,
+            r.total_tickets,
+            (Number(r.total_revenue || 0)).toFixed(2),
+            r.adult, r.senior, r.youth, r.child
+          ]
+          .map(v => (v ?? "").toString().replaceAll('"','""'))
+          .map(v => /[",\n]/.test(v) ? `"${v}"` : v)
+          .join(",")
+        ),
+      ].join("\n");
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", "attachment; filename=exhibition_popularity.csv");
+      return res.status(200).send(csv);
+    }
+
+    return res.json({ total, page: pageNum, pageSize: pageSz, rows });
+  } catch (err) {
+    console.error("GET /reports/exhibition-popularity error:", err);
+    return res.status(500).json({ error: err?.message || "Failed to fetch report" });
+  }
+});
 
 //admin metrics
 // Monthly performance metrics for admin dashboard
