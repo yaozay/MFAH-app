@@ -6,7 +6,7 @@ import { requireAnyRole } from "../utils/authorize.js";
 const router = Router();
 
 // (A) LIST — any authenticated role can view
-router.get("/", requireAuth, async (_req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const [rows] = await pool.execute(
       `SELECT 
@@ -17,7 +17,8 @@ router.get("/", requireAuth, async (_req, res) => {
          aw.year_created,
          aw.art_type,
          aw.acquisition_date,
-         aw.estimated_price
+         aw.estimated_price,
+         aw.image_url
        FROM Artworks aw
        LEFT JOIN Artists ar ON aw.artist_id = ar.artist_id
        ORDER BY aw.title`
@@ -39,16 +40,18 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       art_type = null,
       acquisition_date = null,
       estimated_price = null,
+      image_url = null,
     } = req.body || {};
 
     if (!title) return res.status(400).json({ error: "Title is required" });
 
     await pool.execute(
       `INSERT INTO Artworks
-         (title, artist_id, year_created, art_type, acquisition_date, estimated_price)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [title, artist_id || null, year_created || null, art_type || null, acquisition_date || null, estimated_price || null]
+     (title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url)
+   VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [title, artist_id || null, year_created || null, art_type || null, acquisition_date || null, estimated_price || null, image_url || null]
     );
+
 
     res.status(201).json({ message: "Artwork created" });
   } catch (err) {
@@ -68,15 +71,16 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
       art_type = null,
       acquisition_date = null,
       estimated_price = null,
+      image_url = null,
     } = req.body || {};
 
     if (!title) return res.status(400).json({ error: "Title is required" });
 
     await pool.execute(
       `UPDATE Artworks
-       SET title=?, artist_id=?, year_created=?, art_type=?, acquisition_date=?, estimated_price=?
+       SET title=?, artist_id=?, year_created=?, art_type=?, acquisition_date=?, estimated_price=?, image_url=?
        WHERE artwork_id=?`,
-      [title, artist_id, year_created, art_type, acquisition_date, estimated_price, id]
+      [title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url, id]
     );
 
     res.json({ message: "Artwork updated" });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export default function Artworks() {
+export default function ArtworksForm() {
   const [artworks, setArtworks] = useState([]);
   const [artists, setArtists] = useState([]);
   const [formData, setFormData] = useState({
@@ -10,6 +10,7 @@ export default function Artworks() {
     art_type: "",
     acquisition_date: "",
     estimated_price: "",
+    image_url: "",
   });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
@@ -63,6 +64,7 @@ export default function Artworks() {
       art_type: formData.art_type || null,
       acquisition_date: formData.acquisition_date || null,
       estimated_price: formData.estimated_price !== "" ? Number(formData.estimated_price) : null,
+      image_url: formData.image_url || null,
     };
 
     try {
@@ -94,6 +96,7 @@ export default function Artworks() {
       art_type: a.art_type ?? "",
       acquisition_date: a.acquisition_date ? a.acquisition_date.slice(0, 10) : "",
       estimated_price: a.estimated_price ?? "",
+      image_url: a.image_url || "",
     });
     setSuccess("");
     setError("");
@@ -124,6 +127,7 @@ export default function Artworks() {
       art_type: "",
       acquisition_date: "",
       estimated_price: "",
+      image_url: "",
     });
   };
 
@@ -252,13 +256,26 @@ export default function Artworks() {
                 />
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Artwork Image URL
+              </label>
+              <input
+                type="url"
+                name="image_url"
+                placeholder="https://example.com/image.jpg"
+                value={formData.image_url}
+                onChange={handleChange}
+                className="input"
+              />
+            </div>
 
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
                 className="flex-1 btn bg-gradient-to-r from-rose-500 to-rose-600 text-white hover:from-rose-600 hover:to-rose-700 shadow-md"
               >
-                {editingId ? "💾 Update Artwork" : "➕ Add Artwork"}
+                {editingId ? "Update Artwork" : "➕ Add Artwork"}
               </button>
               {editingId && (
                 <button
@@ -285,6 +302,13 @@ export default function Artworks() {
                 key={a.artwork_id}
                 className="bg-gradient-to-r from-rose-50 to-amber-50 border-2 border-neutral-200 rounded-xl p-6 hover:shadow-md transition-shadow"
               >
+                {a.image_url && (
+                  <img
+                    src={a.image_url}
+                    alt={a.title}
+                    className="w-full max-w-md rounded-xl object-cover mb-4 border border-neutral-200 shadow-sm"
+                  />
+                )}
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-neutral-800 mb-2">
@@ -293,22 +317,22 @@ export default function Artworks() {
                     <div className="flex flex-wrap gap-2 text-sm text-neutral-600 mb-2">
                       {a.artist_name && (
                         <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
-                          👤 {a.artist_name}
+                          {a.artist_name}
                         </span>
                       )}
                       {a.year_created && (
                         <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
-                          📅 {a.year_created}
+                          {a.year_created}
                         </span>
                       )}
                       {a.art_type && (
                         <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
-                          🎨 {a.art_type}
+                          {a.art_type}
                         </span>
                       )}
                       {a.estimated_price != null && (
                         <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full border border-emerald-300 font-semibold">
-                          💰 ${Number(a.estimated_price).toLocaleString()}
+                          ${Number(a.estimated_price).toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -324,13 +348,13 @@ export default function Artworks() {
                       onClick={() => handleEdit(a)}
                       className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium shadow-sm"
                     >
-                      ✏️ Edit
+                      Edit
                     </button>
                     <button
                       onClick={() => handleDelete(a.artwork_id)}
                       className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium shadow-sm"
                     >
-                      🗑️ Delete
+                      Delete
                     </button>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { useAuth } from "../lib/auth";
+import { useAuth } from "../../lib/auth";
 import EventsCalendar from "./Events";
 import EventsForm from "./EventsForm";
 

@@ -28,16 +28,23 @@ export default function Navbar() {
   const NavItems = () => (
     <>
       {/* Public */}
-      <NavLink to="/events" className={linkStyle}>
-        Events
-        <ActiveUnderline />
-      </NavLink>
+
+      {(!user || user.role === "visitor") && (
+        <NavLink to="/art" className={linkStyle}>
+          Art
+          <ActiveUnderline />
+        </NavLink>
+      )}
       <NavLink to="/membership" className={linkStyle}>
         Membership
         <ActiveUnderline />
       </NavLink>
       <NavLink to="/tickets" className={linkStyle}>
         Tickets
+        <ActiveUnderline />
+      </NavLink>
+      <NavLink to="/events" className={linkStyle}>
+        Events
         <ActiveUnderline />
       </NavLink>
 
@@ -79,6 +86,7 @@ export default function Navbar() {
               <ActiveUnderline />
             </NavLink>
           )}
+          { }
         </>
       )}
 
