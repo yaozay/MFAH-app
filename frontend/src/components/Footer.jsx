@@ -1,30 +1,64 @@
 export default function Footer() {
   return (
-    <footer className="bg-black text-gray-300 p-8">
-      <div className="max-w-6xl mx-auto flex flex-wrap justify-around">
-        <div>
-          <h3 className="text-white text-lg mb-2">Houston Museum of Fine Arts</h3>
-          <p>Preserving creativity, culture, and stories through time.</p>
+    <footer className="bg-neutral-900 text-neutral-400 border-t border-neutral-800">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div>
+            <h3 className="text-xl font-semibold text-white mb-3 tracking-tight">
+              Houston MFA
+            </h3>
+            <p className="text-sm leading-relaxed">
+              Preserving creativity, culture, and stories through time.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-white font-medium mb-3">Visit Us</h4>
+            <div className="space-y-2 text-sm">
+              <p>123 Museum Avenue<br />Houston, TX 77004</p>
+              <p>
+                <a 
+                  href="mailto:HoustonMFA@museum.org" 
+                  className="text-neutral-300 hover:text-white transition-colors"
+                >
+                  HoustonMFA@museum.org
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-white font-medium mb-3">Explore</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a href="/artists" className="hover:text-white transition-colors">
+                  Artists
+                </a>
+              </li>
+              <li>
+                <a href="/artworks" className="hover:text-white transition-colors">
+                  Artworks
+                </a>
+              </li>
+              <li>
+                <a href="/visitor" className="hover:text-white transition-colors">
+                  Visitor Info
+                </a>
+              </li>
+              <li>
+                <a href="/giftshop" className="hover:text-white transition-colors">
+                  Gift Shop
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div>
-          <h4 className="text-white text-md mb-2">Visit Us</h4>
-          <p>123 Museum Avenue<br />Houston, TX 77004</p>
-          <p><a href="mailto:HoutsonMFA@museum.org" className="text-red-400 hover:underline">HoutsonMFA@museum.org</a></p>
+        <div className="border-t border-neutral-800 pt-6">
+          <p className="text-center text-sm text-neutral-500">
+            © 2025 Houston Museum of Fine Arts. All Rights Reserved.
+          </p>
         </div>
-
-        <div>
-          <h4 className="text-white text-md mb-2">Explore</h4>
-          <ul>
-            <li><a href="/artists" className="hover:text-red-400">Artists</a></li>
-            <li><a href="/artworks" className="hover:text-red-400">Artworks</a></li>
-            <li><a href="/visitor" className="hover:text-red-400">Visitor </a></li>
-            <li><a href="/giftshop" className="hover:text-red-400">Gift Shop</a></li>
-          </ul>
-        </div>
-      </div>
-      <div className="text-center border-t border-gray-700 mt-6 pt-3 text-sm text-gray-400">
-        © 2025 Houston Museum of Fine Arts — All Rights Reserved
       </div>
     </footer>
   );
