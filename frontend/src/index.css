@@ -29,6 +29,7 @@
 }
 
 @layer components {
+
   /* Buttons - Light Theme */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
@@ -107,7 +108,7 @@
 
 /* Header row (Sun, Mon, etc.) */
 .rbc-header {
-  background: linear-gradient(to right, #ffe4e6, #fef3c7) !important;
+  background: #fff5f5 !important;
   color: #1f2937 !important;
   font-weight: 600;
   border-color: #fecaca !important;
@@ -139,7 +140,7 @@
 }
 
 .rbc-toolbar button.rbc-active {
-  background: linear-gradient(to right, #f43f5e, #fb923c) !important;
+  background: #f43f5e !important;
   color: #ffffff !important;
   border: none !important;
   box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.3) !important;
@@ -179,7 +180,7 @@
 
 /* Selected event */
 .rbc-selected {
-  background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
+  background: #f43f5e !important;
 }
 
 /* Dim the off-range days (next/previous month) */
@@ -279,7 +280,7 @@
 }
 
 .rbc-overlay-header {
-  background: linear-gradient(to right, #ffe4e6, #fef3c7) !important;
+  background: #fff5f5 !important;
   color: #1f2937 !important;
   font-weight: 600 !important;
   padding: 8px 12px !important;
@@ -293,10 +294,12 @@
     opacity: 0;
     transform: scale(1.05) translateY(20px);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.02) translateY(0);
   }
+
   100% {
     opacity: 1;
     transform: scale(1) translateY(-10px);
@@ -344,9 +347,12 @@
 
 /* Pulse animation for status indicators */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -362,6 +368,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -377,6 +384,7 @@
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }

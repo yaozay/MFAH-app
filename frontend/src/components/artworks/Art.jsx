@@ -4,6 +4,7 @@ export default function Art() {
   const [artworks, setArtworks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [view, setView] = useState("grid");
 
   const API = import.meta.env.VITE_API_BASE;
 
@@ -24,97 +25,201 @@ export default function Art() {
   }, [API]);
 
   if (loading)
-    return <div className="text-center mt-20 text-neutral-600">Loading artworks...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-neutral-600 text-lg">Loading artworks...</p>
+        </div>
+      </div>
+    );
 
   if (error)
-    return <div className="text-center mt-20 text-red-500 font-medium">{error}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">⚠️</div>
+          <p className="text-red-600 font-semibold text-xl">{error}</p>
+        </div>
+      </div>
+    );
 
   return (
-    <section className="min-h-screen bg-gradient-to-b from-rose-50 via-white to-amber-50 px-6 py-16">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-rose-500 to-rose-400 bg-clip-text text-transparent drop-shadow-sm">
-            Art Gallery
-          </h1>
-          <p className="text-neutral-600 text-lg mt-3">
-            Discover masterpieces from our museum’s permanent collection
-          </p>
+    <div className="min-h-screen bg-neutral-50">
+      <header className="bg-white border-b border-neutral-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-neutral-900">Art Gallery</h1>
+              <p className="text-neutral-600 mt-1">
+                {artworks.length} {artworks.length === 1 ? 'artwork' : 'artworks'} in collection
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setView("grid")}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${view === "grid"
+                  ? "bg-rose-400 text-white"
+                  : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
+                  }`}
+              >
+                Grid
+              </button>
+              <button
+                onClick={() => setView("list")}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${view === "list"
+                  ? "bg-rose-400 text-white"
+                  : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
+                  }`}
+              >
+                List
+              </button>
+            </div>
+          </div>
         </div>
+      </header>
 
-        {/* Artworks Grid */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {artworks.length === 0 ? (
-          <p className="text-center text-neutral-500 py-24 text-lg">
-            No artworks available at the moment.
-          </p>
+          <div className="text-center py-24">
+            <div className="text-8xl mb-6">🎨</div>
+            <p className="text-neutral-500 text-xl">
+              No artworks available at the moment.
+            </p>
+          </div>
+        ) : view === "grid" ? (
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
+            {artworks.map((a, index) => (
+              <div
+                key={a.artwork_id}
+                className="break-inside-avoid mb-6 group"
+              >
+                <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-neutral-200 hover:scale-[1.02]">
+                  <div className="relative overflow-hidden bg-neutral-100">
+                    {a.image_url ? (
+                      <img
+                        src={a.image_url}
+                        alt={a.title}
+                        className="w-full object-cover group-hover:brightness-95 transition-all duration-500"
+                        style={{ height: 'auto' }}
+                      />
+                    ) : (
+                      <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-rose-100 via-amber-50 to-violet-100">
+                        <span className="text-6xl">🎨</span>
+                      </div>
+                    )}
+                    {a.art_type && (
+                      <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+                        {a.art_type}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-bold text-xl text-neutral-900 mb-2 leading-tight">
+                      {a.title}
+                    </h3>
+
+                    {a.artist_name && (
+                      <p className="text-neutral-600 font-medium mb-3">
+                        {a.artist_name}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between mb-3">
+                      {a.year_created && (
+                        <span className="text-sm text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full">
+                          {a.year_created}
+                        </span>
+                      )}
+
+                      {a.estimated_price && (
+                        <span className="text-emerald-600 font-bold text-lg">
+                          ${Number(a.estimated_price).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+
+                    {a.acquisition_date && (
+                      <p className="text-xs text-neutral-400 border-t border-neutral-100 pt-3">
+                        Acquired {new Date(a.acquisition_date).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-4">
             {artworks.map((a) => (
               <div
                 key={a.artwork_id}
-                className="group relative bg-white rounded-3xl shadow-lg overflow-hidden border border-neutral-200 hover:shadow-2xl transition-all duration-300"
+                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-neutral-200"
               >
-                {/* Image */}
-                <div className="relative">
-                  {a.image_url ? (
-                    <img
-                      src={a.image_url}
-                      alt={a.title}
-                      className="w-full h-72 object-cover transform group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-72 bg-gradient-to-br from-rose-100 to-amber-100 flex items-center justify-center">
-                      <span className="text-6xl text-neutral-300">🎨</span>
-                    </div>
-                  )}
+                <div className="flex flex-col sm:flex-row">
 
-                  {/* Overlay title on hover */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-500">
-                    <h2 className="text-white text-2xl font-semibold tracking-wide drop-shadow-lg">
-                      {a.title}
-                    </h2>
+                  <div className="relative w-full sm:w-48 h-48 flex-shrink-0 overflow-hidden bg-neutral-100">
+                    {a.image_url ? (
+                      <img
+                        src={a.image_url}
+                        alt={a.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-rose-100 to-amber-100">
+                        <span className="text-5xl">🎨</span>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {/* Details */}
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-neutral-800 mb-1">
-                    {a.title}
-                  </h3>
-                  {a.artist_name && (
-                    <p className="text-sm text-neutral-600">
-                      <span className="font-medium">Artist:</span>{" "}
-                      {a.artist_name}
-                    </p>
-                  )}
-                  {a.year_created && (
-                    <p className="text-sm text-neutral-600">
-                      <span className="font-medium">Year:</span>{" "}
-                      {a.year_created}
-                    </p>
-                  )}
-                  {a.art_type && (
-                    <p className="text-sm text-neutral-600">
-                      <span className="font-medium">Type:</span> {a.art_type}
-                    </p>
-                  )}
-                  {a.estimated_price && (
-                    <p className="text-sm text-emerald-700 font-semibold mt-2">
-                      Price: ${Number(a.estimated_price).toLocaleString()}
-                    </p>
-                  )}
-                  {a.acquisition_date && (
-                    <p className="text-xs text-neutral-500 mt-1">
-                      Acquired on{" "}
-                      {new Date(a.acquisition_date).toLocaleDateString()}
-                    </p>
-                  )}
+                  <div className="flex-1 p-6">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-bold text-2xl text-neutral-900 mb-1">
+                          {a.title}
+                        </h3>
+                        {a.artist_name && (
+                          <p className="text-neutral-600 text-lg">
+                            {a.artist_name}
+                          </p>
+                        )}
+                      </div>
+                      {a.estimated_price && (
+                        <div className="text-right">
+                          <p className="text-emerald-600 font-bold text-2xl">
+                            ${Number(a.estimated_price).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 text-sm text-neutral-600">
+                      {a.year_created && (
+                        <div>
+                          <span className="font-semibold">Year:</span>{" "}
+                          {a.year_created}
+                        </div>
+                      )}
+                      {a.art_type && (
+                        <div>
+                          <span className="font-semibold">Type:</span>{" "}
+                          {a.art_type}
+                        </div>
+                      )}
+                      {a.acquisition_date && (
+                        <div>
+                          <span className="font-semibold">Acquired:</span>{" "}
+                          {new Date(a.acquisition_date).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-    </section>
+      </main>
+    </div>
   );
 }
