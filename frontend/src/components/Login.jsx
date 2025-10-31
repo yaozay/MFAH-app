@@ -6,7 +6,7 @@ const API = import.meta.env.VITE_API_BASE;
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth(); // from AuthContext
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -44,7 +44,6 @@ export default function Login() {
         return;
       }
 
-      //backend returns { accessToken, user }
       const { accessToken, user } = data;
 
       if (!accessToken || !user) {
@@ -52,10 +51,8 @@ export default function Login() {
         return;
       }
 
-      //save to context/localStorage
       login(accessToken, user);
 
-      //redirect by role
       if (user.role === "admin") navigate("/admin");
       else if (user.role === "employee") navigate("/employee");
       else navigate("/visitor");
@@ -69,68 +66,89 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
-      <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-12">
-        Houston Museum of Fine Arts
-      </h1>
+    <div className="min-h-screen bg-neutral-100 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-serif text-neutral-800 mb-3 tracking-wide">
+            Houston Museum of Fine Arts
+          </h1>
+          <div className="w-16 h-px bg-neutral-300 mx-auto"></div>
+        </div>
 
-      <div className="w-full max-w-md bg-rose-200 rounded-3xl p-8 md:p-12 shadow-lg">
-        <h2 className="text-4xl font-black text-center text-neutral-900 mb-10">
-          LOGIN
-        </h2>
+        <div className="bg-white rounded-lg shadow-md p-10">
+          <h2 className="text-2xl font-serif text-neutral-800 mb-8 text-center">
+            Login
+          </h2>
 
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-400 rounded">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <input
-            type="email"
-            name="email"
-            placeholder="EMAIL"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
-            autoComplete="email"
-          />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="your.email@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 text-neutral-900 rounded focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition"
+                autoComplete="email"
+              />
+            </div>
 
-          <input
-            type="password"
-            name="password"
-            placeholder="PASSWORD"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
-            autoComplete="current-password"
-          />
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 text-neutral-900 rounded focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition"
+                autoComplete="current-password"
+              />
+            </div>
 
-          <div className="text-right">
+            <div className="text-right">
+              <button
+                type="button"
+                className="text-sm text-neutral-600 hover:text-neutral-900 transition"
+                onClick={() => alert("TODO: implement password reset")}
+              >
+                Forgot password?
+              </button>
+            </div>
+
             <button
-              type="button"
-              className="text-xs font-bold text-neutral-900 hover:underline"
-              onClick={() => alert("TODO: implement password reset")}
+              type="submit"
+              disabled={loading}
+              className="w-full bg-neutral-800 hover:bg-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded transition"
             >
-              FORGOT PASSWORD?
+              {loading ? "Logging in..." : "Sign In"}
             </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-neutral-200 text-center">
+            <p className="text-sm text-neutral-600">
+              New to the museum?{" "}
+              <Link
+                to="/signup"
+                className="text-neutral-800 font-medium hover:underline"
+              >
+                Create an account
+              </Link>
+            </p>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gray-300 hover:bg-gray-400 disabled:opacity-60 text-neutral-900 font-bold py-3 rounded-lg transition text-sm"
-          >
-            {loading ? "Logging in..." : "LOGIN"}
-          </button>
-        </form>
-
-        <div className="text-center mt-6">
-          <p className="text-neutral-900 text-sm font-medium">
-            Don't have an account?{" "}
-            <Link
-              to="/signup"
-              className="underline hover:no-underline font-bold"
-            >
-              CREATE ACCOUNT
-            </Link>
-          </p>
         </div>
       </div>
     </div>
