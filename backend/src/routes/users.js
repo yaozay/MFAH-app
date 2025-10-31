@@ -1,5 +1,5 @@
 import express from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { pool } from "../db.js";
 import { requireAuth } from "../utils/requireAuth.js";
 import { requireAnyRole } from "../utils/authorize.js";
