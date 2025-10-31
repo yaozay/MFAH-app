@@ -42,57 +42,89 @@ export default function Membership() {
   ];
 
   return (
-    <div className="min-h-screen bg-white py-16 px-6 lg:px-12">
+    <div className="min-h-screen bg-neutral-100 py-16 px-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-5xl font-bold text-neutral-900 mb-4">MEMBERSHIP</h1>
-        <p className="text-lg text-neutral-600 mb-12">Join our community and enjoy exclusive benefits</p>
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-serif text-neutral-800 mb-4 tracking-wide">
+            Membership
+          </h1>
+          <div className="w-20 h-px bg-neutral-300 mx-auto mb-6"></div>
+          <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+            Join our community and enjoy exclusive benefits while supporting the arts
+          </p>
+        </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`rounded-lg p-8 transition ${plan.featured
-                  ? "bg-black text-white border-2 border-rose-300 scale-105"
-                  : "bg-neutral-50 border-2 border-neutral-200 hover:border-rose-300 text-black"
-                }`}
+              className={`bg-white rounded-lg shadow-md transition-all duration-300 ${
+                plan.featured
+                  ? "ring-2 ring-neutral-800 transform md:scale-105"
+                  : "hover:shadow-lg"
+              }`}
             >
-              <h2 className="text-2xl font-bold mb-2">{plan.name}</h2>
-              <div className="mb-6">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span
-                  className={
-                    plan.featured ? "text-rose-300" : "text-neutral-600"
-                  }
-                >
-                  {" "}
-                  {plan.period}
-                </span>
-              </div>
+              {plan.featured && (
+                <div className="bg-neutral-800 text-white text-center py-2 rounded-t-lg">
+                  <span className="text-sm font-medium">Most Popular</span>
+                </div>
+              )}
+              
+              <div className="p-8">
+                <h2 className="text-2xl font-serif text-neutral-800 mb-2">
+                  {plan.name}
+                </h2>
+                
+                <div className="mb-6 pb-6 border-b border-neutral-200">
+                  <span className="text-4xl font-bold text-neutral-900">
+                    {plan.price}
+                  </span>
+                  <span className="text-neutral-600 ml-2">
+                    {plan.period}
+                  </span>
+                </div>
 
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <span
-                      className={`text-lg ${plan.featured ? "text-rose-300" : "text-black"
-                        }`}
-                    >
-                      ✓
-                    </span>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
+                <ul className="space-y-4 mb-8">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <svg
+                        className="w-5 h-5 text-neutral-700 mt-0.5 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span className="text-neutral-700 text-sm leading-relaxed">
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
 
-              <button
-                className={`w-full py-3 font-medium rounded transition ${plan.featured
-                    ? "bg-rose-300 text-black hover:bg-rose-400"
-                    : "bg-black text-white hover:bg-neutral-800"
+                <button
+                  className={`w-full py-3 font-medium rounded-lg transition-all ${
+                    plan.featured
+                      ? "bg-neutral-800 text-white hover:bg-neutral-900"
+                      : "bg-white text-neutral-800 border-2 border-neutral-800 hover:bg-neutral-800 hover:text-white"
                   }`}
-              >
-                Choose Plan
-              </button>
+                >
+                  Choose Plan
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-16 text-center">
+          <p className="text-neutral-600 text-sm">
+            All memberships are tax-deductible to the extent allowed by law.
+          </p>
         </div>
       </div>
     </div>

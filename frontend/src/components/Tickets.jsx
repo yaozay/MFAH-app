@@ -86,7 +86,6 @@ export default function Tickets() {
           ))}
         </div>
 
-        {/* Checkout Summary */}
         <div className="bg-neutral-50 rounded-lg p-8 border-2 border-neutral-200">
           <h3 className="text-2xl font-bold text-neutral-900 mb-6">Order Summary</h3>
 
