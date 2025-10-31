@@ -17,8 +17,8 @@ export default function Footer() {
             <div className="space-y-2 text-sm">
               <p>123 Museum Avenue<br />Houston, TX 77004</p>
               <p>
-                <a 
-                  href="mailto:HoustonMFA@museum.org" 
+                <a
+                  href="mailto:HoustonMFA@museum.org"
                   className="text-neutral-300 hover:text-white transition-colors"
                 >
                   HoustonMFA@museum.org
