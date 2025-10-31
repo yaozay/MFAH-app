@@ -46,7 +46,7 @@ export default function Art() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50 text-neutral-800">
-      {/* Header */}
+
       <header className="bg-white/80 backdrop-blur-md border-b border-neutral-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -61,8 +61,8 @@ export default function Art() {
                 key={mode}
                 onClick={() => setView(mode)}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${view === mode
-                    ? "bg-rose-500 text-white shadow-md"
-                    : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
+                  ? "bg-rose-500 text-white shadow-md"
+                  : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
                   }`}
               >
                 {mode === "grid" ? "Grid" : "List"}
@@ -72,7 +72,6 @@ export default function Art() {
         </div>
       </header>
 
-      {/* Gallery */}
       <main className="max-w-7xl mx-auto px-6 py-10">
         {artworks.length === 0 ? (
           <div className="text-center py-24">
@@ -82,7 +81,7 @@ export default function Art() {
             </p>
           </div>
         ) : view === "grid" ? (
-          // --- GRID VIEW (Safari safe: no columns layout) ---
+          // --- GRID VIEW ---
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {artworks.map((a) => (
               <div
