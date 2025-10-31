@@ -24,7 +24,6 @@ export default function Events() {
     fetch(`${API}/api/events`)
       .then((res) => res.json())
       .then((data) => {
-        // Parse into real Date objects
         const formatted = data.map((e) => ({
           ...e,
           start: new Date(e.start),
