@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-
 const API = import.meta.env.VITE_API_BASE;
-
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -33,7 +31,6 @@ export default function Signup() {
     const password = formData.password.trim();
     const confirmPassword = formData.confirmPassword.trim();
 
-    // Frontend validation
     if (!email || !password || !confirmPassword) {
       setError("Email and password are required");
       return;
@@ -52,7 +49,6 @@ export default function Signup() {
       const res = await fetch(`${API}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // role defaults to visitor; you can change this if needed
         body: JSON.stringify({ email, password, first_name, last_name, role: "visitor" }),
       });
 
@@ -74,84 +70,130 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
-      <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-12">
-        Houston Museum of Fine Arts
-      </h1>
+    <div className="min-h-screen bg-neutral-100 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-lg">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-serif text-neutral-800 mb-3 tracking-wide">
+            Houston Museum of Fine Arts
+          </h1>
+          <div className="w-16 h-px bg-neutral-300 mx-auto"></div>
+        </div>
 
-      <div className="w-full max-w-md bg-rose-200 rounded-3xl p-8 md:p-12 shadow-lg">
-        <h2 className="text-4xl font-black text-center text-neutral-900 mb-10">
-          SIGN UP
-        </h2>
+        <div className="bg-white rounded-lg shadow-md p-10">
+          <h2 className="text-2xl font-serif text-neutral-800 mb-8 text-center">
+            Sign Up
+          </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <input
-            type="text"
-            name="firstName"
-            placeholder="FIRST NAME"
-            value={formData.firstName}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
-          />
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-400 rounded">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
 
-          <input
-            type="text"
-            name="lastName"
-            placeholder="LAST NAME"
-            value={formData.lastName}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
-          />
+          {success && (
+            <div className="mb-6 p-3 bg-green-50 border-l-4 border-green-400 rounded">
+              <p className="text-sm text-green-700">{success}</p>
+            </div>
+          )}
 
-          <input
-            type="email"
-            name="email"
-            placeholder="EMAIL"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
-            autoComplete="email"
-          />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-neutral-700 mb-2">
+                  First Name
+                </label>
+                <input
+                  id="firstName"
+                  type="text"
+                  name="firstName"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 text-neutral-900 rounded focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition"
+                />
+              </div>
 
-          <input
-            type="password"
-            name="password"
-            placeholder="PASSWORD"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
-            autoComplete="new-password"
-          />
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-neutral-700 mb-2">
+                  Last Name
+                </label>
+                <input
+                  id="lastName"
+                  type="text"
+                  name="lastName"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 text-neutral-900 rounded focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition"
+                />
+              </div>
+            </div>
 
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="CONFIRM PASSWORD"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-300 placeholder-gray-600 text-neutral-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 font-medium text-sm"
-            autoComplete="new-password"
-          />
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="your.email@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 text-neutral-900 rounded focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition"
+                autoComplete="email"
+              />
+            </div>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          {success && <p className="text-green-600 text-sm">{success}</p>}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="Minimum 8 characters"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 text-neutral-900 rounded focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition"
+                autoComplete="new-password"
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gray-300 hover:bg-gray-400 disabled:opacity-60 text-neutral-900 font-bold py-3 rounded-lg transition text-sm"
-          >
-            {loading ? "Creating..." : "CREATE ACCOUNT"}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-neutral-700 mb-2">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                name="confirmPassword"
+                placeholder="Re-enter your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 text-neutral-900 rounded focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition"
+                autoComplete="new-password"
+              />
+            </div>
 
-        <div className="text-center mt-6">
-          <p className="text-neutral-900 text-sm font-medium">
-            Already have an account?{" "}
-            <Link to="/login" className="underline hover:no-underline font-bold">
-              LOGIN
-            </Link>
-          </p>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-neutral-800 hover:bg-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded transition"
+            >
+              {loading ? "Creating..." : "Create Account"}
+            </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-neutral-200 text-center">
+            <p className="text-sm text-neutral-600">
+              Already a member?{" "}
+              <Link to="/login" className="text-neutral-800 font-medium hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
