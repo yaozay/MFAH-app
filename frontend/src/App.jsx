@@ -22,6 +22,8 @@ import Art from "./components/artworks/Art.jsx";
 import ArtworksPage from "./components/artworks/ArtworksPage.jsx";
 import EmployeeForm from "./components/EmployeeForm.jsx";
 import EventsPage from "./components/events/EventsPage.jsx";
+import UserForm from "./components/UserForm.jsx";
+
 
 
 export default function App() {
@@ -99,6 +101,8 @@ export default function App() {
             </RoleRoute>
           }
         />
+        <Route path="/user-form" element={<UserForm />} />
+
 
 
 
