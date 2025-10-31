@@ -10,6 +10,8 @@ import eventsRouter from "./routes/events.js";
 import reportsRouter from "./routes/reports.js";
 import employeesRouter from "./routes/employees.js";
 import venuesRouter from "./routes/venues.js";
+import usersRouter from "./routes/users.js";
+
 
 dotenv.config();
 
@@ -59,7 +61,7 @@ app.use("/api/artworks", artworksRouter);
 app.use("/api/events", eventsRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/venues", venuesRouter);
-
+app.use("/api/users", usersRouter);
 
 app.use("/api/employees", employeesRouter);
 

@@ -1,61 +1,15 @@
-
-/*const API_BASE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
-  "http://localhost:4000";
-
-export default function DashboardAdmin() {
-  const download = async (path, filename) => {
-    try {
-      const res = await fetch(`${API_BASE}${path}`, { method: "GET" });
-      if (!res.ok) throw new Error("Failed to generate report");
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      alert(e.message);
-    }
-  };
-
-  return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-      <p>Full control over Artists, Artworks, and Reports.</p>
-
-      <div className="flex gap-3">
-        <button
-          onClick={() =>
-            download("/api/reports/employees.csv", "employees.csv")
-          }
-          className="bg-violet-600 text-white px-4 py-2 rounded-xl shadow hover:opacity-90 transition"
-        >
-          Download Employee List (CSV)
-        </button>
-      </div>
-    </div>
-  );
-}
-
-*/
-
-
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 
-
-const token = localStorage.getItem("token")
-
+const token = localStorage.getItem("token");
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 export default function DashboardAdmin() {
   const { user } = useAuth();
-  // ---- STAGED (what the user is editing) ----
+  const navigate = useNavigate();
+
+  // Filters
   const [q, setQ] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [role, setRole] = useState("");
@@ -63,7 +17,6 @@ export default function DashboardAdmin() {
   const [dir, setDir] = useState("asc");
   const [pageSize, setPageSize] = useState(10);
 
-  // ---- APPLIED (what the table is actually using) ----
   const [applied, setApplied] = useState({
     q: "",
     departmentId: "",
@@ -74,7 +27,7 @@ export default function DashboardAdmin() {
     pageSize: 10,
   });
 
-  // data
+  // Data
   const [data, setData] = useState({
     rows: [],
     total: 0,
@@ -84,109 +37,74 @@ export default function DashboardAdmin() {
   });
   const [loading, setLoading] = useState(false);
 
-
-  // === ADD: popup opener, delete, and postMessage listener ===
-  const navigate = useNavigate();
-
-  const openEmployeeForm = (id) => {
-    if (id) navigate(`/employee-form?id=${id}`);
-    else navigate("/employee-form");
-  };
-
-  const onDelete = async (id) => {
-    const ok = window.confirm("Are you sure you want to delete this employee?");
-    if (!ok) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/employees/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
-      window.location.reload();
-      // re-trigger fetch
-      setApplied((p) => ({ ...p }));
-    } catch (e) {
-      alert(String(e?.message || e));
-    }
-  };
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (!e?.data) return;
-      if (e.data.type === "EMPLOYEE_SAVED" || e.data.type === "EMPLOYEE_DELETED") {
-        setApplied((p) => ({ ...p })); // re-trigger fetch
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, []);
-
-  //Changes so admin can see some metrics
-
+  // Metrics
   const now = new Date();
-  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth); // NEW
-
+  const defaultMonth = `${now.getFullYear()}-${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
   const [metrics, setMetrics] = useState({
     total_visitors: 0,
     ticket_sales: 0,
     shop_sales: 0,
-    new_memberships: 0,
   });
-  const [metricsLoading, setMetricsLoading] = useState(false); // NEW
-  const [metricsError, setMetricsError] = useState(null);      // NEW
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState(null);
+
+  const fmtInt = (n) =>
+    new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
+      n ?? 0
+    );
+  const fmtCurrency = (n) =>
+    new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "USD",
+    }).format(Number.isFinite(n) ? n : 0);
 
   const firstDayISO = (yyyyMm) => `${yyyyMm}-01`;
   const lastDayISO = (yyyyMm) => {
     const [y, m] = yyyyMm.split("-").map((s) => parseInt(s, 10));
-    const d = new Date(y, m, 0); // last day of month
+    const d = new Date(y, m, 0);
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     return `${d.getFullYear()}-${mm}-${dd}`;
   };
 
-  const fmtInt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n ?? 0);
-  const fmtCurrency = (n) =>
-    new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" })
-      .format(Number.isFinite(n) ? n : 0);
-
+  // Fetch metrics
   useEffect(() => {
     let ignore = false;
     (async () => {
       setMetricsLoading(true);
-      setMetricsError(null);
       try {
         const start = firstDayISO(selectedMonth);
         const end = lastDayISO(selectedMonth);
-        const qs = new URLSearchParams({ start, end }).toString();
-        const res = await fetch(`${API_BASE}/api/reports/admin-metrics?${qs}`, {
-          credentials: "include",
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
+        const res = await fetch(
+          `${API_BASE}/api/reports/admin-metrics?start=${start}&end=${end}`,
+          {
+            credentials: "include",
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }
+        );
         if (!res.ok) throw new Error(`Metrics request failed: ${res.status}`);
         const json = await res.json();
-        if (!ignore) {
+        if (!ignore)
           setMetrics({
             total_visitors: Number(json.total_visitors ?? 0),
             ticket_sales: Number(json.ticket_sales ?? 0),
             shop_sales: Number(json.shop_sales ?? 0),
-            new_memberships: Number(json.new_memberships ?? 0),
           });
-        }
       } catch (err) {
         if (!ignore) setMetricsError(String(err.message || err));
       } finally {
         if (!ignore) setMetricsLoading(false);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, [selectedMonth]);
 
-
-
-
-  // build query string from APPLIED filters
+  // Employees
   const query = useMemo(() => {
     const p = new URLSearchParams();
     if (applied.q) p.set("q", applied.q);
@@ -199,26 +117,21 @@ export default function DashboardAdmin() {
     return p.toString();
   }, [applied]);
 
-  // fetch whenever APPLIED query changes
   useEffect(() => {
     let ignore = false;
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/api/reports/employees?${query}`, {
-          credentials: "include",
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
-        if (!res.ok) {
-          if (!ignore)
-            setData((d) => ({
-              ...d,
-              rows: [],
-              total: 0,
-              error: `Request failed: ${res.status}`,
-            }));
-          return;
-        }
+        const res = await fetch(
+          `${API_BASE}/api/reports/employees?${query}`,
+          {
+            credentials: "include",
+            headers: token
+              ? { Authorization: `Bearer ${token}` }
+              : undefined,
+          }
+        );
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
         const json = await res.json();
         if (!ignore) setData({ ...json, error: null });
       } catch (e) {
@@ -233,9 +146,8 @@ export default function DashboardAdmin() {
     };
   }, [query]);
 
-  // submit handler: applies staged -> applied (Enter key or button)
   const onApply = (e) => {
-    e.preventDefault(); // lets Enter submit without page reload
+    e.preventDefault();
     setApplied((prev) => ({
       ...prev,
       q,
@@ -243,35 +155,13 @@ export default function DashboardAdmin() {
       role,
       sort,
       dir,
-      page: 1, // reset to first page on new filters
+      page: 1,
       pageSize,
     }));
   };
 
-  // download with applied filters
-  const downloadCsv = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/reports/employees?${query}&format=csv`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "", // <-- ADD
-        },
-      });
-      if (!res.ok) throw new Error(`Failed to download CSV (${res.status})`);
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "employees.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      alert(e.message);
-    }
-  };
+  const openEmployeeForm = (id) =>
+    id ? navigate(`/employee-form?id=${id}`) : navigate("/employee-form");
 
   const totalPages = Math.max(
     1,
@@ -279,23 +169,27 @@ export default function DashboardAdmin() {
   );
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-      <p className="text-sm opacity-80">
-        Welcome{user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""}!</p>
-      <p className="text-sm opacity-80">
-        Full control over Artists, Artworks, and Reports
+    <div className="p-6 space-y-6 bg-gradient-to-b from-white to-neutral-50 min-h-screen text-neutral-900">
+      <h1 className="text-3xl font-semibold text-neutral-800">
+        Admin Dashboard
+      </h1>
+      <p className="text-sm text-neutral-600">
+        Welcome
+        {user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""} You
+        have full control over Artists, Artworks, Employees, and Users.
       </p>
 
-      {/* Monthly performance strip */}
-      <section className="space-y-3">
+      {/* Performance Section */}
+      <section className="space-y-4">
         <div className="flex items-end justify-between gap-3">
-          <h2 className="text-xl font-semibold">Monthly performance</h2>
+          <h2 className="text-xl font-semibold text-neutral-800">
+            Monthly Performance
+          </h2>
           <div className="flex items-center gap-2">
-            <label className="text-sm opacity-80">Month</label>
+            <label className="text-sm text-neutral-600">Month</label>
             <input
               type="month"
-              className="input"
+              className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
             />
@@ -303,46 +197,36 @@ export default function DashboardAdmin() {
         </div>
 
         {metricsLoading ? (
-          <div className="p-4">Loading metrics…</div>
+          <div className="p-4 text-neutral-500">Loading metrics…</div>
         ) : metricsError ? (
-          <div className="p-4 text-red-400">Failed to load metrics: {metricsError}</div>
+          <div className="p-4 text-red-500">
+            Failed to load metrics: {metricsError}
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="rounded-2xl border border-neutral-800 p-4">
-              <div className="text-sm opacity-75">Total visitors</div>
-              <div className="text-2xl font-semibold mt-1">{fmtInt(metrics.total_visitors)}</div>
-            </div>
-            <div className="rounded-2xl border border-neutral-800 p-4">
-              <div className="text-sm opacity-75">Total ticket sales</div>
-              <div className="text-2xl font-semibold mt-1">{fmtCurrency(metrics.ticket_sales)}</div>
-            </div>
-            <div className="rounded-2xl border border-neutral-800 p-4">
-              <div className="text-sm opacity-75">Total shop sales</div>
-              <div className="text-2xl font-semibold mt-1">{fmtCurrency(metrics.shop_sales)}</div>
-            </div>
-            <div className="rounded-2xl border border-neutral-800 p-4">
-              <div className="text-sm opacity-75">New memberships</div>
-              <div className="text-2xl font-semibold mt-1">{fmtInt(metrics.new_memberships)}</div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard title="Total Visitors" value={fmtInt(metrics.total_visitors)} />
+            <MetricCard title="Ticket Sales" value={fmtCurrency(metrics.ticket_sales)} />
+            <MetricCard title="Shop Sales" value={fmtCurrency(metrics.shop_sales)} />
+            <UserCard />
           </div>
         )}
       </section>
 
-
-
-
-      <h1 className="text-l font-semibold">Employee Search</h1>
-      {/* Filters (press Enter to apply) */}
-      <form className="flex flex-wrap gap-2 items-end" onSubmit={onApply}>
+      {/* Employee Section */}
+      <h1 className="text-lg font-semibold text-neutral-800">Employee Search</h1>
+      <form
+        className="flex flex-wrap gap-2 items-end"
+        onSubmit={onApply}
+      >
         <input
-          className="input"
+          className="border border-neutral-300 rounded-lg px-3 py-2 text-sm flex-1"
           placeholder="Search name/email/phone"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
 
         <select
-          className="input"
+          className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
           value={departmentId}
           onChange={(e) => setDepartmentId(e.target.value)}
         >
@@ -350,167 +234,200 @@ export default function DashboardAdmin() {
           <option value="1">Administration / IT</option>
           <option value="2">Curatorial</option>
           <option value="3">Exhibitions & Events</option>
-          <option value="4">Visitor Services / Ticketing</option>
-          <option value="5">Retail / Museum Shop</option>
-          <option value="6">Development / Fundraising</option>
+          <option value="4">Visitor Services</option>
+          <option value="5">Retail / Shop</option>
+          <option value="6">Development</option>
         </select>
 
         <select
-          className="input"
+          className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
           value={role}
           onChange={(e) => setRole(e.target.value)}
         >
           <option value="">All Roles</option>
-          <option value="curator">curator</option>
-          <option value="manager">manager</option>
-          <option value="security">security</option>
-          <option value="guide">guide</option>
+          <option value="curator">Curator</option>
+          <option value="manager">Manager</option>
+          <option value="security">Security</option>
+          <option value="guide">Guide</option>
         </select>
 
-        <select
-          className="input"
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-        >
-          <option value="id">ID</option>
-          <option value="name">Last Name</option>
-          <option value="role">Role</option>
-          <option value="dept">Department</option>
-          <option value="hired">Hire Date</option>
-        </select>
-
-
-        <select
-          className="input"
-          value={dir}
-          onChange={(e) => setDir(e.target.value)}
-        >
-          <option value="asc">Asc</option>
-          <option value="desc">Desc</option>
-        </select>
-
-
-        <select
-          className="input w-28"
-          value={pageSize}
-          onChange={(e) => {
-            setPageSize(parseInt(e.target.value, 10));
-          }}
-        >
-          {[10, 20, 50, 100].map((n) => (
-            <option key={n} value={n}>
-              {n} / page
-            </option>
-          ))}
-        </select>
-
-        {/* Pressing Enter anywhere in this form triggers this submit button */}
-        <button type="submit" className="btn bg-rose-500 text-white">
-          Apply to see changes
-        </button>
-
-
-        {/* Download does NOT submit the form */}
         <button
-          type="button"
-          className="btn bg-rose-500 text-white"
-          onClick={downloadCsv}
+          type="submit"
+          className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-400 text-sm"
         >
-          Download CSV
+          Apply
         </button>
       </form>
 
-      <button
-        type="button"
-        className="btn bg-rose-500 text-white"
-        onClick={() => openEmployeeForm()}
-      >
-        + Add Employee
-      </button>
-
-      {/* Table (render your rows) */}
-      <div className="rounded-xl border border-neutral-800 overflow-x-auto">
+      {/* Employee Table */}
+      <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
         {loading ? (
-          <div className="p-4">Loading…</div>
+          <div className="p-4 text-neutral-500">Loading…</div>
         ) : data.error ? (
-          <div className="p-4 text-red-400">{data.error}</div>
+          <div className="p-4 text-red-500">{data.error}</div>
         ) : (
-          <table className="min-w-full text-sm">
-            <thead className="bg-neutral-900">
+          <table className="min-w-full text-sm text-neutral-800">
+            <thead className="bg-neutral-100">
               <tr>
-                <th className="px-3 py-2 text-left">ID</th>
-                <th className="px-3 py-2 text-left">First</th>
-                <th className="px-3 py-2 text-left">Last</th>
-                <th className="px-3 py-2 text-left">Role</th>
-                <th className="px-3 py-2 text-left">Department</th>
-                <th className="px-3 py-2 text-left">Email</th>
-                <th className="px-3 py-2 text-left">Phone</th>
-                <th className="px-3 py-2 text-left">Actions</th>
+                <th className="px-3 py-2 text-left font-semibold">ID</th>
+                <th className="px-3 py-2 text-left font-semibold">First</th>
+                <th className="px-3 py-2 text-left font-semibold">Last</th>
+                <th className="px-3 py-2 text-left font-semibold">Role</th>
+                <th className="px-3 py-2 text-left font-semibold">Email</th>
               </tr>
             </thead>
             <tbody>
               {data.rows.map((r) => (
-                <tr key={r.employee_id} className="border-t border-neutral-800">
+                <tr key={r.employee_id} className="border-t border-neutral-200">
                   <td className="px-3 py-2">{r.employee_id}</td>
                   <td className="px-3 py-2">{r.first_name}</td>
                   <td className="px-3 py-2">{r.last_name}</td>
                   <td className="px-3 py-2">{r.employee_role}</td>
-                  <td className="px-3 py-2">{r.department_name}</td>
                   <td className="px-3 py-2">{r.email}</td>
-                  <td className="px-3 py-2">{r.phone}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-2">
-                      <button
-                        className="btn btn-ghost"
-                        onClick={() => openEmployeeForm(r.employee_id)}
-                      >
-                        Edit
-                      </button>
-                      {/* you already have onDelete; wire it here if you want */}
-                      <button
-                        className="btn btn-ghost text-red-400"
-                        onClick={() => onDelete(r.employee_id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
-              {!loading && data.rows.length === 0 && (
-                <tr>
-                  <td className="px-3 py-4" colSpan={8}>
-                    No results.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         )}
       </div>
+    </div>
+  );
+}
 
-      {/* Pagination (drives APPLIED state) */}
-      <div className="flex items-center gap-2">
+// --- Reusable components ---
+function MetricCard({ title, value }) {
+  return (
+    <div className="rounded-xl bg-white border border-neutral-200 shadow-sm p-5 flex flex-col">
+      <div className="text-sm text-neutral-500">{title}</div>
+      <div className="text-2xl font-semibold mt-2 text-neutral-800">{value}</div>
+    </div>
+  );
+}
+
+function UserCard() {
+  const token = localStorage.getItem("token");
+  const API_BASE = import.meta.env.VITE_API_BASE;
+  const [showUsers, setShowUsers] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/api/users`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to fetch users");
+      setUsers(json);
+    } catch (err) {
+      alert("Error fetching users: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl bg-white border border-neutral-200 shadow-sm p-5 flex flex-col justify-between relative">
+      <div>
+        <div className="text-sm text-neutral-500">User Management</div>
+        <div className="text-2xl font-semibold mt-2 text-neutral-800">Users</div>
+      </div>
+      <div className="flex gap-2 mt-4">
         <button
-          className="btn btn-ghost"
-          disabled={applied.page <= 1}
-          onClick={() =>
-            setApplied((p) => ({ ...p, page: Math.max(1, p.page - 1) }))
-          }
+          onClick={async () => {
+            const first_name = prompt("Enter first name:");
+            const last_name = prompt("Enter last name:");
+            const email = prompt("Enter email:");
+            const password = prompt("Enter password:");
+            const role = prompt("Enter role (admin, employee, visitor):", "visitor");
+            if (!email || !password) return alert("Email and password are required.");
+            try {
+              const res = await fetch(`${API_BASE}/api/users`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: token ? `Bearer ${token}` : "",
+                },
+                body: JSON.stringify({ first_name, last_name, email, password, role }),
+              });
+              const data = await res.json();
+              if (res.ok) alert("User created successfully!");
+              else alert(`Failed: ${data.error || res.statusText}`);
+            } catch (err) {
+              alert("Error: " + err.message);
+            }
+          }}
+          className="flex-1 bg-rose-500 hover:bg-rose-400 text-white px-3 py-2 rounded-lg text-sm font-medium transition"
         >
-          Prev
+          + Add User
         </button>
-        <span>
-          Page {data.page} of {totalPages}
-        </span>
+
         <button
-          className="btn btn-ghost"
-          disabled={applied.page >= totalPages}
-          onClick={() => setApplied((p) => ({ ...p, page: p.page + 1 }))}
+          onClick={async () => {
+            await fetchUsers();
+            setShowUsers(true);
+          }}
+          className="flex-1 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 px-3 py-2 rounded-lg text-sm font-medium transition"
         >
-          Next
+          View Users
         </button>
       </div>
+
+      {showUsers && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-end z-50">
+          <div className="w-full max-w-2xl bg-white h-full shadow-xl overflow-y-auto p-6 relative">
+            <div className="flex justify-between items-center mb-4 border-b pb-2">
+              <h3 className="text-lg font-semibold text-neutral-800">Registered Users</h3>
+              <button
+                onClick={() => setShowUsers(false)}
+                className="text-sm px-3 py-1.5 bg-neutral-200 rounded-lg hover:bg-neutral-300"
+              >
+                Close
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="text-neutral-500">Loading users...</div>
+            ) : users.length === 0 ? (
+              <div className="text-neutral-500">No users found.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-neutral-800 border-t border-neutral-200">
+                  <thead className="bg-neutral-100 text-neutral-700">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold">ID</th>
+                      <th className="px-3 py-2 text-left font-semibold">First</th>
+                      <th className="px-3 py-2 text-left font-semibold">Last</th>
+                      <th className="px-3 py-2 text-left font-semibold">Email</th>
+                      <th className="px-3 py-2 text-left font-semibold">Role</th>
+                      <th className="px-3 py-2 text-left font-semibold">Created</th>
+                      <th className="px-3 py-2 text-left font-semibold">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.user_id} className="border-t border-neutral-200">
+                        <td className="px-3 py-2">{u.user_id}</td>
+                        <td className="px-3 py-2">{u.first_name}</td>
+                        <td className="px-3 py-2">{u.last_name}</td>
+                        <td className="px-3 py-2">{u.email}</td>
+                        <td className="px-3 py-2">{u.role}</td>
+                        <td className="px-3 py-2 text-neutral-500">
+                          {new Date(u.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-3 py-2 text-neutral-500">
+                          {new Date(u.updated_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
