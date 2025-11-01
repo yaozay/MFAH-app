@@ -126,42 +126,58 @@ export default function GiftshopForm() {
         {editing ? "Edit Product" : "Manage Gift Shop"}
       </h1>
 
+      {/* ✅ FORM SECTION */}
       <form
         onSubmit={handleSubmit}
-        className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-white p-6 border rounded-xl shadow-sm mb-10"
+        className="bg-white border rounded-xl shadow-sm p-6 mb-12"
       >
-        {["sku", "name", "category", "price", "quantity"].map((key) => (
-          <input
-            key={key}
-            type={key === "price" || key === "quantity" ? "number" : "text"}
-            placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
-            value={form[key]}
-            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-            className="border rounded-md p-2 text-sm"
-          />
-        ))}
+        <h2 className="text-lg font-serif font-medium mb-4 text-neutral-800">
+          {editing ? "Edit Product" : "Add New Product"}
+        </h2>
 
-        <input
-          type="text"
-          placeholder="Image URL"
-          value={form.image_url}
-          onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-          className="border rounded-md p-2 text-sm col-span-2"
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-        {form.image_url && (
-          <div className="col-span-full flex justify-center">
-            <div className="w-40 h-40 rounded-lg border overflow-hidden bg-neutral-100 flex items-center justify-center">
-              <img
-                src={form.image_url}
-                alt="Preview"
-                className="object-cover w-full h-full"
+          {["sku", "name", "category", "price", "quantity"].map((key) => (
+            <div key={key} className="flex flex-col">
+              <label className="text-sm font-serif text-neutral-700 mb-1">
+                {key.charAt(0).toUpperCase() + key.slice(1)}
+              </label>
+              <input
+                type={key === "price" || key === "quantity" ? "number" : "text"}
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                className="border rounded-md p-2 text-sm"
               />
             </div>
-          </div>
-        )}
+          ))}
 
-        <div className="col-span-full flex gap-3">
+          <div className="flex flex-col sm:col-span-2">
+            <label className="text-sm font-serif text-neutral-700 mb-1">
+              Image URL
+            </label>
+            <input
+              type="text"
+              value={form.image_url}
+              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+              className="border rounded-md p-2 text-sm"
+            />
+          </div>
+
+          {form.image_url && (
+            <div className="sm:col-span-2 flex justify-center">
+              <div className="w-40 h-40 rounded-lg border overflow-hidden bg-neutral-100 flex items-center justify-center">
+                <img
+                  src={form.image_url}
+                  alt="Preview"
+                  className="object-cover w-full h-full"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ✅ BUTTONS */}
+        <div className="flex gap-3 mt-8">
           <button
             type="submit"
             className="flex-1 bg-rose-600 text-white py-2 rounded-md hover:bg-rose-700 transition"
@@ -179,6 +195,8 @@ export default function GiftshopForm() {
           )}
         </div>
       </form>
+
+      {/* ✅ PRODUCT LIST */}
       <h2 className="text-lg font-serif mb-4">Current Products</h2>
       <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
         {products.map((p) => (
