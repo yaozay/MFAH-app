@@ -4,6 +4,9 @@ export default function Giftshop() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("");
+
   const API = import.meta.env.VITE_API_BASE;
 
   useEffect(() => {
@@ -29,6 +32,20 @@ export default function Giftshop() {
       </div>
     );
 
+  const categories = Array.from(new Set(products.map((p) => p.category))).filter(
+    Boolean
+  );
+  const filtered =
+    filter === "all"
+      ? products
+      : products.filter((item) => item.category === filter);
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort === "price-asc") return a.price - b.price;
+    if (sort === "price-desc") return b.price - a.price;
+    return 0;
+  });
+
   return (
     <div className="min-h-screen bg-neutral-100 py-12 px-6">
       <h1 className="text-4xl font-serif text-center mb-2 text-neutral-800">
@@ -36,18 +53,37 @@ export default function Giftshop() {
       </h1>
 
       <div className="w-20 h-px bg-neutral-300 mx-auto mb-8"></div>
-
-
+      <div className="flex flex-wrap gap-4 justify-end max-w-7xl mx-auto mb-10">
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="border border-neutral-300 rounded-md px-3 py-2 text-sm"
+        >
+          <option value="all">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="border border-neutral-300 rounded-md px-3 py-2 text-sm"
+        >
+          <option value="">Sort by Price</option>
+          <option value="price-asc">Low → High</option>
+          <option value="price-desc">High → Low</option>
+        </select>
+      </div>
       <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
-        {products.length > 0 ? (
-          products.map((item) => (
+        {sorted.length > 0 ? (
+          sorted.map((item) => (
             <div
               key={item.product_id}
               className="flex flex-col items-center text-center group"
             >
-              {/* Image */}
               <div className="w-full aspect-[1/1] lg:aspect-[3/4] bg-neutral-100 overflow-hidden rounded-lg mb-4 flex items-center justify-center shadow-sm group-hover:shadow-md transition">
-
                 {item.image_url ? (
                   <img
                     src={
@@ -62,8 +98,6 @@ export default function Giftshop() {
                   <span className="text-gray-400 text-sm">No image</span>
                 )}
               </div>
-
-              {/* Product Info */}
               <h3 className="text-base font-serif text-neutral-800 mb-1">
                 {item.name}
               </h3>
@@ -73,8 +107,6 @@ export default function Giftshop() {
               <p className="text-rose-600 font-serif mb-3">
                 ${Number(item.price || 0).toFixed(2)}
               </p>
-
-              {/* Add to Cart */}
               <button
                 onClick={() => alert(`Added ${item.name} to cart!`)}
                 className="bg-rose-600 text-white text-sm font-medium rounded-full px-5 py-2 hover:bg-rose-700 transition focus:outline-none focus:ring-2 focus:ring-rose-400"
@@ -85,7 +117,7 @@ export default function Giftshop() {
           ))
         ) : (
           <p className="col-span-full text-center text-gray-500">
-            No items available right now.
+            No items match your filters.
           </p>
         )}
       </div>
