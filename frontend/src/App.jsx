@@ -16,13 +16,12 @@ import DashboardEmployee from "./components/DashboardEmployee";
 import DashboardVisitor from "./components/DashboardVisitor";
 
 import Artists from "./components/Artists";
-import ArtworksForm from "./components/artworks/ArtworksForm.jsx";
 import Reports from "./components/Reports";
-import Art from "./components/artworks/Art.jsx";
 import ArtworksPage from "./components/artworks/ArtworksPage.jsx";
 import EmployeeForm from "./components/EmployeeForm.jsx";
 import EventsPage from "./components/events/EventsPage.jsx";
 import UserForm from "./components/UserForm.jsx";
+import GiftshopPage from "./components/giftshop/GiftshopPage.jsx";
 
 
 
@@ -40,6 +39,7 @@ export default function App() {
         <Route path="/membership" element={<Membership />} />
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/art" element={<ArtworksPage />} />
+        <Route path="/giftshop" element={<GiftshopPage />} />
 
         {/* Dashboards */}
         <Route

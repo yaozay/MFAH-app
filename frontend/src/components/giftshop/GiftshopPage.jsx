@@ -1,16 +1,15 @@
 import { useAuth } from "../../lib/auth";
-import Events from "./Events";
-import EventsForm from "./EventsForm";
+import GiftshopForm from "./GiftshopForm";
+import Giftshop from "./Giftshop";
 
-export default function EventsPage() {
+export default function GiftshopPage() {
   const { user } = useAuth();
 
   const isStaff = user && (user.role === "employee" || user.role === "admin");
 
-
   return (
     <div className="min-h-screen">
-      {isStaff ? <EventsForm /> : <Events />}
+      {isStaff ? <GiftshopForm /> : <Giftshop />}
     </div>
   );
 }
