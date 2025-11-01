@@ -37,7 +37,7 @@ export default function Events() {
   return (
     <div className="min-h-screen bg-white py-16 px-6 lg:px-12">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-5xl font-bold text-neutral-900 mb-4">EVENTS</h1>
+        <h1 className="text-5xl font-serif text-neutral-900 mb-4">Events</h1>
         <p className="text-lg text-neutral-600 mb-8">
           Discover upcoming events and exhibitions at Houston MFA
         </p>

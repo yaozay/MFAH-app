@@ -50,7 +50,7 @@ export default function Art() {
       <header className="bg-white/80 backdrop-blur-md border-b border-neutral-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-neutral-900">Art Gallery</h1>
+            <h1 className="text-4xl font-serif text-neutral-900">Art Gallery</h1>
             <p className="text-neutral-600 mt-1">
               {artworks.length} {artworks.length === 1 ? "artwork" : "artworks"} in collection
             </p>

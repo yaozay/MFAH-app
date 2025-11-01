@@ -47,10 +47,13 @@ export default function DashboardEmployee() {
           to="/reports"
           cta="Open Reports"
         />
+        <PortalCard
+          title="Manage Gift Shop"
+          desc="Add, update, or remove gift shop products."
+          to="/giftshop"
+          cta="Open Gift Shop"
+        />
       </div>
-
-
-
     </div>
   );
 }

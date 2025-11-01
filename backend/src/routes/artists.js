@@ -5,7 +5,6 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
-// (A) LIST — any authenticated user can view
 router.get("/", requireAuth, async (_req, res) => {
   try {
     const [rows] = await pool.execute(`
@@ -20,7 +19,6 @@ router.get("/", requireAuth, async (_req, res) => {
   }
 });
 
-// (B) CREATE — admin + employee
 router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { full_name, birth_year, death_year, nationality, bio } = req.body || {};
@@ -29,7 +27,7 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       return res.status(400).json({ error: "Full name is required" });
     }
 
-    console.log("POST /artists body:", req.body); // debug
+    console.log("POST /artists body:", req.body);
 
     await pool.execute(
       `INSERT INTO Artists (full_name, birth_year, death_year, nationality, bio)
@@ -44,7 +42,7 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
   }
 });
 
-// (C) UPDATE — admin + employee
+
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
@@ -64,8 +62,7 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
   }
 });
 
-// (D) DELETE — admin only
-router.delete("/:id", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
+router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
     const [result] = await pool.execute("DELETE FROM Artists WHERE artist_id = ?", [id]);

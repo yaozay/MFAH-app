@@ -13,7 +13,6 @@ export default function EventsForm() {
     description: "",
   });
 
-  // Load events and venues when component mounts
   useEffect(() => {
     loadEvents();
     loadVenues();

@@ -20,8 +20,8 @@ export default function Navbar() {
   const loginStyle = ({ isActive }) =>
     [
       baseLink,
-      isActive 
-        ? "text-white border border-white/20" 
+      isActive
+        ? "text-white border border-white/20"
         : "text-white border border-white/20 hover:bg-white/5",
     ].join(" ");
 
@@ -43,6 +43,10 @@ export default function Navbar() {
       </NavLink>
       <NavLink to="/events" className={linkStyle}>
         Events
+        <ActiveUnderline />
+      </NavLink>
+      <NavLink to="/giftshop" className={linkStyle}>
+        Gift Shop
         <ActiveUnderline />
       </NavLink>
 
