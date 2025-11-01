@@ -30,10 +30,13 @@ export default function Giftshop() {
     );
 
   return (
-    <div className="min-h-screen bg-white py-12 px-6">
-      <h1 className="text-3xl font-serif text-center mb-12 text-neutral-800">
+    <div className="min-h-screen bg-neutral-100 py-12 px-6">
+      <h1 className="text-4xl font-serif text-center mb-2 text-neutral-800">
         Museum Gift Shop
       </h1>
+
+      <div className="w-20 h-px bg-neutral-300 mx-auto mb-8"></div>
+
 
       <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
         {products.length > 0 ? (
@@ -43,7 +46,8 @@ export default function Giftshop() {
               className="flex flex-col items-center text-center group"
             >
               {/* Image */}
-              <div className="w-full aspect-[1/1] bg-neutral-100 overflow-hidden rounded-lg mb-4 flex items-center justify-center shadow-sm group-hover:shadow-md transition">
+              <div className="w-full aspect-[1/1] lg:aspect-[3/4] bg-neutral-100 overflow-hidden rounded-lg mb-4 flex items-center justify-center shadow-sm group-hover:shadow-md transition">
+
                 {item.image_url ? (
                   <img
                     src={
