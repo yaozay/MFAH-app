@@ -1,4 +1,10 @@
+import { useAuth } from "../lib/auth";
+import { useNavigate } from "react-router-dom";
+
 export default function Membership() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const plans = [
     {
       id: 1,
@@ -9,8 +15,8 @@ export default function Membership() {
         "Free admission to all exhibitions",
         "10% discount on gift shop items",
         "Priority access to events",
-        "Monthly newsletter"
-      ]
+        "Monthly newsletter",
+      ],
     },
     {
       id: 2,
@@ -23,8 +29,8 @@ export default function Membership() {
         "20% discount on gift shop",
         "VIP event invitations",
         "Free parking passes",
-        "Exclusive member previews"
-      ]
+        "Exclusive member previews",
+      ],
     },
     {
       id: 3,
@@ -36,10 +42,17 @@ export default function Membership() {
         "Unlimited free admission for all",
         "25% discount on gift shop",
         "Family event passes",
-        "Private tour options"
-      ]
-    }
+        "Private tour options",
+      ],
+    },
   ];
+
+  const handleChoosePlan = (plan) => {
+    if (!user) {
+      navigate("/login", { state: { from: "/membership" } });
+      return;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-100 py-16 px-6">
@@ -58,30 +71,27 @@ export default function Membership() {
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`bg-white rounded-lg shadow-md transition-all duration-300 ${
-                plan.featured
-                  ? "ring-2 ring-neutral-800 transform md:scale-105"
-                  : "hover:shadow-lg"
-              }`}
+              className={`bg-white rounded-lg shadow-md transition-all duration-300 ${plan.featured
+                ? "ring-2 ring-neutral-800 transform md:scale-105"
+                : "hover:shadow-lg"
+                }`}
             >
               {plan.featured && (
                 <div className="bg-neutral-800 text-white text-center py-2 rounded-t-lg">
                   <span className="text-sm font-medium">Most Popular</span>
                 </div>
               )}
-              
+
               <div className="p-8">
                 <h2 className="text-2xl font-serif text-neutral-800 mb-2">
                   {plan.name}
                 </h2>
-                
+
                 <div className="mb-6 pb-6 border-b border-neutral-200">
                   <span className="text-4xl font-bold text-neutral-900">
                     {plan.price}
                   </span>
-                  <span className="text-neutral-600 ml-2">
-                    {plan.period}
-                  </span>
+                  <span className="text-neutral-600 ml-2">{plan.period}</span>
                 </div>
 
                 <ul className="space-y-4 mb-8">
@@ -108,13 +118,13 @@ export default function Membership() {
                 </ul>
 
                 <button
-                  className={`w-full py-3 font-medium rounded-lg transition-all ${
-                    plan.featured
-                      ? "bg-neutral-800 text-white hover:bg-neutral-900"
-                      : "bg-white text-neutral-800 border-2 border-neutral-800 hover:bg-neutral-800 hover:text-white"
-                  }`}
+                  onClick={() => handleChoosePlan(plan)}
+                  className={`w-full py-3 font-medium rounded-lg transition-all ${plan.featured
+                    ? "bg-neutral-800 text-white hover:bg-neutral-900"
+                    : "bg-white text-neutral-800 border-2 border-neutral-800 hover:bg-neutral-800 hover:text-white"
+                    }`}
                 >
-                  Choose Plan
+                  {user ? "Choose Plan" : "Choose Plan"}
                 </button>
               </div>
             </div>
