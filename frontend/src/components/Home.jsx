@@ -11,7 +11,6 @@ export default function Home() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image */}
       <img
         src="/art.png"
         alt="Museum Interior"
@@ -40,15 +39,6 @@ export default function Home() {
           >
             Sign Up
           </Link>
-        </div>
-
-        {/* Status indicator */}
-        <div className="flex justify-center items-center gap-2 mt-6 text-sm text-neutral-300">
-          <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-          Status:{" "}
-          <strong className={health?.ok ? "text-green-400" : "text-neutral-400"}>
-            {health?.ok ? "Online" : "Connecting..."}
-          </strong>
         </div>
       </div>
     </section>
