@@ -121,12 +121,10 @@ export default function GiftshopForm() {
     );
 
   return (
-    <div className="p-8 bg-neutral-50 min-h-screen">
+    <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
       <h1 className="text-3xl font-serif mb-6">
         {editing ? "Edit Product" : "Manage Gift Shop"}
       </h1>
-
-      {/* ✅ FORM SECTION */}
       <form
         onSubmit={handleSubmit}
         className="bg-white border rounded-xl shadow-sm p-6 mb-12"
@@ -176,7 +174,6 @@ export default function GiftshopForm() {
           )}
         </div>
 
-        {/* ✅ BUTTONS */}
         <div className="flex gap-3 mt-8">
           <button
             type="submit"
@@ -196,7 +193,6 @@ export default function GiftshopForm() {
         </div>
       </form>
 
-      {/* ✅ PRODUCT LIST */}
       <h2 className="text-lg font-serif mb-4">Current Products</h2>
       <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
         {products.map((p) => (

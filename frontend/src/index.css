@@ -63,10 +63,6 @@
     @apply border-separate border-spacing-0;
   }
 
-  thead th {
-    @apply bg-gradient-to-r from-rose-100 to-amber-100 text-neutral-800 font-semibold border-b-2 border-rose-200 px-4 py-3 text-left;
-  }
-
   tbody tr {
     @apply hover:bg-rose-50/50 transition-colors duration-150;
   }
