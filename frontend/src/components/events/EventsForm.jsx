@@ -4,6 +4,8 @@ import { api } from "../../lib/api";
 export default function EventsForm() {
   const [events, setEvents] = useState([]);
   const [venues, setVenues] = useState([]);
+  const [editing, setEditing] = useState(false);
+
   const [formData, setFormData] = useState({
     event_id: null,
     title: "",
@@ -51,14 +53,12 @@ export default function EventsForm() {
 
     try {
       if (formData.event_id) {
-        // Update existing event
         await api(`/api/events/${formData.event_id}`, {
           method: "PUT",
           body: JSON.stringify(formData),
         });
         alert("Event updated successfully!");
       } else {
-        // Create new event
         await api("/api/events", {
           method: "POST",
           body: JSON.stringify(formData),
@@ -87,6 +87,7 @@ export default function EventsForm() {
   }
 
   function handleEdit(event) {
+    setEditing(true);
     setFormData({
       event_id: event.id,
       title: event.title,
@@ -98,6 +99,7 @@ export default function EventsForm() {
   }
 
   function resetForm() {
+    setEditing(false);
     setFormData({
       event_id: null,
       title: "",
@@ -109,16 +111,24 @@ export default function EventsForm() {
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Manage Events</h1>
+    <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
+      <h1 className="text-3xl font-serif mb-6 text-neutral-800">
+        {editing ? "Edit Event" : "Manage Events"}
+      </h1>
 
       {/* Form */}
       <form
         onSubmit={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-6 rounded-2xl shadow-lg"
       >
+        <div className="md:col-span-2 mb-2">
+          <h2 className="text-xl font-serif text-neutral-700">
+            {editing ? "Editing Event" : "Create New Event"}
+          </h2>
+        </div>
+
         <div>
-          <label className="block font-medium text-gray-700">Title</label>
+          <label className="block font-serif text-gray-700">Title</label>
           <input
             type="text"
             name="title"
@@ -130,7 +140,7 @@ export default function EventsForm() {
         </div>
 
         <div>
-          <label className="block font-medium text-gray-700">Date</label>
+          <label className="block font-serif text-gray-700">Date</label>
           <input
             type="date"
             name="event_date"
@@ -142,7 +152,7 @@ export default function EventsForm() {
         </div>
 
         <div>
-          <label className="block font-medium text-gray-700">Time</label>
+          <label className="block font-serif text-gray-700">Time</label>
           <input
             type="time"
             name="event_time"
@@ -153,7 +163,7 @@ export default function EventsForm() {
         </div>
 
         <div>
-          <label className="block font-medium text-gray-700">Venue</label>
+          <label className="block font-serif text-gray-700">Venue</label>
           <select
             name="venue_id"
             value={formData.venue_id}
@@ -170,7 +180,7 @@ export default function EventsForm() {
         </div>
 
         <div className="md:col-span-2">
-          <label className="block font-medium text-gray-700">Description</label>
+          <label className="block font-serif text-gray-700">Description</label>
           <textarea
             name="description"
             value={formData.description}
@@ -185,64 +195,73 @@ export default function EventsForm() {
             type="submit"
             className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-400"
           >
-            {formData.event_id ? "Update Event" : "Add Event"}
+            {editing ? "Save Changes" : "Add Event"}
           </button>
+
           <button
             type="button"
             onClick={resetForm}
             className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400"
           >
-            Clear
+            {editing ? "Cancel Edit" : "Clear"}
           </button>
         </div>
       </form>
 
       {/* Events Table */}
       <div className="mt-10">
-        <h2 className="text-xl font-semibold mb-3 text-gray-700">All Events</h2>
-        <table className="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
-          <thead className="bg-gray-200 text-gray-700">
+        <h2 className="text-xl font-serif mb-3 text-gray-700">All Events</h2>
+
+        <table className="min-w-full bg-white border border-neutral-200 rounded-xl overflow-hidden">
+
+          <thead className="bg-rose-600 text-white border-b border-neutral-200">
             <tr>
-              <th className="p-2">Title</th>
-              <th className="p-2">Date</th>
-              <th className="p-2">Time</th>
-              <th className="p-2">Venue</th>
-              <th className="p-2">Actions</th>
+              <th className="p-3 text-left text-sm font-medium">Title</th>
+              <th className="p-3 text-left text-sm font-medium">Date</th>
+              <th className="p-3 text-left text-sm font-medium">Time</th>
+              <th className="p-3 text-left text-sm font-medium">Venue</th>
+              <th className="p-3 text-left text-sm font-medium">Actions</th>
             </tr>
           </thead>
+
           <tbody>
-            {events.map((ev) => (
-              <tr key={ev.id} className="border-b hover:bg-gray-50">
-                <td className="p-2">{ev.title}</td>
-                <td className="p-2">
+            {events.map((ev, i) => (
+              <tr
+                key={ev.id}
+                className={`border-b border-neutral-200 ${i % 2 === 0 ? "bg-white" : "bg-neutral-50"
+                  } hover:bg-neutral-100 transition-colors`}
+              >
+                <td className="p-3 text-sm">{ev.title}</td>
+                <td className="p-3 text-sm">
                   {new Date(ev.start).toLocaleDateString()}
                 </td>
-                <td className="p-2">
+                <td className="p-3 text-sm">
                   {new Date(ev.start).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
                 </td>
-                <td className="p-2">{ev.venue_name || ev.venue_id || "—"}</td>
-                <td className="p-2 flex gap-2">
+                <td className="p-3 text-sm">{ev.venue_name || "—"}</td>
+                <td className="p-3 flex gap-3 text-sm">
                   <button
                     onClick={() => handleEdit(ev)}
-                    className="text-blue-600 hover:underline"
+                    className="text-neutral-700 hover:text-black transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(ev.id)}
-                    className="text-red-600 hover:underline"
+                    className="text-red-600 hover:text-red-800 transition-colors"
                   >
                     Delete
                   </button>
                 </td>
               </tr>
             ))}
+
             {events.length === 0 && (
               <tr>
-                <td colSpan="5" className="text-center text-gray-500 p-4">
+                <td colSpan="5" className="text-center text-neutral-500 p-4">
                   No events found.
                 </td>
               </tr>
