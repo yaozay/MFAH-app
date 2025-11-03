@@ -45,17 +45,20 @@ export default function Art() {
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50 text-neutral-800">
-
-      <header className="bg-white/80 backdrop-blur-md border-b border-neutral-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-serif text-neutral-900">Art Gallery</h1>
-            <p className="text-neutral-600 mt-1">
+    <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
+      <header className="pt-12 pb-6 px-6 lg:px-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h1 className="text-4xl font-serif text-neutral-800 mb-4 tracking-wide">
+              Art Gallery
+            </h1>
+            <div className="w-24 h-px bg-neutral-300 mx-auto my-4"></div>
+            <p className="text-neutral-600 text-lg">
               {artworks.length} {artworks.length === 1 ? "artwork" : "artworks"} in collection
             </p>
           </div>
-          <div className="flex gap-2">
+
+          <div className="mt-6 flex justify-end gap-3">
             {["grid", "list"].map((mode) => (
               <button
                 key={mode}
@@ -69,8 +72,10 @@ export default function Art() {
               </button>
             ))}
           </div>
+
         </div>
       </header>
+
 
       <main className="max-w-7xl mx-auto px-6 py-10">
         {artworks.length === 0 ? (

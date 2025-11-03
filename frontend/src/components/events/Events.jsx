@@ -35,10 +35,11 @@ export default function Events() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white py-16 px-6 lg:px-12">
+    <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-5xl font-serif text-neutral-900 mb-4">Events</h1>
-        <p className="text-lg text-neutral-600 mb-8">
+        <h1 className="text-4xl font-serif text-center mb-2 text-neutral-800">Events</h1>
+        <div className="w-20 h-px bg-neutral-300 mx-auto mb-8"></div>
+        <p className="text-lg text-neutral-600 text-center mb-8">
           Discover upcoming events and exhibitions at Houston MFA
         </p>
 
