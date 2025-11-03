@@ -78,56 +78,58 @@
 
 /* React Big Calendar - Light Theme Overrides */
 
-/* Base calendar background */
+/* Base calendar container */
 .rbc-calendar {
   background-color: #ffffff !important;
-  color: #1f2937 !important;
+  color: #111827 !important;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
   border-radius: 12px;
-  border: 2px solid #fecaca !important;
+  border: 2px solid #d1d5db !important;
   overflow: hidden;
 }
 
-/* Each day cell background */
+/* Each day cell */
 .rbc-day-bg {
   background-color: #ffffff !important;
-  border-color: #f3f4f6 !important;
+  border-color: #e5e7eb !important;
+  /* gray-200 */
 }
 
 /* Day numbers */
 .rbc-button-link {
   color: #374151 !important;
+  /* gray-700 */
   font-weight: 500;
 }
 
-/* Current day highlight */
+/* Current day */
 .rbc-today {
-  background-color: #fef2f2 !important;
-  border: 2px solid #fecaca !important;
+  background-color: #f3f4f6 !important;
+  border: 2px solid #d1d5db !important;
 }
 
-/* Header row (Sun, Mon, etc.) */
+/* Header row (Sun, Mon, Tue, etc.) */
 .rbc-header {
-  background: #fff5f5 !important;
-  color: #1f2937 !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
   font-weight: 600;
-  border-color: #fecaca !important;
+  border-color: #d1d5db !important;
   padding: 12px 8px;
 }
 
 /* Toolbar (Month/Week/Day, navigation) */
 .rbc-toolbar {
   background-color: #ffffff !important;
-  color: #1f2937 !important;
+  color: #111827 !important;
   padding: 16px;
-  border-bottom: 2px solid #fecaca;
+  border-bottom: 2px solid #d1d5db;
   margin-bottom: 0 !important;
 }
 
 .rbc-toolbar button {
   background: #ffffff !important;
-  color: #1f2937 !important;
-  border: 2px solid #e5e7eb !important;
+  color: #111827 !important;
+  border: 2px solid #d1d5db !important;
   border-radius: 8px !important;
   padding: 8px 16px !important;
   font-weight: 500 !important;
@@ -135,99 +137,87 @@
 }
 
 .rbc-toolbar button:hover {
-  background-color: #fef2f2 !important;
-  border-color: #fca5a5 !important;
+  background-color: #f3f4f6 !important;
+  border-color: #9ca3af !important;
 }
 
 .rbc-toolbar button.rbc-active {
-  background: #f43f5e !important;
-  color: #ffffff !important;
+  background: #fda4af !important;
+  color: #111827 !important;
   border: none !important;
   box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.3) !important;
 }
 
+
 .rbc-toolbar-label {
   font-weight: 700 !important;
   font-size: 1.25rem !important;
-  color: #1f2937 !important;
+  color: #111827 !important;
 }
 
-/* Event cards */
+/* Event blocks */
 .rbc-event {
-  background: linear-gradient(135deg, #f43f5e, #fb7185) !important;
+  background: #fda4af !important;
+  /* rose-500 */
   border: none !important;
-  color: #ffffff !important;
+  color: #111827 !important;
   font-weight: 600 !important;
   border-radius: 6px !important;
   padding: 4px 8px !important;
-  box-shadow: 0 2px 4px rgba(244, 63, 94, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(244, 63, 94, 0.25) !important;
   transition: all 0.2s !important;
 }
 
 .rbc-event:hover {
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 8px rgba(244, 63, 94, 0.3) !important;
+  box-shadow: 0 4px 8px rgba(244, 63, 94, 0.35) !important;
 }
 
 .rbc-event-label {
   font-size: 0.75rem !important;
-  color: #ffffff !important;
-}
-
-.rbc-event-content {
-  font-size: 0.875rem !important;
+  color: #e5e7eb !important;
+  /* gray-200 */
 }
 
 /* Selected event */
 .rbc-selected {
-  background: #f43f5e !important;
+  background: #374151 !important;
+  /* gray-700 */
 }
 
-/* Dim the off-range days (next/previous month) */
+/* Off-range days */
 .rbc-off-range {
   color: #9ca3af !important;
+  /* gray-400 */
 }
 
 .rbc-off-range-bg {
-  background-color: #fafafa !important;
+  background-color: #f9fafb !important;
+  /* gray-50 */
 }
 
-/* Month view specific */
+/* Month view */
 .rbc-month-view {
-  border: 2px solid #f3f4f6 !important;
+  border: 2px solid #e5e7eb !important;
+  /* gray-200 */
   border-radius: 0 0 12px 12px !important;
   background-color: #ffffff !important;
 }
 
-.rbc-month-row {
-  border-color: #f3f4f6 !important;
-}
-
-/* Week/Day view */
-.rbc-time-view {
-  border: 2px solid #f3f4f6 !important;
-  border-radius: 0 0 12px 12px !important;
-  background-color: #ffffff !important;
-}
-
-.rbc-time-header {
-  border-color: #f3f4f6 !important;
-}
-
-.rbc-time-content {
-  border-color: #f3f4f6 !important;
-}
-
-.rbc-timeslot-group {
-  border-color: #f3f4f6 !important;
-}
-
+/* Week / Day view */
+.rbc-time-view,
+.rbc-time-header,
+.rbc-time-content,
+.rbc-timeslot-group,
 .rbc-time-slot {
-  border-color: #f9fafb !important;
+  border-color: #e5e7eb !important;
+  /* gray-200 */
 }
 
+/* Current time indicator */
 .rbc-current-time-indicator {
-  background-color: #f43f5e !important;
+  background-color: #111827 !important;
+  /* gray-900 */
   height: 2px !important;
 }
 
@@ -235,30 +225,30 @@
 .rbc-agenda-view {
   background-color: #ffffff !important;
   border-radius: 12px !important;
-  border: 2px solid #f3f4f6 !important;
-}
-
-.rbc-agenda-table {
-  border-color: #f3f4f6 !important;
+  border: 2px solid #e5e7eb !important;
 }
 
 .rbc-agenda-date-cell {
-  background-color: #fef2f2 !important;
-  color: #1f2937 !important;
+  background-color: #f3f4f6 !important;
+  /* gray-100 */
+  color: #111827 !important;
 }
 
 .rbc-agenda-time-cell {
   color: #6b7280 !important;
+  /* gray-500 */
 }
 
 .rbc-agenda-event-cell {
-  color: #1f2937 !important;
+  color: #111827 !important;
 }
 
-/* Show more link */
+/* "Show more" link */
 .rbc-show-more {
-  background-color: #fef2f2 !important;
-  color: #f43f5e !important;
+  background-color: #f3f4f6 !important;
+  /* gray-100 */
+  color: #4b5563 !important;
+  /* gray-600 */
   font-weight: 600 !important;
   border-radius: 4px !important;
   padding: 2px 8px !important;
@@ -266,22 +256,24 @@
 }
 
 .rbc-show-more:hover {
-  background-color: #fce7e7 !important;
-  color: #dc2626 !important;
+  background-color: #e5e7eb !important;
+  /* gray-200 */
+  color: #111827 !important;
+  /* gray-900 */
 }
 
-/* Overlay for show more popup */
+/* Show-more popup */
 .rbc-overlay {
   background-color: #ffffff !important;
-  border: 2px solid #fecaca !important;
+  border: 2px solid #d1d5db !important;
   border-radius: 12px !important;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
   padding: 12px !important;
 }
 
 .rbc-overlay-header {
-  background: #fff5f5 !important;
-  color: #1f2937 !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
   font-weight: 600 !important;
   padding: 8px 12px !important;
   border-radius: 8px 8px 0 0 !important;
