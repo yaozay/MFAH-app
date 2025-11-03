@@ -12,6 +12,7 @@ export default function Artists() {
     bio: ""
   });
   const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -19,7 +20,7 @@ export default function Artists() {
     fetchArtists();
   }, []);
 
-  const fetchArtists = async () => {
+  async function fetchArtists() {
     setError("");
     setSuccess("");
     try {
@@ -32,17 +33,22 @@ export default function Artists() {
     } catch (err) {
       setError(err.message);
     }
-  };
+  }
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setSuccess("");
+
     const method = editingId ? "PUT" : "POST";
-    const url = editingId ? `${API}/api/artists/${editingId}` : `${API}/api/artists`;
+    const url = editingId
+      ? `${API}/api/artists/${editingId}`
+      : `${API}/api/artists`;
 
     try {
       const res = await fetch(url, {
@@ -53,25 +59,21 @@ export default function Artists() {
         },
         body: JSON.stringify(formData)
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save artist");
-      setSuccess(editingId ? "Artist updated!" : "Artist added!");
-      setFormData({
-        full_name: "",
-        birth_year: "",
-        death_year: "",
-        nationality: "",
-        bio: ""
-      });
-      setEditingId(null);
+
+      setSuccess(editingId ? "Artist updated successfully!" : "Artist added!");
+      resetForm();
       fetchArtists();
     } catch (err) {
       setError(err.message);
     }
-  };
+  }
 
-  const handleEdit = (artist) => {
+  function handleEdit(artist) {
     setEditingId(artist.artist_id);
+    setEditingName(artist.full_name);
     setFormData({
       full_name: artist.full_name,
       birth_year: artist.birth_year || "",
@@ -79,11 +81,9 @@ export default function Artists() {
       nationality: artist.nationality || "",
       bio: artist.bio || ""
     });
-    setSuccess("");
-    setError("");
-  };
+  }
 
-  const handleDelete = async (id) => {
+  async function handleDelete(id) {
     if (!window.confirm("Are you sure you want to delete this artist?")) return;
     try {
       const res = await fetch(`${API}/api/artists/${id}`, {
@@ -92,15 +92,16 @@ export default function Artists() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete artist");
-      setSuccess("Artist deleted!");
+      setSuccess("Artist deleted successfully!");
       fetchArtists();
     } catch (err) {
       setError(err.message);
     }
-  };
+  }
 
-  const resetForm = () => {
+  function resetForm() {
     setEditingId(null);
+    setEditingName("");
     setFormData({
       full_name: "",
       birth_year: "",
@@ -108,191 +109,178 @@ export default function Artists() {
       nationality: "",
       bio: ""
     });
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50 px-6 py-10">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-rose-100 p-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent mb-2">
-            Artist Management
-          </h1>
-          <p className="text-neutral-600 text-lg">
-            Add, edit, and manage artist information
-          </p>
+    <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
+      <h1 className="text-3xl font-serif mb-6 text-neutral-800">
+        Manage Artists
+      </h1>
+
+      {/* Alerts */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+          <strong>Error:</strong> {error}
         </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-md">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-emerald-50 border-2 border-emerald-200 text-emerald-700 px-6 py-4 rounded-xl shadow-md">
-            <strong>Success!</strong> {success}
-          </div>
-        )}
-
-        {/* Form */}
-        <div className="bg-white rounded-2xl shadow-lg border border-rose-100 p-8">
-          <h2 className="text-2xl font-bold text-neutral-800 mb-6">
-            {editingId ? "Edit Artist" : "Add New Artist"}
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="full_name"
-                placeholder="e.g., Vincent van Gogh"
-                value={formData.full_name}
-                onChange={handleChange}
-                required
-                className="input"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Birth Year
-                </label>
-                <input
-                  type="number"
-                  name="birth_year"
-                  placeholder="e.g., 1853"
-                  value={formData.birth_year}
-                  onChange={handleChange}
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Death Year
-                </label>
-                <input
-                  type="number"
-                  name="death_year"
-                  placeholder="e.g., 1890"
-                  value={formData.death_year}
-                  onChange={handleChange}
-                  className="input"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Nationality
-              </label>
-              <input
-                type="text"
-                name="nationality"
-                placeholder="e.g., Dutch"
-                value={formData.nationality}
-                onChange={handleChange}
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Biography
-              </label>
-              <textarea
-                name="bio"
-                placeholder="Brief biography or description..."
-                rows="4"
-                value={formData.bio}
-                onChange={handleChange}
-                className="input resize-none"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                className="flex-1 btn bg-gradient-to-r from-rose-500 to-rose-600 text-white hover:from-rose-600 hover:to-rose-700 shadow-md"
-              >
-                {editingId ? "Update Artist" : "➕ Add Artist"}
-              </button>
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="btn btn-ghost"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
+      )}
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-md mb-6">
+          <strong>Success:</strong> {success}
         </div>
+      )}
 
-        {/* Artist List */}
-        <div className="bg-white rounded-2xl shadow-lg border border-rose-100 p-8">
-          <h2 className="text-2xl font-bold text-neutral-800 mb-6">
-            Existing Artists ({artists.length})
-          </h2>
+      {/* Form */}
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-10">
+        <h2 className="text-xl font-serif text-neutral-800 mb-4">
+          {editingId
+            ? `Editing Artist: ${editingName}`
+            : "Create New Artist"}
+        </h2>
 
-          <div className="space-y-3">
-            {artists.map((artist) => (
-              <div
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-serif text-neutral-700 mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="full_name"
+              value={formData.full_name}
+              onChange={handleChange}
+              required
+              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-serif text-neutral-700 mb-1">
+              Birth Year
+            </label>
+            <input
+              type="number"
+              name="birth_year"
+              value={formData.birth_year}
+              onChange={handleChange}
+              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-serif text-neutral-700 mb-1">
+              Death Year
+            </label>
+            <input
+              type="number"
+              name="death_year"
+              value={formData.death_year}
+              onChange={handleChange}
+              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-serif text-neutral-700 mb-1">
+              Nationality
+            </label>
+            <input
+              type="text"
+              name="nationality"
+              value={formData.nationality}
+              onChange={handleChange}
+              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-serif text-neutral-700 mb-1">
+              Biography
+            </label>
+            <textarea
+              name="bio"
+              value={formData.bio}
+              onChange={handleChange}
+              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              rows={3}
+            />
+          </div>
+
+          <div className="md:col-span-2 flex gap-3 mt-2">
+            <button
+              type="submit"
+              className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+            >
+              {editingId ? "Save Changes" : "Add Artist"}
+            </button>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition"
+            >
+              {editingId ? "Cancel Edit" : "Clear"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
+        <h2 className="text-xl font-serif text-neutral-800 mb-4">
+          All Artists ({artists.length})
+        </h2>
+
+        <table className="min-w-full bg-white border border-neutral-200 rounded-lg overflow-hidden">
+          <thead className="bg-rose-600 text-white border-b border-neutral-200">
+            <tr>
+              <th className="p-3 text-left text-sm font-medium">Name</th>
+              <th className="p-3 text-left text-sm font-medium">Years</th>
+              <th className="p-3 text-left text-sm font-medium">Nationality</th>
+              <th className="p-3 text-left text-sm font-medium">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {artists.map((artist, i) => (
+              <tr
                 key={artist.artist_id}
-                className="bg-gradient-to-r from-rose-50 to-amber-50 border-2 border-neutral-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+                className={`border-b border-neutral-200 ${i % 2 === 0 ? "bg-white" : "bg-neutral-50"
+                  } hover:bg-neutral-100 transition-colors`}
               >
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-neutral-800 mb-2">
-                      {artist.full_name}
-                    </h3>
-                    <div className="flex flex-wrap gap-3 text-sm text-neutral-600 mb-2">
-                      <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
-                        {artist.birth_year || "?"} – {artist.death_year || "?"}
-                      </span>
-                      <span className="px-3 py-1 bg-white rounded-full border border-neutral-300">
-                        {artist.nationality || "Unknown"}
-                      </span>
-                    </div>
-                    {artist.bio && (
-                      <p className="text-neutral-700 leading-relaxed">
-                        {artist.bio}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 md:flex-col">
-                    <button
-                      onClick={() => handleEdit(artist)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium shadow-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(artist.artist_id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium shadow-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
+                <td className="p-3 text-sm">{artist.full_name}</td>
+                <td className="p-3 text-sm">
+                  {artist.birth_year
+                    ? `${artist.birth_year}${artist.death_year ? `–${artist.death_year}` : ""}`
+                    : "—"}
+                </td>
+                <td className="p-3 text-sm">{artist.nationality || "—"}</td>
+                <td className="p-3 flex gap-3 text-sm">
+                  <button
+                    onClick={() => handleEdit(artist)}
+                    className="text-neutral-700 hover:text-black transition"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(artist.artist_id)}
+                    className="text-red-600 hover:text-red-800 transition"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
             ))}
 
             {artists.length === 0 && (
-              <div className="text-center py-12 text-neutral-500">
-                <p className="text-lg">No artists added yet.</p>
-                <p className="text-sm mt-2">Use the form above to add your first artist.</p>
-              </div>
+              <tr>
+                <td colSpan="4" className="text-center text-neutral-500 p-4">
+                  No artists found.
+                </td>
+              </tr>
             )}
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
     </div>
   );

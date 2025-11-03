@@ -213,7 +213,6 @@ export default function EventsForm() {
         <h2 className="text-xl font-serif mb-3 text-gray-700">All Events</h2>
 
         <table className="min-w-full bg-white border border-neutral-200 rounded-xl overflow-hidden">
-
           <thead className="bg-rose-600 text-white border-b border-neutral-200">
             <tr>
               <th className="p-3 text-left text-sm font-medium">Title</th>
