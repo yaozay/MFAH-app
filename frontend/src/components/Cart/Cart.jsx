@@ -33,14 +33,12 @@ export default function Cart() {
     <div className="min-h-screen bg-neutral-100 p-6">
       <h1 className="text-3xl font-serif mb-6">Your Cart</h1>
 
-      {/* Items List */}
       <div className="space-y-4 mb-10">
         {cartItems.map((item) => (
           <div
             key={`${item.type}-${item.id}`}
             className="p-4 bg-white border border-neutral-200 rounded-xl flex items-center justify-between shadow-sm"
           >
-            {/* Product Image / Icon */}
             <div className="flex items-center gap-4">
               {item.type === "giftshop" ? (
                 <img
@@ -52,7 +50,6 @@ export default function Cart() {
                 <span className="text-3xl">🎟️</span>
               )}
 
-              {/* Product name + price */}
               <div>
                 <p className="font-serif text-neutral-800">{item.name}</p>
                 <p className="text-neutral-600">
@@ -60,8 +57,6 @@ export default function Cart() {
                 </p>
               </div>
             </div>
-
-            {/* Quantity + Remove */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() =>
@@ -92,7 +87,6 @@ export default function Cart() {
         ))}
       </div>
 
-      {/* Order Summary */}
       <div className="p-6 border border-neutral-200 rounded-md space-y-3 text-lg bg-white shadow-sm">
         <h2 className="text-xl font-serif">Order Summary</h2>
 
@@ -102,16 +96,12 @@ export default function Cart() {
         <p className="font-medium text-2xl">
           Total: ${safePrice(total).toFixed(2)}
         </p>
-
-        {/* Checkout Button */}
         <button
           onClick={() => navigate("/checkout")}
           className="w-full mt-4 bg-black text-white py-3 rounded-md text-lg font-medium hover:bg-neutral-800 transition"
         >
           Proceed to Payment
         </button>
-
-        {/* Clear Cart */}
         <button
           onClick={clearCart}
           className="w-full mt-2 text-sm text-neutral-500 hover:text-neutral-700"
