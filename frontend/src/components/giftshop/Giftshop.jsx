@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import { useCart } from "../Cart/CartContext.jsx";
 
 export default function Giftshop() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("");
+  const { addToCart } = useCart();
+
 
   const API = import.meta.env.VITE_API_BASE;
 
@@ -108,11 +110,23 @@ export default function Giftshop() {
                 ${Number(item.price || 0).toFixed(2)}
               </p>
               <button
-                onClick={() => alert(`Added ${item.name} to cart!`)}
+                onClick={() => {
+                  addToCart(
+                    {
+                      id: item.product_id,
+                      name: item.name,
+                      price: Number(item.price),
+                      image: item.image_url,
+                      qty: 1,
+                    },
+                    "giftshop"
+                  );
+                }}
                 className="bg-rose-600 text-white text-sm font-medium rounded-full px-5 py-2 hover:bg-rose-700 transition focus:outline-none focus:ring-2 focus:ring-rose-400"
               >
                 Add to Cart
               </button>
+
             </div>
           ))
         ) : (

@@ -22,6 +22,9 @@ import EmployeeForm from "./components/EmployeeForm.jsx";
 import EventsPage from "./components/events/EventsPage.jsx";
 import UserForm from "./components/UserForm.jsx";
 import GiftshopPage from "./components/giftshop/GiftshopPage.jsx";
+import Cart from "./components/Cart/Cart.jsx";
+import Checkout from "./components/Cart/Checkout.jsx";
+import OrderSuccess from "./components/Cart/OrderSuccess.jsx";
 
 
 
@@ -40,6 +43,9 @@ export default function App() {
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/art" element={<ArtworksPage />} />
         <Route path="/giftshop" element={<GiftshopPage />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
 
         {/* Dashboards */}
         <Route
