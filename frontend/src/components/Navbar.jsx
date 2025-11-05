@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
-import { FiShoppingBag } from "react-icons/fi";
+import cartIcon from "../assets/cart.png";
 import { useCart } from "./Cart/CartContext.jsx";
 
 export default function Navbar() {
@@ -94,7 +94,12 @@ export default function Navbar() {
       )}
       {user?.role === "visitor" && (
         <NavLink to="/cart" className="relative group px-2 py-1">
-          <FiShoppingBag className="w-6 h-6 text-neutral-300 group-hover:text-white transition-colors" />
+          <img
+            src={cartIcon}
+            alt="Cart"
+            className="w-6 h-6 invert brightness-200"
+
+          />
 
           {cartCount > 0 && (
             <span className="absolute -top-1 -right-2 bg-rose-500 text-xs px-1.5 py-0.5 rounded-full">
@@ -102,6 +107,7 @@ export default function Navbar() {
             </span>
           )}
         </NavLink>
+
       )}
       {!user ? (
         <NavLink to="/login" className={loginStyle}>
