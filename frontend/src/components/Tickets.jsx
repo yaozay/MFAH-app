@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { useCart } from "./Cart/CartContext.jsx";
 
 export default function Tickets() {
   const [selectedTickets, setSelectedTickets] = useState({});
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
 
   const ticketTypes = [
@@ -35,7 +37,24 @@ export default function Tickets() {
       navigate("/login", { state: { from: "/tickets" } });
       return;
     }
+    Object.entries(selectedTickets).forEach(([id, qty]) => {
+      if (qty > 0) {
+        const t = ticketTypes.find(ticket => ticket.id === parseInt(id));
+        addToCart(
+          {
+            id: t.id,
+            name: t.name,
+            price: t.price,
+            qty,
+          },
+          "ticket"
+        );
+      }
+    });
+
+    navigate("/cart");
   };
+
 
   return (
     <div className="min-h-screen bg-neutral-100 py-16 px-6">
