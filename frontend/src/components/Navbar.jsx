@@ -51,6 +51,10 @@ export default function Navbar() {
         Gift Shop
         <ActiveUnderline />
       </NavLink>
+      <NavLink to="/exhibitions" className={linkStyle}>
+        Exhibitions
+        <ActiveUnderline />
+      </NavLink>
 
       {/* Role-based links */}
       {user && (
