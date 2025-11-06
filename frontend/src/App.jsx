@@ -22,7 +22,7 @@ import EmployeeForm from "./components/EmployeeForm.jsx";
 import EventsPage from "./components/events/EventsPage.jsx";
 import UserForm from "./components/UserForm.jsx";
 import GiftshopPage from "./components/giftshop/GiftshopPage.jsx";
-
+import ExhibitionsPage from "./components/exhibitions/ExhibitionsPage.jsx";
 
 
 export default function App() {
@@ -40,6 +40,7 @@ export default function App() {
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/art" element={<ArtworksPage />} />
         <Route path="/giftshop" element={<GiftshopPage />} />
+        <Route path="/exhibitions" element={<ExhibitionsPage />} />
 
         {/* Dashboards */}
         <Route

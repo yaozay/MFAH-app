@@ -13,6 +13,7 @@ import venuesRouter from "./routes/venues.js";
 import usersRouter from "./routes/users.js";
 import giftshopRouter from "./routes/giftshop.js";
 
+import exhibitionsRouter from "./routes/exhibitions.js";
 
 dotenv.config();
 
@@ -65,6 +66,8 @@ app.use("/api/venues", venuesRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/giftshop", giftshopRouter);
 app.use("/api/employees", employeesRouter);
+
+app.use("/api/exhibitions", exhibitionsRouter);
 
 
 app.listen(PORT, () => {
