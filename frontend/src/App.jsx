@@ -23,6 +23,10 @@ import EventsPage from "./components/events/EventsPage.jsx";
 import UserForm from "./components/UserForm.jsx";
 import GiftshopPage from "./components/giftshop/GiftshopPage.jsx";
 import ExhibitionsPage from "./components/exhibitions/ExhibitionsPage.jsx";
+import Cart from "./components/Cart/Cart.jsx";
+import Checkout from "./components/Cart/Checkout.jsx";
+import OrderSuccess from "./components/Cart/OrderSuccess.jsx";
+
 
 
 export default function App() {
@@ -41,6 +45,9 @@ export default function App() {
         <Route path="/art" element={<ArtworksPage />} />
         <Route path="/giftshop" element={<GiftshopPage />} />
         <Route path="/exhibitions" element={<ExhibitionsPage />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
 
         {/* Dashboards */}
         <Route

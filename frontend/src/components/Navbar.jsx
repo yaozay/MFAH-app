@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import cartIcon from "../assets/cart.png";
+import { useCart } from "./Cart/CartContext.jsx";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const { cartCount } = useCart();
 
   const baseLink =
     "relative px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400";
@@ -12,9 +15,7 @@ export default function Navbar() {
   const linkStyle = ({ isActive }) =>
     [
       baseLink,
-      isActive
-        ? "text-white"
-        : "text-neutral-400 hover:text-white",
+      isActive ? "text-white" : "text-neutral-400 hover:text-white",
     ].join(" ");
 
   const loginStyle = ({ isActive }) =>
@@ -95,7 +96,23 @@ export default function Navbar() {
           )}
         </>
       )}
+      {user?.role === "visitor" && (
+        <NavLink to="/cart" className="relative group px-2 py-1">
+          <img
+            src={cartIcon}
+            alt="Cart"
+            className="w-6 h-6 invert brightness-200"
 
+          />
+
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-2 bg-rose-500 text-xs px-1.5 py-0.5 rounded-full">
+              {cartCount}
+            </span>
+          )}
+        </NavLink>
+
+      )}
       {!user ? (
         <NavLink to="/login" className={loginStyle}>
           Login
@@ -144,6 +161,13 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
           >
             <NavItems />
+
+            {user?.role === "visitor" && (
+              <NavLink to="/cart" className={linkStyle}>
+
+                <ActiveUnderline />
+              </NavLink>
+            )}
           </nav>
         </div>
       )}
