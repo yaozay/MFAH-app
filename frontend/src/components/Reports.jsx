@@ -245,45 +245,41 @@ export default function Reports() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50 p-8 space-y-8">
-      {/* Header */}
-      <div className="bg-white rounded-2xl shadow-lg border border-rose-100 p-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent mb-2">
-          Reports Dashboard
-        </h1>
-        <p className="text-neutral-600 text-lg">
-          Comprehensive analytics and insights
-        </p>
-      </div>
+    <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
 
-      {/* Artworks per Artist Report (unchanged) */}
-      <section className="bg-white rounded-2xl shadow-lg border border-rose-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-rose-100 to-amber-100 px-8 py-6 border-b-2 border-rose-200">
-          <h2 className="text-2xl font-bold text-neutral-800">
-            Artworks per Artist
-          </h2>
-          <p className="text-neutral-600 mt-1">Collection distribution by artist</p>
+      <h1 className="text-3xl font-serif mb-6 text-neutral-800">
+        Reports Dashboard
+      </h1>
+
+
+      {/* Artworks per Artist */}
+      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+        <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50">
+          <h2 className="text-2xl font-serif text-black">Artworks per Artist</h2>
+          <p className="text-sm text-neutral-500">
+            Collection distribution by artist
+          </p>
         </div>
 
         {artworksPerArtist.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
+            <table className="min-w-full text-sm">
+              <thead className="bg-neutral-100">
                 <tr>
-                  <th className="px-6 py-4 text-left">Artist ID</th>
-                  <th className="px-6 py-4 text-left">Artist Name</th>
-                  <th className="px-6 py-4 text-left">Artwork Count</th>
+                  <th className="px-6 py-3 text-left text-black">Artist ID</th>
+                  <th className="px-6 py-3 text-left text-black">Artist Name</th>
+                  <th className="px-6 py-3 text-left text-black">Artwork Count</th>
                 </tr>
               </thead>
               <tbody>
                 {artworksPerArtist.map((a) => (
-                  <tr key={a.artist_id}>
-                    <td className="px-6 py-4 text-neutral-700">#{a.artist_id}</td>
-                    <td className="px-6 py-4 font-semibold text-neutral-800">{a.artist_name}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">
-                        {a.artwork_count} {a.artwork_count === 1 ? "piece" : "pieces"}
-                      </span>
+                  <tr key={a.artist_id} className="border-t border-neutral-200">
+                    <td className="px-6 py-3 text-neutral-600">#{a.artist_id}</td>
+                    <td className="px-6 py-3 font-semibold text-black">
+                      {a.artist_name}
+                    </td>
+                    <td className="px-6 py-3 text-rose-600 font-medium">
+                      {a.artwork_count}
                     </td>
                   </tr>
                 ))}
@@ -292,53 +288,51 @@ export default function Reports() {
           </div>
         ) : (
           <div className="px-8 py-12 text-center text-neutral-500">
-            <p>No data available.</p>
+            No data available.
           </div>
         )}
       </section>
 
-      {/* Modern Artworks Report (unchanged) */}
-      <section className="bg-white rounded-2xl shadow-lg border border-rose-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-rose-100 to-amber-100 px-8 py-6 border-b-2 border-rose-200">
-          <h2 className="text-2xl font-bold text-neutral-800">
+      {/* Modern Artworks */}
+      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+        <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50">
+          <h2 className="text-2xl font-serif text-black">
             Modern Artworks (After 1900)
           </h2>
-          <p className="text-neutral-600 mt-1">Contemporary and modern art pieces</p>
+          <p className="text-sm text-neutral-500">
+            Contemporary and modern art pieces
+          </p>
         </div>
 
         {modernArtworks.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
+            <table className="min-w-full text-sm">
+              <thead className="bg-neutral-100">
                 <tr>
-                  <th className="px-6 py-4 text-left">Title</th>
-                  <th className="px-6 py-4 text-left">Year Created</th>
-                  <th className="px-6 py-4 text-left">Type</th>
-                  <th className="px-6 py-4 text-left">Estimated Value</th>
+                  <th className="px-6 py-3 text-left text-black">Title</th>
+                  <th className="px-6 py-3 text-left text-black">Year</th>
+                  <th className="px-6 py-3 text-left text-black">Type</th>
+                  <th className="px-6 py-3 text-left text-black">
+                    Estimated Value
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {modernArtworks.map((art, idx) => (
-                  <tr key={idx}>
-                    <td className="px-6 py-4 font-semibold text-neutral-800">{art.title}</td>
-                    <td className="px-6 py-4 text-neutral-700">
-                      {art.year_created ? (
-                        <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
-                          {art.year_created}
-                        </span>
-                      ) : (
-                        <span className="text-neutral-400">—</span>
-                      )}
+                {modernArtworks.map((art, i) => (
+                  <tr key={i} className="border-t border-neutral-200">
+                    <td className="px-6 py-3 font-semibold text-black">
+                      {art.title}
                     </td>
-                    <td className="px-6 py-4 text-neutral-700">{art.art_type || "—"}</td>
-                    <td className="px-6 py-4">
-                      {art.estimated_price ? (
-                        <span className="font-bold text-emerald-600">
-                          ${Number(art.estimated_price).toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="text-neutral-400">—</span>
-                      )}
+                    <td className="px-6 py-3 text-neutral-600">
+                      {art.year_created || "—"}
+                    </td>
+                    <td className="px-6 py-3 text-neutral-600">
+                      {art.art_type || "—"}
+                    </td>
+                    <td className="px-6 py-3 text-rose-600 font-medium">
+                      {art.estimated_price
+                        ? `$${Number(art.estimated_price).toLocaleString()}`
+                        : "—"}
                     </td>
                   </tr>
                 ))}
@@ -347,51 +341,42 @@ export default function Reports() {
           </div>
         ) : (
           <div className="px-8 py-12 text-center text-neutral-500">
-            <p>No data available.</p>
+            No data available.
           </div>
         )}
       </section>
 
-      {/* ===== NEW: Exhibition Popularity (replaces Employee Directory) ===== */}
-      <section className="bg-white rounded-2xl shadow-lg border border-rose-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-rose-100 to-amber-100 px-8 py-6 border-b-2 border-rose-200">
-          <h2 className="text-2xl font-bold text-neutral-800">Exhibition Popularity</h2>
-          <p className="text-neutral-600 mt-1">
-            Title search, date range filters, sorting & CSV export
+      {/* Exhibition Popularity */}
+      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+        <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50">
+          <h2 className="text-2xl font-serif text-black">Exhibition Popularity</h2>
+          <p className="text-sm text-neutral-500">
+            Title search, date filters, sorting & CSV export
           </p>
         </div>
 
-        {/* Filters (press Enter to apply) — mirrors Admin Employee Search */}
-        <form className="flex flex-wrap gap-2 items-end p-6" onSubmit={onApply}>
+        {/* Filters */}
+        <form className="flex flex-wrap gap-3 items-end p-6" onSubmit={onApply}>
           <input
-            className="input"
-            placeholder="Search exhibition title"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-rose-600 focus:outline-none"
+            placeholder="Search title..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm opacity-80">From</label>
-            <input
-              type="date"
-              className="input"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm opacity-80">To</label>
-            <input
-              type="date"
-              className="input"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
-
+          <input
+            type="date"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+          />
+          <input
+            type="date"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+          />
           <select
-            className="input"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
             value={sort}
             onChange={(e) => setSort(e.target.value)}
           >
@@ -400,124 +385,93 @@ export default function Reports() {
             <option value="total_tickets">Total Tickets</option>
             <option value="total_revenue">Total Revenue</option>
           </select>
-
           <select
-            className="input"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
             value={dir}
             onChange={(e) => setDir(e.target.value)}
           >
             <option value="asc">Asc</option>
             <option value="desc">Desc</option>
           </select>
-
-          <select
-            className="input w-28"
-            value={pageSize}
-            onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
+          <button
+            type="submit"
+            className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
           >
-            {[10, 20, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} / page
-              </option>
-            ))}
-          </select>
-
-          <button type="submit" className="btn bg-rose-500 text-white">
-            Apply to see changes
+            Apply
           </button>
-
-          <button type="button" className="btn bg-rose-500 text-white" onClick={downloadCsv}>
+          <button
+            type="button"
+            className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
+            onClick={downloadCsv}
+          >
             Download CSV
           </button>
         </form>
 
         {/* Table */}
-        <div className="rounded-xl border border-neutral-200 mx-6 mb-6 overflow-x-auto">
-          {popData.loading ? (
-            <div className="p-4">Loading…</div>
-          ) : popData.error ? (
-            <div className="p-4 text-red-500">{popData.error}</div>
-          ) : (
-            <table className="min-w-full text-sm">
-              <thead className="bg-neutral-100">
-                <tr>
-                  <th className="px-3 py-2 text-left">Exhibition</th>
-                  <th className="px-3 py-2 text-left">Start</th>
-                  <th className="px-3 py-2 text-left">End</th>
-                  <th className="px-3 py-2 text-left">Run Days</th>
-                  <th className="px-3 py-2 text-left">Total Tickets</th>
-                  <th className="px-3 py-2 text-left">Total Revenue</th>
-                  <th className="px-3 py-2 text-left">Adult</th>
-                  <th className="px-3 py-2 text-left">Senior</th>
-                  <th className="px-3 py-2 text-left">Youth</th>
-                  <th className="px-3 py-2 text-left">Child</th>
-                </tr>
-              </thead>
-              <tbody>
-                {popData.rows.map((r, idx) => {
+        <div className="overflow-x-auto px-6 pb-6">
+          <table className="min-w-full text-sm border-t border-neutral-200">
+            <thead className="bg-neutral-100">
+              <tr>
+                <th className="px-4 py-3 text-left text-black">Exhibition</th>
+                <th className="px-4 py-3 text-left text-black">Start</th>
+                <th className="px-4 py-3 text-left text-black">End</th>
+                <th className="px-4 py-3 text-left text-black">Run Days</th>
+                <th className="px-4 py-3 text-left text-black">Tickets</th>
+                <th className="px-4 py-3 text-left text-black">Revenue</th>
+                <th className="px-4 py-3 text-left text-black">Adult</th>
+                <th className="px-4 py-3 text-left text-black">Senior</th>
+                <th className="px-4 py-3 text-left text-black">Youth</th>
+                <th className="px-4 py-3 text-left text-black">Child</th>
+              </tr>
+            </thead>
+            <tbody>
+              {popData.rows.length ? (
+                popData.rows.map((r, i) => {
                   const runDays =
-                    r.run_days ??
-                    calcRunDays(r.start_date, r.end_date) ??
-                    "—";
-                  const totalTickets =
-                    r.total_tickets ??
-                    (["adult", "senior", "youth", "child"].reduce(
-                      (acc, k) => acc + Number(r?.[k] ?? 0),
-                      0
-                    ) || 0);
-
+                    r.run_days ?? calcRunDays(r.start_date, r.end_date);
                   return (
-                    <tr key={r.exhibition_id ?? idx} className="border-t border-neutral-200">
-                      <td className="px-3 py-2 font-semibold text-neutral-800">
+                    <tr key={i} className="border-b border-neutral-200">
+                      <td className="px-4 py-3 font-semibold text-black">
                         {r.title || "—"}
                       </td>
-                      <td className="px-3 py-2">{fmtDateMMDDYYYY(r.start_date)}</td>
-                      <td className="px-3 py-2">{fmtDateMMDDYYYY(r.end_date)}</td>
-                      <td className="px-3 py-2">{fmtInt(runDays)}</td>
-                      <td className="px-3 py-2">{fmtInt(totalTickets)}</td>
-                      <td className="px-3 py-2">{fmtCurrency(r.total_revenue)}</td>
-                      <td className="px-3 py-2">{fmtInt(r.adult)}</td>
-                      <td className="px-3 py-2">{fmtInt(r.senior)}</td>
-                      <td className="px-3 py-2">{fmtInt(r.youth)}</td>
-                      <td className="px-3 py-2">{fmtInt(r.child)}</td>
+                      <td className="px-4 py-3 text-neutral-600">
+                        {fmtDateMMDDYYYY(r.start_date)}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-600">
+                        {fmtDateMMDDYYYY(r.end_date)}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-600">
+                        {fmtInt(runDays)}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-600">
+                        {fmtInt(r.total_tickets)}
+                      </td>
+                      <td className="px-4 py-3 text-rose-600 font-medium">
+                        {fmtCurrency(r.total_revenue)}
+                      </td>
+                      <td className="px-4 py-3">{fmtInt(r.adult)}</td>
+                      <td className="px-4 py-3">{fmtInt(r.senior)}</td>
+                      <td className="px-4 py-3">{fmtInt(r.youth)}</td>
+                      <td className="px-4 py-3">{fmtInt(r.child)}</td>
                     </tr>
                   );
-                })}
-                {!popData.loading && popData.rows.length === 0 && (
-                  <tr>
-                    <td className="px-3 py-4" colSpan={10}>
-                      No results.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center gap-2 px-6 pb-6">
-          <button
-            className="btn btn-ghost"
-            disabled={applied.page <= 1}
-            onClick={() =>
-              setApplied((p) => ({ ...p, page: Math.max(1, p.page - 1) }))
-            }
-          >
-            Prev
-          </button>
-          <span>
-            Page {popData.page} of {totalPages}
-          </span>
-          <button
-            className="btn btn-ghost"
-            disabled={applied.page >= totalPages}
-            onClick={() => setApplied((p) => ({ ...p, page: p.page + 1 }))}
-          >
-            Next
-          </button>
+                })
+              ) : (
+                <tr>
+                  <td
+                    className="px-4 py-6 text-center text-neutral-500"
+                    colSpan={10}
+                  >
+                    No results.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
   );
+
 }
