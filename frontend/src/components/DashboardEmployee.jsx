@@ -46,6 +46,12 @@ export default function DashboardEmployee() {
             to="/giftshop"
             cta="Open Gift Shop"
           />
+          <PortalCard
+            title="Manage Exhibitions"
+            desc="Add, update, or remove exhibitions."
+            to="/exhibitions"
+            cta="Open Exhibitions"
+          />
         </div>
       </div>
     </div>
