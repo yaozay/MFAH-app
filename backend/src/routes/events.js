@@ -18,7 +18,6 @@ router.get("/", async (req, res) => {
       ORDER BY event_date ASC;
     `);
 
-    // Convert MySQL date + time into full JS Dates
     const events = rows.map((event) => {
       const start = new Date(event.event_date);
       const timeParts = event.event_time
@@ -26,9 +25,8 @@ router.get("/", async (req, res) => {
         : ["09", "00", "00"];
       start.setHours(Number(timeParts[0]), Number(timeParts[1]));
 
-      // Default: 2-hour event duration
       const end = new Date(start);
-      end.setHours(start.getHours() + 2);
+      end.setHours(start.getHours() + 10);
 
       return {
         id: event.id,
