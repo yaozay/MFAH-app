@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../lib/auth";
 
 export default function ArtworksForm() {
+  const { user } = useAuth();
   const [artworks, setArtworks] = useState([]);
   const [artists, setArtists] = useState([]);
   const [formData, setFormData] = useState({
@@ -16,21 +18,28 @@ export default function ArtworksForm() {
   const [editingTitle, setEditingTitle] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const API = import.meta.env.VITE_API_BASE;
 
   useEffect(() => {
     fetchAll();
-  }, []);
+  }, [showDeleted]);
 
   async function fetchAll() {
     setError("");
     setSuccess("");
     try {
       const token = localStorage.getItem("token");
+      const url = showDeleted
+        ? `${API}/api/artworks/deleted`
+        : `${API}/api/artworks`;
+
       const [artworksRes, artistsRes] = await Promise.all([
-        fetch(`${API}/api/artworks`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/api/artists`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/api/artists`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
       const artworksData = await artworksRes.json();
       const artistsData = await artistsRes.json();
@@ -122,6 +131,21 @@ export default function ArtworksForm() {
     }
   }
 
+  async function handleRestore(id) {
+    try {
+      const res = await fetch(`${API}/api/artworks/${id}/restore`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to restore artwork");
+      setSuccess("Artwork restored successfully!");
+      fetchAll();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   function resetForm() {
     setEditingId(null);
     setEditingTitle("");
@@ -154,144 +178,153 @@ export default function ArtworksForm() {
         </div>
       )}
 
-      {/* Form */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-10">
-        <h2 className="text-xl font-serif text-neutral-800 mb-4">
-          {editingId
-            ? `Editing Artwork: ${editingTitle}`
-            : "Create New Artwork"}
-        </h2>
+      {/* Admin toggle */}
+      {user?.role === "admin" && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowDeleted((prev) => !prev)}
+            className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+          >
+            {showDeleted ? "Show Active Artworks" : "Show Deleted Artworks"}
+          </button>
+        </div>
+      )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          <div className="md:col-span-2">
-            <label className="block text-sm font-serif text-neutral-700 mb-1">
-              Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+      {/* Form (hidden when viewing deleted) */}
+      {!showDeleted && (
+        <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-10">
+          <h2 className="text-xl font-serif text-neutral-800 mb-4">
+            {editingId
+              ? `Editing Artwork: ${editingTitle}`
+              : "Create New Artwork"}
+          </h2>
 
-            />
-          </div>
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            <div className="md:col-span-2">
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-serif text-neutral-700 mb-1">
-              Artist
-            </label>
-            <select
-              name="artist_id"
-              value={formData.artist_id}
-              onChange={handleChange}
-              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
-            >
-              <option value="">Select Artist</option>
-              {artists.map((ar) => (
-                <option key={ar.artist_id} value={ar.artist_id}>
-                  {ar.full_name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Artist
+              </label>
+              <select
+                name="artist_id"
+                value={formData.artist_id}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              >
+                <option value="">Select Artist</option>
+                {artists.map((ar) => (
+                  <option key={ar.artist_id} value={ar.artist_id}>
+                    {ar.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-serif text-neutral-700 mb-1">
-              Year Created
-            </label>
-            <input
-              type="number"
-              name="year_created"
-              value={formData.year_created}
-              onChange={handleChange}
-              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Year Created
+              </label>
+              <input
+                type="number"
+                name="year_created"
+                value={formData.year_created}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
 
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Art Type
+              </label>
+              <input
+                type="text"
+                name="art_type"
+                value={formData.art_type}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-serif text-neutral-700 mb-1">
-              Art Type
-            </label>
-            <input
-              type="text"
-              name="art_type"
-              value={formData.art_type}
-              onChange={handleChange}
-              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Acquisition Date
+              </label>
+              <input
+                type="date"
+                name="acquisition_date"
+                value={formData.acquisition_date}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
 
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Estimated Price (USD)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                name="estimated_price"
+                value={formData.estimated_price}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-serif text-neutral-700 mb-1">
-              Acquisition Date
-            </label>
-            <input
-              type="date"
-              name="acquisition_date"
-              value={formData.acquisition_date}
-              onChange={handleChange}
-              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
-            />
-          </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Artwork Image URL
+              </label>
+              <input
+                type="url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-serif text-neutral-700 mb-1">
-              Estimated Price (USD)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              name="estimated_price"
-              value={formData.estimated_price}
-              onChange={handleChange}
-              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
-
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-serif text-neutral-700 mb-1">
-              Artwork Image URL
-            </label>
-            <input
-              type="url"
-              name="image_url"
-              value={formData.image_url}
-              onChange={handleChange}
-              className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
-
-            />
-          </div>
-
-          <div className="md:col-span-2 flex gap-3 mt-2">
-            <button
-              type="submit"
-              className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
-            >
-              {editingId ? "Save Changes" : "Add Artwork"}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition"
-            >
-              {editingId ? "Cancel Edit" : "Clear"}
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="md:col-span-2 flex gap-3 mt-2">
+              <button
+                type="submit"
+                className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+              >
+                {editingId ? "Save Changes" : "Add Artwork"}
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition"
+              >
+                {editingId ? "Cancel Edit" : "Clear"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
         <h2 className="text-xl font-serif text-neutral-800 mb-4">
-          All Artworks ({artworks.length})
+          {showDeleted ? "Deleted Artworks" : `All Artworks (${artworks.length})`}
         </h2>
 
         <table className="min-w-full bg-white border border-neutral-200 rounded-lg overflow-hidden">
@@ -319,7 +352,7 @@ export default function ArtworksForm() {
                     <img
                       src={a.image_url}
                       alt={a.title}
-                      className="w-[150px] h-[150px] object-cover rounded-md border border-neutral-200"
+                      className="w-[100px] h-[100px] object-cover rounded-md border border-neutral-200"
                     />
                   ) : null}
                 </td>
@@ -333,18 +366,29 @@ export default function ArtworksForm() {
                     : "—"}
                 </td>
                 <td className="p-3 flex gap-3 text-sm">
-                  <button
-                    onClick={() => handleEdit(a)}
-                    className="text-neutral-700 hover:text-black transition"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(a.artwork_id)}
-                    className="text-red-600 hover:text-red-800 transition"
-                  >
-                    Delete
-                  </button>
+                  {!showDeleted ? (
+                    <>
+                      <button
+                        onClick={() => handleEdit(a)}
+                        className="text-neutral-700 hover:text-black transition"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(a.artwork_id)}
+                        className="text-red-600 hover:text-red-800 transition"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleRestore(a.artwork_id)}
+                      className="text-rose-700 hover:text-rose-500 transition"
+                    >
+                      Restore
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -352,7 +396,9 @@ export default function ArtworksForm() {
             {artworks.length === 0 && (
               <tr>
                 <td colSpan="7" className="text-center text-neutral-500 p-4">
-                  No artworks found.
+                  {showDeleted
+                    ? "No deleted artworks."
+                    : "No artworks found."}
                 </td>
               </tr>
             )}

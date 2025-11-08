@@ -5,7 +5,6 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
-// (A) LIST — any authenticated role can view
 router.get("/", async (_req, res) => {
   try {
     const [rows] = await pool.execute(
@@ -21,6 +20,7 @@ router.get("/", async (_req, res) => {
          aw.image_url
        FROM Artworks aw
        LEFT JOIN Artists ar ON aw.artist_id = ar.artist_id
+       WHERE aw.deleted_at IS NULL
        ORDER BY aw.title`
     );
     res.json(rows);
@@ -30,7 +30,6 @@ router.get("/", async (_req, res) => {
   }
 });
 
-// (B) CREATE — admin + employee
 router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const {
@@ -47,11 +46,10 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
 
     await pool.execute(
       `INSERT INTO Artworks
-     (title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url)
-   VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, artist_id || null, year_created || null, art_type || null, acquisition_date || null, estimated_price || null, image_url || null]
+        (title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url]
     );
-
 
     res.status(201).json({ message: "Artwork created" });
   } catch (err) {
@@ -60,7 +58,6 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
   }
 });
 
-// (C) UPDATE — admin + employee
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
@@ -78,8 +75,8 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
 
     await pool.execute(
       `UPDATE Artworks
-       SET title=?, artist_id=?, year_created=?, art_type=?, acquisition_date=?, estimated_price=?, image_url=?
-       WHERE artwork_id=?`,
+         SET title=?, artist_id=?, year_created=?, art_type=?, acquisition_date=?, estimated_price=?, image_url=?
+       WHERE artwork_id=? AND deleted_at IS NULL`,
       [title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url, id]
     );
 
@@ -90,15 +87,55 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
   }
 });
 
-// (D) DELETE — admin only
-router.delete("/:id", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
+router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.execute("DELETE FROM Artworks WHERE artwork_id=?", [id]);
+    await pool.query("UPDATE Artworks SET deleted_at = NOW() WHERE artwork_id = ?", [id]);
     res.json({ message: "Artwork deleted" });
   } catch (err) {
     console.error("DELETE /artworks/:id error:", err);
     res.status(500).json({ error: "Failed to delete artwork" });
+  }
+});
+
+router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT 
+         aw.artwork_id,
+         aw.title,
+         ar.full_name AS artist_name,
+         aw.year_created,
+         aw.art_type,
+         aw.acquisition_date,
+         aw.estimated_price,
+         aw.deleted_at
+       FROM Artworks aw
+       LEFT JOIN Artists ar ON aw.artist_id = ar.artist_id
+       WHERE aw.deleted_at IS NOT NULL
+       ORDER BY aw.deleted_at DESC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /artworks/deleted error:", err);
+    res.status(500).json({ error: "Failed to fetch deleted artworks" });
+  }
+});
+
+router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.execute(
+      "UPDATE Artworks SET deleted_at = NULL WHERE artwork_id = ?",
+      [id]
+    );
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Artwork not found or not deleted" });
+
+    res.json({ message: "Artwork restored successfully" });
+  } catch (err) {
+    console.error("PATCH /artworks/:id/restore error:", err);
+    res.status(500).json({ error: "Failed to restore artwork" });
   }
 });
 

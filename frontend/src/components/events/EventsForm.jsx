@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { api } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 
 export default function EventsForm() {
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [venues, setVenues] = useState([]);
-  const [editing, setEditing] = useState(false);
-
   const [formData, setFormData] = useState({
     event_id: null,
     title: "",
@@ -15,26 +14,45 @@ export default function EventsForm() {
     description: "",
   });
 
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const API = import.meta.env.VITE_API_BASE;
+
   useEffect(() => {
     loadEvents();
     loadVenues();
-  }, []);
+  }, [showDeleted]);
 
   async function loadEvents() {
+    setError("");
+    setSuccess("");
     try {
-      const data = await api("/api/events");
+      const token = localStorage.getItem("token");
+      const endpoint = showDeleted
+        ? `${API}/api/events/deleted`
+        : `${API}/api/events`;
+      const res = await fetch(endpoint, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load events");
       setEvents(data);
     } catch (err) {
-      console.error("Failed to load events:", err);
+      setError(err.message);
     }
   }
 
   async function loadVenues() {
     try {
-      const data = await api("/api/venues");
+      const res = await fetch(`${API}/api/venues`);
+      const data = await res.json();
       setVenues(data);
-    } catch (err) {
-      console.error("Failed to load venues:", err);
+    } catch {
+      setVenues([]);
     }
   }
 
@@ -45,61 +63,96 @@ export default function EventsForm() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setError("");
+    setSuccess("");
 
     if (!formData.title || !formData.event_date) {
-      alert("Title and Date are required.");
+      setError("Title and Date are required.");
       return;
     }
 
-    try {
-      if (formData.event_id) {
-        await api(`/api/events/${formData.event_id}`, {
-          method: "PUT",
-          body: JSON.stringify(formData),
-        });
-        alert("Event updated successfully!");
-      } else {
-        await api("/api/events", {
-          method: "POST",
-          body: JSON.stringify(formData),
-        });
-        alert("Event created successfully!");
-      }
+    const token = localStorage.getItem("token");
+    const method = editingId ? "PUT" : "POST";
+    const url = editingId
+      ? `${API}/api/events/${editingId}`
+      : `${API}/api/events`;
 
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save event");
+
+      setSuccess(editingId ? "Event updated successfully!" : "Event added!");
       resetForm();
       loadEvents();
     } catch (err) {
-      console.error("Error submitting event:", err);
-      alert("Failed to save event.");
+      setError(err.message);
     }
   }
 
   async function handleDelete(id) {
     if (!window.confirm("Are you sure you want to delete this event?")) return;
+    setError("");
+    setSuccess("");
+
+    const token = localStorage.getItem("token");
     try {
-      await api(`/api/events/${id}`, { method: "DELETE" });
-      alert("Event deleted.");
+      const res = await fetch(`${API}/api/events/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete event");
+      setSuccess("Event deleted successfully!");
       loadEvents();
     } catch (err) {
-      console.error("Error deleting event:", err);
-      alert("Failed to delete event.");
+      setError(err.message);
     }
   }
 
-  function handleEdit(event) {
-    setEditing(true);
+  async function handleRestore(id) {
+    setError("");
+    setSuccess("");
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API}/api/events/${id}/restore`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to restore event");
+      setSuccess("Event restored successfully!");
+      loadEvents();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function handleEdit(ev) {
+    setEditingId(ev.event_id || ev.id);
+    setEditingTitle(ev.title);
     setFormData({
-      event_id: event.id,
-      title: event.title,
-      event_date: new Date(event.start).toISOString().slice(0, 10),
-      event_time: new Date(event.start).toTimeString().slice(0, 5),
-      venue_id: event.venue_id || "",
-      description: event.description || "",
+      event_id: ev.event_id || ev.id,
+      title: ev.title || "",
+      event_date: ev.event_date
+        ? ev.event_date.slice(0, 10)
+        : "",
+      event_time: ev.event_time || "",
+      venue_id: ev.venue_id || "",
+      description: ev.description || "",
     });
   }
 
   function resetForm() {
-    setEditing(false);
+    setEditingId(null);
+    setEditingTitle("");
     setFormData({
       event_id: null,
       title: "",
@@ -113,106 +166,145 @@ export default function EventsForm() {
   return (
     <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
       <h1 className="text-3xl font-serif mb-6 text-neutral-800">
-        {editing ? "Edit Event" : "Manage Events"}
+        Manage Events
       </h1>
 
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-6 rounded-2xl shadow-lg"
-      >
-        <div className="md:col-span-2 mb-2">
-          <h2 className="text-xl font-serif text-neutral-700">
-            {editing ? "Editing Event" : "Create New Event"}
+      {/* Alerts */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-md mb-6">
+          <strong>Success:</strong> {success}
+        </div>
+      )}
+
+      {/* Admin toggle */}
+      {user?.role === "admin" && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowDeleted((prev) => !prev)}
+            className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+          >
+            {showDeleted ? "Show Active Events" : "Show Deleted Events"}
+          </button>
+        </div>
+      )}
+
+      {/* Form (hidden when viewing deleted) */}
+      {!showDeleted && (
+        <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-10">
+          <h2 className="text-xl font-serif text-neutral-800 mb-4">
+            {editingId
+              ? `Editing Event: ${editingTitle}`
+              : "Create New Event"}
           </h2>
-        </div>
 
-        <div>
-          <label className="block font-serif text-gray-700">Title</label>
-          <input
-            type="text"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block font-serif text-gray-700">Date</label>
-          <input
-            type="date"
-            name="event_date"
-            value={formData.event_date}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block font-serif text-gray-700">Time</label>
-          <input
-            type="time"
-            name="event_time"
-            value={formData.event_time}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block font-serif text-gray-700">Venue</label>
-          <select
-            name="venue_id"
-            value={formData.venue_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
-            <option value="">Select a venue</option>
-            {venues.map((v) => (
-              <option key={v.venue_id} value={v.venue_id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="event_date"
+                value={formData.event_date}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Time
+              </label>
+              <input
+                type="time"
+                name="event_time"
+                value={formData.event_time}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Venue
+              </label>
+              <select
+                name="venue_id"
+                value={formData.venue_id}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              >
+                <option value="">Select Venue</option>
+                {venues.map((v) => (
+                  <option key={v.venue_id} value={v.venue_id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+                rows={3}
+              />
+            </div>
+
+            <div className="md:col-span-2 flex gap-3 mt-2">
+              <button
+                type="submit"
+                className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+              >
+                {editingId ? "Save Changes" : "Add Event"}
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition"
+              >
+                {editingId ? "Cancel Edit" : "Clear"}
+              </button>
+            </div>
+          </form>
         </div>
+      )}
 
-        <div className="md:col-span-2">
-          <label className="block font-serif text-gray-700">Description</label>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
-            rows={3}
-          />
-        </div>
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
+        <h2 className="text-xl font-serif text-neutral-800 mb-4">
+          {showDeleted ? "Deleted Events" : `All Events (${events.length})`}
+        </h2>
 
-        <div className="md:col-span-2 flex gap-3 mt-2">
-          <button
-            type="submit"
-            className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-400"
-          >
-            {editing ? "Save Changes" : "Add Event"}
-          </button>
-
-          <button
-            type="button"
-            onClick={resetForm}
-            className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400"
-          >
-            {editing ? "Cancel Edit" : "Clear"}
-          </button>
-        </div>
-      </form>
-
-      {/* Events Table */}
-      <div className="mt-10">
-        <h2 className="text-xl font-serif mb-3 text-gray-700">All Events</h2>
-
-        <table className="min-w-full bg-white border border-neutral-200 rounded-xl overflow-hidden">
+        <table className="min-w-full bg-white border border-neutral-200 rounded-lg overflow-hidden">
           <thead className="bg-rose-600 text-white border-b border-neutral-200">
             <tr>
               <th className="p-3 text-left text-sm font-medium">Title</th>
@@ -226,34 +318,44 @@ export default function EventsForm() {
           <tbody>
             {events.map((ev, i) => (
               <tr
-                key={ev.id}
+                key={ev.event_id || ev.id}
                 className={`border-b border-neutral-200 ${i % 2 === 0 ? "bg-white" : "bg-neutral-50"
                   } hover:bg-neutral-100 transition-colors`}
               >
                 <td className="p-3 text-sm">{ev.title}</td>
                 <td className="p-3 text-sm">
-                  {new Date(ev.start).toLocaleDateString()}
+                  {ev.event_date
+                    ? new Date(ev.event_date).toLocaleDateString()
+                    : "—"}
                 </td>
                 <td className="p-3 text-sm">
-                  {new Date(ev.start).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {ev.event_time || "—"}
                 </td>
                 <td className="p-3 text-sm">{ev.venue_name || "—"}</td>
                 <td className="p-3 flex gap-3 text-sm">
-                  <button
-                    onClick={() => handleEdit(ev)}
-                    className="text-neutral-700 hover:text-black transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(ev.id)}
-                    className="text-red-600 hover:text-red-800 transition-colors"
-                  >
-                    Delete
-                  </button>
+                  {!showDeleted ? (
+                    <>
+                      <button
+                        onClick={() => handleEdit(ev)}
+                        className="text-neutral-700 hover:text-black transition"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(ev.event_id || ev.id)}
+                        className="text-red-600 hover:text-red-800 transition"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleRestore(ev.event_id || ev.id)}
+                      className="text-rose-700 hover:text-rose-500 transition"
+                    >
+                      Restore
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -261,7 +363,9 @@ export default function EventsForm() {
             {events.length === 0 && (
               <tr>
                 <td colSpan="5" className="text-center text-neutral-500 p-4">
-                  No events found.
+                  {showDeleted
+                    ? "No deleted events."
+                    : "No events found."}
                 </td>
               </tr>
             )}
