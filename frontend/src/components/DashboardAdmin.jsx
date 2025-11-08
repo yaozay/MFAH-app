@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const token = localStorage.getItem("token");
 const API_BASE = import.meta.env.VITE_API_BASE;
@@ -122,15 +132,10 @@ export default function DashboardAdmin() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `${API_BASE}/api/reports/employees?${query}`,
-          {
-            credentials: "include",
-            headers: token
-              ? { Authorization: `Bearer ${token}` }
-              : undefined,
-          }
-        );
+        const res = await fetch(`${API_BASE}/api/reports/employees?${query}`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
         const json = await res.json();
         if (!ignore) setData({ ...json, error: null });
@@ -204,20 +209,29 @@ export default function DashboardAdmin() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard title="Total Visitors" value={fmtInt(metrics.total_visitors)} />
-            <MetricCard title="Ticket Sales" value={fmtCurrency(metrics.ticket_sales)} />
-            <MetricCard title="Shop Sales" value={fmtCurrency(metrics.shop_sales)} />
+            <MetricCard
+              title="Total Visitors"
+              value={fmtInt(metrics.total_visitors)}
+            />
+            <MetricCard
+              title="Ticket Sales"
+              value={fmtCurrency(metrics.ticket_sales)}
+            />
+            <MetricCard
+              title="Shop Sales"
+              value={fmtCurrency(metrics.shop_sales)}
+            />
             <UserCard />
           </div>
         )}
       </section>
 
+      {/*Member Ticket Engagement Chart */}
+      <MemberTicketChart selectedMonth={selectedMonth} />
+
       {/* Employee Section */}
       <h1 className="text-lg font-semibold text-neutral-800">Employee Search</h1>
-      <form
-        className="flex flex-wrap gap-2 items-end"
-        onSubmit={onApply}
-      >
+      <form className="flex flex-wrap gap-2 items-end" onSubmit={onApply}>
         <input
           className="border border-neutral-300 rounded-lg px-3 py-2 text-sm flex-1"
           placeholder="Search name/email/phone"
@@ -378,7 +392,9 @@ function UserCard() {
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-end z-50">
           <div className="w-full max-w-2xl bg-white h-full shadow-xl overflow-y-auto p-6 relative">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h3 className="text-lg font-semibold text-neutral-800">Registered Users</h3>
+              <h3 className="text-lg font-semibold text-neutral-800">
+                Registered Users
+              </h3>
               <button
                 onClick={() => setShowUsers(false)}
                 className="text-sm px-3 py-1.5 bg-neutral-200 rounded-lg hover:bg-neutral-300"
@@ -428,6 +444,103 @@ function UserCard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// --- Member Ticket Engagement Bar Chart ---
+function MemberTicketChart({ selectedMonth }) {
+  const API_BASE = import.meta.env.VITE_API_BASE;
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🗓 helper functions (same logic used in metrics)
+  const firstDayISO = (yyyyMm) => `${yyyyMm}-01`;
+  const lastDayISO = (yyyyMm) => {
+    const [y, m] = yyyyMm.split("-").map((s) => parseInt(s, 10));
+    const d = new Date(y, m, 0);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  };
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const start = firstDayISO(selectedMonth);
+        const end = lastDayISO(selectedMonth);
+
+        // ✅ Now send date range to backend
+        const res = await fetch(
+          `${API_BASE}/api/reports/member-ticket-purchases?start=${start}&end=${end}`
+        );
+
+        if (!res.ok) throw new Error(`Chart data request failed: ${res.status}`);
+        const rows = await res.json();
+
+        const grouped = rows.reduce((acc, row) => {
+          const type = row.membership_type || "Unknown";
+          if (!acc[type]) {
+            acc[type] = {
+              membership_type: type,
+              total_tickets: 0,
+              total_spent: 0,
+            };
+          }
+          acc[type].total_tickets += Number(row.total_tickets_bought || 0);
+          acc[type].total_spent += Number(row.total_amount_spent || 0);
+          return acc;
+        }, {});
+        setChartData(Object.values(grouped));
+      } catch (err) {
+        console.error("Error loading chart data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [API_BASE, selectedMonth]); // 🧠 refetch every time month changes
+
+  if (loading) {
+    return <div className="p-4 text-neutral-500">Loading chart...</div>;
+  }
+
+  return (
+    <div className="mt-8 rounded-xl bg-white border border-neutral-200 shadow-sm p-4">
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-neutral-800">
+          🎟️ Member Ticket Engagement
+        </h3>
+        <p className="text-sm text-neutral-500">
+          Tickets purchased and spending by membership tier ({selectedMonth})
+        </p>
+      </div>
+
+      <ResponsiveContainer width="100%" height={350}>
+        <BarChart
+          data={chartData}
+          margin={{ top: 20, right: 20, left: 10, bottom: 60 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="membership_type"
+            angle={-20}
+            textAnchor="end"
+            interval={0}
+            height={80}
+          />
+          <YAxis />
+          <Tooltip
+            formatter={(value, name) =>
+              name === "total_spent" ? `$${value.toFixed(2)}` : value
+            }
+          />
+          <Legend />
+          <Bar dataKey="total_tickets" fill="#82ca9d" name="Tickets Bought" />
+          <Bar dataKey="total_spent" fill="#8884d8" name="Total Spent ($)" />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

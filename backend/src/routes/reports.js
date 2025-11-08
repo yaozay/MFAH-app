@@ -357,46 +357,93 @@ router.get("/admin-metrics", async (req, res) => {
 
   try {
     // Total Visitors
-    const [[{ total_visitors }]] = await pool.query(
+    const [vRows] = await pool.query(
       `SELECT COUNT(*) AS total_visitors
-         FROM Visitors v
-        WHERE v.last_visit >= ? AND v.last_visit < DATE_ADD(?, INTERVAL 1 DAY)`,
+       FROM Visitors v
+       WHERE v.last_visit >= ? AND v.last_visit < DATE_ADD(?, INTERVAL 1 DAY)`,
       [start, end]
     );
+    const total_visitors = vRows[0]?.total_visitors || 0;
 
-    // Ticket Sales (use total_price + date)
-    const [[{ ticket_sales }]] = await pool.query(
-      `SELECT COALESCE(SUM(t.total_price), 0) AS ticket_sales
-         FROM Ticket_Sales t
-        WHERE t.date >= ? AND t.date < DATE_ADD(?, INTERVAL 1 DAY)`,
+    // Ticket Sales
+    const [tRows] = await pool.query(
+      `SELECT COALESCE(SUM(t.purchase_price), 0) AS ticket_sales
+       FROM Ticket_Sales t
+       WHERE t.purchased_date >= ? AND t.purchased_date < DATE_ADD(?, INTERVAL 1 DAY)`,
       [start, end]
     );
+    const ticket_sales = tRows[0]?.ticket_sales || 0;
 
-    // Shop Sales
-    const [[{ shop_sales }]] = await pool.query(
+    // Gift Shop Sales
+    const [gRows] = await pool.query(
       `SELECT COALESCE(SUM(g.total_price), 0) AS shop_sales
-        FROM Gift_Shop_Transactions g
-        WHERE g.sale_date >= ? AND g.sale_date < DATE_ADD(?, INTERVAL 1 DAY)`,
+       FROM Gift_Shop_Transactions g
+       WHERE g.sale_date >= ? AND g.sale_date < DATE_ADD(?, INTERVAL 1 DAY)`,
       [start, end]
     );
+    const shop_sales = gRows[0]?.shop_sales || 0;
 
-    // New Memberships
-    const [[{ new_memberships }]] = await pool.query(
-      `SELECT COUNT(*) AS new_memberships
-        FROM Memberships m
-        WHERE m.start_date >= ? AND m.start_date < DATE_ADD(?, INTERVAL 1 DAY)`,
+    // Membership Revenue
+    const [mRows] = await pool.query(
+      `SELECT COALESCE(SUM(m.price_at_purchase), 0) AS membership_revenue
+       FROM Membership_records m
+       WHERE m.start_date >= ? AND m.start_date < DATE_ADD(?, INTERVAL 1 DAY)`,
       [start, end]
     );
+    const membership_revenue = mRows[0]?.membership_revenue || 0;
 
     res.json({
-      total_visitors: Number(total_visitors || 0),
-      ticket_sales: Number(ticket_sales || 0),
-      shop_sales: Number(shop_sales || 0),
-      new_memberships: Number(new_memberships || 0),
+      total_visitors: Number(total_visitors),
+      ticket_sales: Number(ticket_sales),
+      shop_sales: Number(shop_sales),
+      membership_revenue: Number(membership_revenue),
     });
   } catch (err) {
-    console.error("GET /reports/admin-metrics error:", err);
+    console.error("GET /reports/admin-metrics error:", err.sqlMessage || err.message);
     res.status(500).json({ error: "Failed to fetch admin metrics" });
+  }
+});
+
+
+// (F) Member Ticket Purchases Report — with optional date range filter
+router.get("/member-ticket-purchases", async (req, res) => {
+  const { start, end } = req.query; // YYYY-MM-DD
+  
+  try {
+    // base query
+    let sql = `
+      SELECT 
+        mt.name AS membership_type,
+        COALESCE(SUM(ts.ticket_amount), 0) AS total_tickets_bought,
+        COALESCE(SUM(ts.purchase_price), 0) AS total_amount_spent
+      FROM Membership_records mr
+      JOIN Membership_Types mt ON mr.plan_id = mt.plan_id
+      JOIN Visitors v ON v.visitor_id = mr.visitor_id
+      LEFT JOIN Ticket_Sales ts ON ts.visitor_id = v.visitor_id
+    `;
+
+    const params = [];
+
+    // Apply date filter if provided
+    if (start && end) {
+      sql += ` WHERE ts.purchased_date >= ? AND ts.purchased_date < DATE_ADD(?, INTERVAL 1 DAY)`;
+      params.push(start, end);
+    }
+
+    sql += `
+      GROUP BY mt.name
+      ORDER BY total_amount_spent DESC;
+    `;
+
+    
+    const [rows] = await pool.query(sql, params);
+
+    
+
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /reports/member-ticket-purchases error:", err.sqlMessage || err.message);
+    res.status(500).json({ error: "Failed to fetch member ticket purchases data" });
   }
 });
 
