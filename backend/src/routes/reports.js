@@ -347,10 +347,80 @@ router.get("/exhibition-popularity", async (req, res) => {
   }
 });
 
-//admin metrics
-// Monthly performance metrics for admin dashboard
+// --- helpers ---------------------------------------------------------------
+
+// Ticket sales: purchase_price * ticket_amount over purchased_date
+async function getTicketSales(pool, start, end) {
+  const sql = `
+    SELECT COALESCE(SUM(t.purchase_price * t.ticket_amount), 0) AS ticket_sales
+    FROM Ticket_Sales t
+    WHERE t.purchased_date >= ? AND t.purchased_date < DATE_ADD(?, INTERVAL 1 DAY)
+  `;
+  const [[row]] = await pool.query(sql, [start, end]);
+  return Number(row.ticket_sales || 0);
+}
+
+// Count new memberships from Membership_records
+async function countNewMemberships(pool, start, end) {
+  // detect which date column Membership_records has
+  const [cols] = await pool.query(`SHOW COLUMNS FROM Membership_records`);
+  const has = (n) => cols.some(c => c.Field === n);
+  const dateCol = has('start_date')
+    ? 'start_date'
+    : has('purchased_date')
+    ? 'purchased_date'
+    : has('created_at')
+    ? 'created_at'
+    : null;
+
+  if (!dateCol) {
+    // no usable date column; treat as 0 rather than 500
+    return 0;
+  }
+
+  const sql = `
+    SELECT COUNT(*) AS new_memberships
+    FROM Membership_records mr
+    WHERE mr.${dateCol} >= ? AND mr.${dateCol} < DATE_ADD(?, INTERVAL 1 DAY)
+  `;
+  const [[row]] = await pool.query(sql, [start, end]);
+  return Number(row.new_memberships || 0);
+}
+
+// (Optional) revenue from memberships this period
+async function getMembershipRevenue(pool, start, end) {
+  // If records already store the charge, sum that; otherwise join to Types.price
+  const [cols] = await pool.query(`SHOW COLUMNS FROM Membership_records`);
+  const has = (n) => cols.some(c => c.Field === n);
+  const dateCol = has('start_date') ? 'start_date' :
+                  has('purchased_date') ? 'purchased_date' : 'created_at';
+
+  if (has('amount') || has('total_price')) {
+    const amountExpr = has('amount') ? 'mr.amount' : 'mr.total_price';
+    const sql = `
+      SELECT COALESCE(SUM(${amountExpr}), 0) AS membership_revenue
+      FROM Membership_records mr
+      WHERE mr.${dateCol} >= ? AND mr.${dateCol} < DATE_ADD(?, INTERVAL 1 DAY)
+    `;
+    const [[row]] = await pool.query(sql, [start, end]);
+    return Number(row.membership_revenue || 0);
+  } else {
+    // join on plan price from Membership_Types
+    // assumes Membership_records has plan_id
+    const sql = `
+      SELECT COALESCE(SUM(mt.price), 0) AS membership_revenue
+      FROM Membership_records mr
+      JOIN Membership_Types mt ON mt.plan_id = mr.plan_id
+      WHERE mr.${dateCol} >= ? AND mr.${dateCol} < DATE_ADD(?, INTERVAL 1 DAY)
+    `;
+    const [[row]] = await pool.query(sql, [start, end]);
+    return Number(row.membership_revenue || 0);
+  }
+}
+
+
 router.get("/admin-metrics", async (req, res) => {
-  const { start, end } = req.query;
+  const { start, end } = req.query; // YYYY-MM-DD
   if (!start || !end) {
     return res.status(400).json({ error: "start and end are required (YYYY-MM-DD)" });
   }
@@ -364,35 +434,27 @@ router.get("/admin-metrics", async (req, res) => {
       [start, end]
     );
 
-    // Ticket Sales (use total_price + date)
-    const [[{ ticket_sales }]] = await pool.query(
-      `SELECT COALESCE(SUM(t.total_price), 0) AS ticket_sales
-         FROM Ticket_Sales t
-        WHERE t.date >= ? AND t.date < DATE_ADD(?, INTERVAL 1 DAY)`,
-      [start, end]
-    );
+    const ticket_sales = await getTicketSales(pool, start, end);
 
-    // Shop Sales
+    // Gift shop sales (keep if g.total_price exists)
     const [[{ shop_sales }]] = await pool.query(
       `SELECT COALESCE(SUM(g.total_price), 0) AS shop_sales
-        FROM Gift_Shop_Transactions g
+         FROM Gift_Shop_Transactions g
         WHERE g.sale_date >= ? AND g.sale_date < DATE_ADD(?, INTERVAL 1 DAY)`,
       [start, end]
     );
 
-    // New Memberships
-    const [[{ new_memberships }]] = await pool.query(
-      `SELECT COUNT(*) AS new_memberships
-        FROM Memberships m
-        WHERE m.start_date >= ? AND m.start_date < DATE_ADD(?, INTERVAL 1 DAY)`,
-      [start, end]
-    );
+    const new_memberships = await countNewMemberships(pool, start, end);
+
+    // Optional: include membership revenue if you want it on the dashboard
+    // const membership_revenue = await getMembershipRevenue(pool, start, end);
 
     res.json({
       total_visitors: Number(total_visitors || 0),
-      ticket_sales: Number(ticket_sales || 0),
+      ticket_sales,
       shop_sales: Number(shop_sales || 0),
-      new_memberships: Number(new_memberships || 0),
+      new_memberships,
+      // membership_revenue,
     });
   } catch (err) {
     console.error("GET /reports/admin-metrics error:", err);
@@ -400,7 +462,5 @@ router.get("/admin-metrics", async (req, res) => {
   }
 });
 
-
-
-
 export default router;
+
