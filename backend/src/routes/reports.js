@@ -279,22 +279,18 @@ router.get("/exhibition-popularity", async (req, res) => {
         e.start_date,
         e.end_date,
         DATEDIFF(e.end_date, e.start_date) + 1 AS run_days,
-        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Adult' THEN 1 ELSE 0 END), 0) AS adult,
-        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Senior' THEN 1 ELSE 0 END), 0) AS senior,
-        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Youth' THEN 1 ELSE 0 END), 0) AS youth,
-        COALESCE(SUM(CASE WHEN fs.ticket_type = 'Child' THEN 1 ELSE 0 END), 0) AS child,
-        COALESCE(COUNT(fs.ticket_type), 0) AS total_tickets,
-        COALESCE(SUM(fs.total_price), 0.00) AS total_revenue
+        0 AS adult,   -- no ticket_type in Ticket_Sales; keep 0s or remove these columns
+        0 AS senior,
+        0 AS youth,
+        0 AS child,
+        COALESCE(SUM(fs.ticket_amount), 0) AS total_tickets,
+        COALESCE(SUM(fs.purchase_price * fs.ticket_amount), 0.00) AS total_revenue
       FROM Exhibitions e
-      LEFT JOIN (
-        SELECT t.exhibition_id, t.ticket_type, t.total_price
-        FROM Ticket_Sales t
-        ${salesDateSql}
-      ) fs ON fs.exhibition_id = e.exhibition_id
-      ${whereSql}
+      LEFT JOIN Ticket_Sales fs
+        ON fs.visit_date BETWEEN e.start_date AND e.end_date
       GROUP BY e.exhibition_id, e.title, e.start_date, e.end_date
-      ORDER BY ${sortCol} ${sortDir}, e.exhibition_id ASC
-      LIMIT ? OFFSET ?
+      ORDER BY total_revenue DESC, e.exhibition_id ASC
+      LIMIT ? OFFSET ?;
     `;
     const [rows] = await pool.query(
       dataSql,
