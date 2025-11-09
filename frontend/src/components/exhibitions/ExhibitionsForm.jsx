@@ -25,7 +25,7 @@ export default function ExhibitionsForm() {
 
   const API = import.meta.env.VITE_API_BASE;
 
-  // ✅ Fetch Active Exhibitions + Venues
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -50,10 +50,10 @@ export default function ExhibitionsForm() {
       }
     }
 
-    if (!showDeleted) fetchData(); // ✅ only fetch when viewing active
+    if (!showDeleted) fetchData();
   }, [API, token, showDeleted]);
 
-  // ✅ Fetch Deleted Exhibitions
+
   async function fetchDeleted() {
     try {
       const res = await fetch(`${API}/api/exhibitions/deleted`, {
@@ -69,7 +69,6 @@ export default function ExhibitionsForm() {
     }
   }
 
-  // ✅ Restore Deleted Exhibition
   async function handleRestore(id) {
     try {
       const res = await fetch(`${API}/api/exhibitions/${id}/restore`, {
@@ -80,14 +79,13 @@ export default function ExhibitionsForm() {
       if (!res.ok) throw new Error("Failed to restore exhibition");
 
       alert("Exhibition restored successfully!");
-      setShowDeleted(false); // ✅ auto switch to active view
+      setShowDeleted(false);
     } catch (err) {
       console.error("Restore failed:", err);
       alert(err.message);
     }
   }
 
-  // ✅ Add / Update Exhibition
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.title || !form.start_date)
@@ -131,7 +129,6 @@ export default function ExhibitionsForm() {
     }
   }
 
-  // ✅ Delete (Soft Delete)
   async function handleDelete(id) {
     if (!confirm("Delete this exhibition?")) return;
     try {
@@ -199,8 +196,6 @@ export default function ExhibitionsForm() {
       <h1 className="text-3xl font-serif mb-6">
         {editing ? "Edit Exhibition" : "Manage Exhibitions"}
       </h1>
-
-      {/* ✅ Admin toggle */}
       {user?.role === "admin" && (
         <div className="mb-6">
           <button
@@ -215,7 +210,6 @@ export default function ExhibitionsForm() {
         </div>
       )}
 
-      {/* ✅ ACTIVE VIEW */}
       {!showDeleted && (
         <>
           {/* FORM SECTION */}
@@ -427,7 +421,6 @@ export default function ExhibitionsForm() {
         </>
       )}
 
-      {/* ✅ Deleted Exhibitions Page */}
       {showDeleted && (
         <div className="bg-white border rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-serif mb-4 text-neutral-800">
