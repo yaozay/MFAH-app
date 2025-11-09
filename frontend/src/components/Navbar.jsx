@@ -90,7 +90,7 @@ export default function Navbar() {
           )}
           {user.role === "visitor" && (
             <NavLink to="/visitor" className={linkStyle}>
-              Visitor
+              Profile
               <ActiveUnderline />
             </NavLink>
           )}
