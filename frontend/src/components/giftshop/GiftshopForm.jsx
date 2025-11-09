@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth";
 
 export default function GiftshopForm() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [products, setProducts] = useState([]);
+  const [deletedProducts, setDeletedProducts] = useState([]);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
@@ -20,7 +22,9 @@ export default function GiftshopForm() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch(`${API}/api/giftshop`);
+        const res = await fetch(`${API}/api/giftshop`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const data = await res.json();
         setProducts(data);
       } catch (err) {
@@ -29,8 +33,39 @@ export default function GiftshopForm() {
         setLoading(false);
       }
     }
-    fetchProducts();
-  }, [API]);
+
+    if (!showDeleted) fetchProducts();
+  }, [API, token, showDeleted]);
+
+
+  async function fetchDeleted() {
+    try {
+      const res = await fetch(`${API}/api/giftshop/deleted`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load deleted products");
+      setDeletedProducts(data);
+    } catch (err) {
+      console.error("Error loading deleted products:", err);
+      alert(err.message);
+    }
+  }
+
+  async function handleRestore(id) {
+    try {
+      const res = await fetch(`${API}/api/giftshop/${id}/restore`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to restore product");
+      alert("Product restored successfully!");
+      setShowDeleted(false);
+    } catch (err) {
+      console.error("Restore failed:", err);
+      alert(err.message);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -67,7 +102,9 @@ export default function GiftshopForm() {
       });
       setEditing(null);
 
-      const updated = await fetch(`${API}/api/giftshop`);
+      const updated = await fetch(`${API}/api/giftshop`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setProducts(await updated.json());
     } catch (err) {
       console.error(err);
@@ -125,123 +162,193 @@ export default function GiftshopForm() {
       <h1 className="text-3xl font-serif mb-6">
         {editing ? "Edit Product" : "Manage Gift Shop"}
       </h1>
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white border rounded-xl shadow-sm p-6 mb-12"
-      >
-        <h2 className="text-lg font-serif font-medium mb-4 text-neutral-800">
-          {editing ? "Edit Product" : "Add New Product"}
-        </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {user?.role === "admin" && (
+        <div className="mb-6">
+          <button
+            onClick={() => {
+              setShowDeleted((prev) => !prev);
+              if (!showDeleted) fetchDeleted();
+            }}
+            className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+          >
+            {showDeleted ? "Show Active Products" : "Show Deleted Products"}
+          </button>
+        </div>
+      )}
 
-          {["sku", "name", "category", "price", "quantity"].map((key) => (
-            <div key={key} className="flex flex-col">
-              <label className="text-sm font-serif text-neutral-700 mb-1">
-                {key.charAt(0).toUpperCase() + key.slice(1)}
-              </label>
-              <input
-                type={key === "price" || key === "quantity" ? "number" : "text"}
-                value={form[key]}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                className="border rounded-md p-2 text-sm"
-              />
-            </div>
-          ))}
+      {!showDeleted && (
+        <>
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white border rounded-xl shadow-sm p-6 mb-12"
+          >
+            <h2 className="text-lg font-serif font-medium mb-4 text-neutral-800">
+              {editing ? "Edit Product" : "Add New Product"}
+            </h2>
 
-          <div className="flex flex-col sm:col-span-2">
-            <label className="text-sm font-serif text-neutral-700 mb-1">
-              Image URL
-            </label>
-            <input
-              type="text"
-              value={form.image_url}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              className="border rounded-md p-2 text-sm"
-            />
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {["sku", "name", "category", "price", "quantity"].map((key) => (
+                <div key={key} className="flex flex-col">
+                  <label className="text-sm font-serif text-neutral-700 mb-1">
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  </label>
+                  <input
+                    type={key === "price" || key === "quantity" ? "number" : "text"}
+                    value={form[key]}
+                    onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                    className="border rounded-md p-2 text-sm"
+                  />
+                </div>
+              ))}
 
-          {form.image_url && (
-            <div className="sm:col-span-2 flex justify-center">
-              <div className="w-40 h-40 rounded-lg border overflow-hidden bg-neutral-100 flex items-center justify-center">
-                <img
-                  src={form.image_url}
-                  alt="Preview"
-                  className="object-cover w-full h-full"
+              <div className="flex flex-col sm:col-span-2">
+                <label className="text-sm font-serif text-neutral-700 mb-1">
+                  Image URL
+                </label>
+                <input
+                  type="text"
+                  value={form.image_url}
+                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                  className="border rounded-md p-2 text-sm"
                 />
               </div>
-            </div>
-          )}
-        </div>
 
-        <div className="flex gap-3 mt-8">
-          <button
-            type="submit"
-            className="flex-1 bg-rose-600 text-white py-2 rounded-md hover:bg-rose-700 transition"
-          >
-            {editing ? "Save Changes" : "Add Product"}
-          </button>
-          {editing && (
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-md hover:bg-gray-400 transition"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
-
-      <h2 className="text-lg font-serif mb-4">Current Products</h2>
-      <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
-        {products.map((p) => (
-          <div
-            key={p.product_id}
-            className="border border-neutral-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition p-4 flex flex-col"
-          >
-            <div className="aspect-[1/1] bg-neutral-100 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
-              {p.image_url ? (
-                <img
-                  src={
-                    p.image_url.startsWith("http")
-                      ? p.image_url
-                      : `${API}${p.image_url}`
-                  }
-                  alt={p.name}
-                  className="object-cover w-full h-full"
-                />
-              ) : (
-                <span className="text-gray-400 text-sm">No image</span>
+              {form.image_url && (
+                <div className="sm:col-span-2 flex justify-center">
+                  <div className="w-40 h-40 rounded-lg border overflow-hidden bg-neutral-100 flex items-center justify-center">
+                    <img
+                      src={form.image_url}
+                      alt="Preview"
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                </div>
               )}
             </div>
-            <h3 className="font-serif text-lg text-neutral-800 mb-1">
-              {p.name}
-            </h3>
-            <p className="text-sm text-neutral-500 mb-2">
-              {p.category || "General"}
-            </p>
-            <p className="font-medium text-rose-600 mb-1">
-              ${Number(p.price).toFixed(2)}
-            </p>
-            <p className="text-sm text-gray-600 mb-3">Qty: {p.quantity}</p>
-            <div className="flex gap-3 mt-auto">
+
+            <div className="flex gap-3 mt-8">
               <button
-                onClick={() => handleEdit(p)}
-                className="flex-1 bg-gray-500 text-white rounded-md py-1 hover:bg-gray-600 text-sm"
+                type="submit"
+                className="flex-1 bg-rose-600 text-white py-2 rounded-md hover:bg-rose-700 transition"
               >
-                Edit
+                {editing ? "Save Changes" : "Add Product"}
               </button>
-              <button
-                onClick={() => handleDelete(p.product_id)}
-                className="flex-1 bg-red-500 text-white rounded-md py-1 hover:bg-red-600 text-sm"
-              >
-                Delete
-              </button>
+              {editing && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-md hover:bg-gray-400 transition"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
+          </form>
+
+          <h2 className="text-lg font-serif mb-4">Current Products</h2>
+          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
+            {products.map((p) => (
+              <div
+                key={p.product_id}
+                className="border border-neutral-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition p-4 flex flex-col"
+              >
+                <div className="aspect-[1/1] bg-neutral-100 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
+                  {p.image_url ? (
+                    <img
+                      src={
+                        p.image_url.startsWith("http")
+                          ? p.image_url
+                          : `${API}${p.image_url}`
+                      }
+                      alt={p.name}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <span className="text-gray-400 text-sm">No image</span>
+                  )}
+                </div>
+                <h3 className="font-serif text-lg text-neutral-800 mb-1">
+                  {p.name}
+                </h3>
+                <p className="text-sm text-neutral-500 mb-2">
+                  {p.category || "General"}
+                </p>
+                <p className="font-medium text-rose-600 mb-1">
+                  ${Number(p.price).toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-600 mb-3">Qty: {p.quantity}</p>
+                <div className="flex gap-3 mt-auto">
+                  <button
+                    onClick={() => handleEdit(p)}
+                    className="flex-1 bg-gray-500 text-white rounded-md py-1 hover:bg-gray-600 text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.product_id)}
+                    className="flex-1 bg-red-500 text-white rounded-md py-1 hover:bg-red-600 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
+
+      {showDeleted && (
+        <div className="bg-white border rounded-xl shadow-sm p-6">
+          <h2 className="text-xl font-serif mb-4 text-neutral-800">
+            Deleted Products
+          </h2>
+
+          {deletedProducts.length === 0 ? (
+            <p className="text-sm text-neutral-500">
+              No deleted products found.
+            </p>
+          ) : (
+            <table className="min-w-full bg-white border border-neutral-200 rounded-lg overflow-hidden">
+              <thead className="bg-rose-600 text-white">
+                <tr>
+                  <th className="p-3 text-left text-sm font-medium">Name</th>
+                  <th className="p-3 text-left text-sm font-medium">Category</th>
+                  <th className="p-3 text-left text-sm font-medium">Price</th>
+                  <th className="p-3 text-left text-sm font-medium">Deleted At</th>
+                  <th className="p-3 text-left text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deletedProducts.map((p, i) => (
+                  <tr
+                    key={p.product_id}
+                    className={`border-b ${i % 2 === 0 ? "bg-white" : "bg-neutral-50"
+                      }`}
+                  >
+                    <td className="p-3 text-sm">{p.name}</td>
+                    <td className="p-3 text-sm">{p.category || "—"}</td>
+                    <td className="p-3 text-sm">${Number(p.price).toFixed(2)}</td>
+                    <td className="p-3 text-sm">
+                      {p.deleted_at
+                        ? new Date(p.deleted_at).toLocaleString()
+                        : "—"}
+                    </td>
+                    <td className="p-3 text-sm">
+                      <button
+                        onClick={() => handleRestore(p.product_id)}
+                        className="text-rose-700 hover:text-rose-500 text-sm"
+                      >
+                        Restore
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   );
 }
