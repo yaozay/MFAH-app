@@ -12,8 +12,9 @@ import employeesRouter from "./routes/employees.js";
 import venuesRouter from "./routes/venues.js";
 import usersRouter from "./routes/users.js";
 import giftshopRouter from "./routes/giftshop.js";
-
 import exhibitionsRouter from "./routes/exhibitions.js";
+import memberships from "./routes/memberships.js";
+
 
 dotenv.config();
 
@@ -66,8 +67,18 @@ app.use("/api/venues", venuesRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/giftshop", giftshopRouter);
 app.use("/api/employees", employeesRouter);
-
+app.use("/api/memberships", memberships);
 app.use("/api/exhibitions", exhibitionsRouter);
+
+
+
+
+
+
+
+
+
+app.get("/health", (req, res) => res.json({ ok: true }));
 
 
 app.listen(PORT, () => {
