@@ -10,6 +10,7 @@ router.get("/", requireAuth, async (_req, res) => {
     const [rows] = await pool.execute(`
       SELECT artist_id, full_name, birth_year, death_year, nationality, bio
       FROM Artists
+      WHERE deleted_at IS NULL
       ORDER BY full_name;
     `);
     res.json(rows);
@@ -27,12 +28,10 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       return res.status(400).json({ error: "Full name is required" });
     }
 
-    console.log("POST /artists body:", req.body);
-
     await pool.execute(
       `INSERT INTO Artists (full_name, birth_year, death_year, nationality, bio)
        VALUES (?, ?, ?, ?, ?)`,
-      [full_name, birth_year ?? null, death_year ?? null, nationality ?? null, bio ?? null]
+      [full_name.trim(), birth_year ?? null, death_year ?? null, nationality ?? null, bio ?? null]
     );
 
     res.status(201).json({ message: "Artist created successfully" });
@@ -42,7 +41,6 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
   }
 });
 
-
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
@@ -51,7 +49,7 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
     await pool.execute(
       `UPDATE Artists
        SET full_name = ?, birth_year = ?, death_year = ?, nationality = ?, bio = ?
-       WHERE artist_id = ?`,
+       WHERE artist_id = ? AND deleted_at IS NULL`,
       [full_name, birth_year ?? null, death_year ?? null, nationality ?? null, bio ?? null, id]
     );
 
@@ -65,16 +63,53 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
 router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
-    const [result] = await pool.execute("DELETE FROM Artists WHERE artist_id = ?", [id]);
+    const [result] = await pool.execute(
+      `UPDATE Artists SET deleted_at = NOW() WHERE artist_id = ? AND deleted_at IS NULL`,
+      [id]
+    );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Artist not found" });
+      return res.status(404).json({ error: "Artist not found or already deleted" });
     }
 
     res.json({ message: "Artist deleted successfully" });
   } catch (err) {
     console.error("DELETE /artists/:id error:", err);
     res.status(500).json({ error: "Failed to delete artist" });
+  }
+});
+
+router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT artist_id, full_name, birth_year, death_year, nationality, bio, deleted_at
+      FROM Artists
+      WHERE deleted_at IS NOT NULL
+      ORDER BY deleted_at DESC;
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /artists/deleted error:", err);
+    res.status(500).json({ error: "Failed to fetch deleted artists" });
+  }
+});
+
+router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.execute(
+      `UPDATE Artists SET deleted_at = NULL WHERE artist_id = ? AND deleted_at IS NOT NULL`,
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Artist not found or not deleted" });
+    }
+
+    res.json({ message: "Artist restored successfully" });
+  } catch (err) {
+    console.error("PATCH /artists/:id/restore error:", err);
+    res.status(500).json({ error: "Failed to restore artist" });
   }
 });
 

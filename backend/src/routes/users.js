@@ -10,7 +10,7 @@ const router = express.Router();
 router.get("/me", requireAuth, async (req, res) => {
   const [rows] = await pool.query(
     "SELECT user_id, first_name, last_name, email, role, created_at, updated_at FROM Users WHERE user_id = ?",
-    [req.user.sub] 
+    [req.user.sub]
   );
   if (!rows.length) return res.status(404).json({ error: "User not found" });
   res.json(rows[0]);
@@ -96,7 +96,7 @@ router.delete("/:id", requireAuth, requireAnyRole(["admin"]), async (req, res) =
   const { id } = req.params;
   try {
     await pool.query("DELETE FROM Users WHERE user_id = ?", [id]);
-  res.json({ success: true });
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to delete user" });

@@ -1,59 +1,39 @@
 import express from "express";
 import { pool } from "../db.js";
+import { requireAuth } from "../utils/requireAuth.js";
+import { requireAnyRole } from "../utils/authorize.js";
 
 const router = express.Router();
 
-//  Get all events
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
-        event_id AS id,
-        title,
-        event_date,
-        event_time,
-        description,
-        venue_id
-      FROM Events
-      ORDER BY event_date ASC;
+        e.event_id AS id,
+        e.title,
+        e.event_date,
+        e.event_time,
+        e.description,
+        v.name AS venue_name
+      FROM Events e
+      LEFT JOIN Venues v ON e.venue_id = v.venue_id
+      WHERE e.deleted_at IS NULL
+      ORDER BY e.event_date ASC;
     `);
 
-    // Convert MySQL date + time into full JS Dates
-    const events = rows.map((event) => {
-      const start = new Date(event.event_date);
-      const timeParts = event.event_time
-        ? event.event_time.split(":")
-        : ["09", "00", "00"];
-      start.setHours(Number(timeParts[0]), Number(timeParts[1]));
-
-      // Default: 2-hour event duration
-      const end = new Date(start);
-      end.setHours(start.getHours() + 2);
-
-      return {
-        id: event.id,
-        title: event.title,
-        start,
-        end,
-        description: event.description,
-        venue_id: event.venue_id,
-      };
-    });
-
-    res.json(events);
+    res.json(rows);
   } catch (err) {
     console.error("Error fetching events:", err);
     res.status(500).json({ error: "Failed to fetch events" });
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { title, event_date, event_time, description, venue_id } = req.body;
 
-    if (!title || !event_date) {
+    if (!title || !event_date)
       return res.status(400).json({ error: "Title and event_date are required." });
-    }
 
     const [result] = await pool.query(
       `INSERT INTO Events (title, event_date, event_time, description, venue_id)
@@ -68,52 +48,92 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, event_date, event_time, description, venue_id } = req.body;
 
-    if (!title || !event_date) {
+    if (!title || !event_date)
       return res.status(400).json({ error: "Title and event_date are required." });
-    }
 
     const [result] = await pool.query(
       `UPDATE Events
        SET title = ?, event_date = ?, event_time = ?, description = ?, venue_id = ?
-       WHERE event_id = ?`,
+       WHERE event_id = ? AND deleted_at IS NULL`,
       [title, event_date, event_time || null, description || null, venue_id || null, id]
     );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Event not found" });
-    }
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Event not found or already deleted" });
 
-    res.json({ message: "Event updated" });
+    res.json({ message: "Event updated successfully" });
   } catch (err) {
     console.error("Error updating event:", err);
     res.status(500).json({ error: "Failed to update event" });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+
+router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   try {
     const { id } = req.params;
 
     const [result] = await pool.query(
-      `DELETE FROM Events WHERE event_id = ?`,
+      "UPDATE Events SET deleted_at = NOW() WHERE event_id = ? AND deleted_at IS NULL",
       [id]
     );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Event not found" });
-    }
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Event not found or already deleted" });
 
-    res.json({ message: "Event deleted" });
+    res.json({ message: "Event soft-deleted successfully" });
   } catch (err) {
-    console.error("Error deleting event:", err);
+    console.error("DELETE /events/:id error:", err);
     res.status(500).json({ error: "Failed to delete event" });
   }
 });
 
+router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        event_id AS id,
+        title,
+        event_date,
+        event_time,
+        description,
+        venue_id,
+        deleted_at
+      FROM Events
+      WHERE deleted_at IS NOT NULL
+      ORDER BY deleted_at DESC;
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /events/deleted error:", err);
+    res.status(500).json({ error: "Failed to fetch deleted events" });
+  }
+});
+
+
+router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await pool.query(
+      "UPDATE Events SET deleted_at = NULL WHERE event_id = ? AND deleted_at IS NOT NULL",
+      [id]
+    );
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Event not found or not deleted" });
+
+    res.json({ message: "Event restored successfully" });
+  } catch (err) {
+    console.error("PATCH /events/:id/restore error:", err);
+    res.status(500).json({ error: "Failed to restore event" });
+  }
+});
 
 export default router;
