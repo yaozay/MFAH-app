@@ -52,7 +52,7 @@ export default function Footer() {
               </li>
               <li>
                 <a href="/visitor" className="hover:text-white transition-colors">
-                  Visitor Info
+                  Profile
                 </a>
               </li>
               <li>

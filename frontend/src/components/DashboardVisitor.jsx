@@ -1,4 +1,3 @@
-// src/pages/ProfileVisitor.jsx
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 
@@ -20,7 +19,6 @@ export default function ProfileVisitor() {
   const [pwdSaving, setPwdSaving] = useState(false);
   const [pwdMsg, setPwdMsg] = useState("");
 
-  // headers helper (adds bearer only if we have one)
   const authHeaders = () =>
     token
       ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
