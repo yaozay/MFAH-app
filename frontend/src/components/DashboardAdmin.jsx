@@ -471,7 +471,7 @@ function MemberTicketChart({ selectedMonth }) {
         const start = firstDayISO(selectedMonth);
         const end = lastDayISO(selectedMonth);
 
-        // ✅ Now send date range to backend
+        // Now send date range to backend
         const res = await fetch(
           `${API_BASE}/api/reports/member-ticket-purchases?start=${start}&end=${end}`
         );
@@ -500,7 +500,7 @@ function MemberTicketChart({ selectedMonth }) {
       }
     }
     fetchData();
-  }, [API_BASE, selectedMonth]); // 🧠 refetch every time month changes
+  }, [API_BASE, selectedMonth]); //refetch every time month changes
 
   if (loading) {
     return <div className="p-4 text-neutral-500">Loading chart...</div>;
@@ -510,7 +510,7 @@ function MemberTicketChart({ selectedMonth }) {
     <div className="mt-8 rounded-xl bg-white border border-neutral-200 shadow-sm p-4">
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-neutral-800">
-          🎟️ Member Ticket Engagement
+          Member Ticket Engagement
         </h3>
         <p className="text-sm text-neutral-500">
           Tickets purchased and spending by membership tier ({selectedMonth})
