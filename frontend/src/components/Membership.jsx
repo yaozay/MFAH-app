@@ -1,4 +1,3 @@
-// frontend/src/pages/Memberships.jsx
 import { useAuth } from "../lib/auth";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";

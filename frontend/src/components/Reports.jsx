@@ -7,21 +7,19 @@ export default function Reports() {
   const { user } = useAuth();
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
 
-  // ===== Existing reports state =====
   const [artworksPerArtist, setArtworksPerArtist] = useState([]);
   const [modernArtworks, setModernArtworks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ===== Exhibition Popularity: staged filters (like Employee Search) =====
+ 
   const [q, setQ] = useState("");
-  const [fromDate, setFromDate] = useState(""); // YYYY-MM-DD
-  const [toDate, setToDate] = useState("");     // YYYY-MM-DD
+  const [fromDate, setFromDate] = useState(""); 
+  const [toDate, setToDate] = useState("");     
   const [sort, setSort] = useState("total_revenue");
   const [dir, setDir] = useState("desc");
   const [pageSize, setPageSize] = useState(10);
 
-  // ===== Exhibition Popularity: applied filters =====
   const [applied, setApplied] = useState({
     q: "",
     from: "",
@@ -32,7 +30,6 @@ export default function Reports() {
     pageSize: 10,
   });
 
-  // ===== Exhibition Popularity: data =====
   const [popData, setPopData] = useState({
     rows: [],
     total: 0,
@@ -42,7 +39,6 @@ export default function Reports() {
     loading: false,
   });
 
-  // ===== Helpers =====
   const fmtCurrency = (n) =>
     new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" })
       .format(Number.isFinite(Number(n)) ? Number(n) : 0);
@@ -253,7 +249,8 @@ export default function Reports() {
 
 
       {/* Artworks per Artist */}
-      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
+
         <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50">
           <h2 className="text-2xl font-serif text-black">Artworks per Artist</h2>
           <p className="text-sm text-neutral-500">
@@ -294,7 +291,8 @@ export default function Reports() {
       </section>
 
       {/* Modern Artworks */}
-      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
+
         <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50">
           <h2 className="text-2xl font-serif text-black">
             Modern Artworks (After 1900)
