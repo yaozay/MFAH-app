@@ -13,7 +13,7 @@ export default function ExhibitionsScrollView() {
   useEffect(() => {
     async function fetchExhibitions() {
       try {
-        const res = await fetch(`${API}/api/exhibitions/recent`);
+        const res = await fetch(`${API}/api/exhibitions`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load exhibitions");
         setExhibitions(data);
@@ -78,7 +78,7 @@ export default function ExhibitionsScrollView() {
 
       {/* 🔍 Date Range Filter */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 w-full max-w-2xl">
-        
+
         {/* If you need to filter by start ane end date*/}
         {/*
         <div className="flex flex-col">
@@ -152,8 +152,8 @@ export default function ExhibitionsScrollView() {
                   {ex.title}
                 </h2>
                 <p className="text-sm text-gray-600 mb-2 italic">
-                    Organized by {ex.organizer || "Unknown"} |{" "}
-                    {ex.venue_name ? `Venue: ${ex.venue_name}` : "Venue Unknown"}
+                  Organized by {ex.organizer || "Unknown"} |{" "}
+                  {ex.venue_name ? `Venue: ${ex.venue_name}` : "Venue Unknown"}
                 </p>
                 <p className="text-sm text-gray-700 mb-4">
                   {formatDate(ex.start_date)} → {formatDate(ex.end_date)}
