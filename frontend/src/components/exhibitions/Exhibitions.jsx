@@ -73,38 +73,12 @@ export default function ExhibitionsScrollView() {
   return (
     <div className="min-h-screen bg-neutral-100 py-12 px-4 md:px-12 flex flex-col items-center">
       <h1 className="text-4xl font-serif mb-6 text-neutral-800 text-center">
-        Current & Upcoming Exhibitions
+        Exhibitions
       </h1>
+      <div className="w-20 h-px bg-neutral-300 mx-auto mb-8"></div>
 
-      {/* 🔍 Date Range Filter */}
+
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 w-full max-w-2xl">
-
-        {/* If you need to filter by start ane end date*/}
-        {/*
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-neutral-700 mb-1">
-            Start Date
-          </label>
-          <input
-            type="date"
-            value={startFilter}
-            onChange={(e) => setStartFilter(e.target.value)}
-            className="border border-neutral-300 rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-neutral-700 mb-1">
-            End Date
-          </label>
-          <input
-            type="date"
-            value={endFilter}
-            onChange={(e) => setEndFilter(e.target.value)}
-            className="border border-neutral-300 rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-        */}
 
         {(startFilter || endFilter) && (
           <button
