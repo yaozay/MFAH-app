@@ -458,5 +458,50 @@ router.get("/admin-metrics", async (req, res) => {
   }
 });
 
+
+// (F) Member Ticket Purchases Report — with optional date range filter
+router.get("/member-ticket-purchases", async (req, res) => {
+  const { start, end } = req.query; // YYYY-MM-DD
+  
+  try {
+    // base query
+    let sql = `
+      SELECT 
+        mt.name AS membership_type,
+        COALESCE(SUM(ts.ticket_amount), 0) AS total_tickets_bought,
+        COALESCE(SUM(ts.purchase_price), 0) AS total_amount_spent
+      FROM Membership_records mr
+      JOIN Membership_Types mt ON mr.plan_id = mt.plan_id
+      JOIN Visitors v ON v.visitor_id = mr.visitor_id
+      LEFT JOIN Ticket_Sales ts ON ts.visitor_id = v.visitor_id
+    `;
+
+    const params = [];
+
+    // Apply date filter if provided
+    if (start && end) {
+      sql += ` WHERE ts.purchased_date >= ? AND ts.purchased_date < DATE_ADD(?, INTERVAL 1 DAY)`;
+      params.push(start, end);
+    }
+
+    sql += `
+      GROUP BY mt.name
+      ORDER BY total_amount_spent DESC;
+    `;
+
+    
+    const [rows] = await pool.query(sql, params);
+
+    
+
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /reports/member-ticket-purchases error:", err.sqlMessage || err.message);
+    res.status(500).json({ error: "Failed to fetch member ticket purchases data" });
+  }
+});
+
+
+
 export default router;
 
