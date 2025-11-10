@@ -141,6 +141,37 @@ export default function DashboardAdmin() {
 
   const totalPages = Math.max(1, Math.ceil((data.total || 0) / (data.pageSize || applied.pageSize || 10)));
 
+
+  const [memberPurchases, setMemberPurchases] = useState([]);
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [memberError, setMemberError] = useState("");
+
+  useEffect(() => {
+    if (pane !== "dashboard") return;
+    const start = firstDayISO(selectedMonth);
+    const end = lastDayISO(selectedMonth);
+    let ignore = false;
+    (async () => {
+      setMemberLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/reports/member-ticket-purchases?start=${start}&end=${end}`, {
+          credentials: "include",
+        });
+
+        if (!res.ok) throw new Error(`Member report failed (${res.status})`);
+        const json = await res.json();
+        if (!ignore) setMemberPurchases(json || []);
+      } catch (err) {
+        if (!ignore) setMemberError(String(err.message || err));
+      } finally {
+        if (!ignore) setMemberLoading(false);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [selectedMonth, pane]);
+
   return (
     <div className="p-6 space-y-6 bg-gradient-to-b from-white to-neutral-50 min-h-screen text-neutral-900">
       <div className="flex items-center justify-between">
@@ -202,6 +233,45 @@ export default function DashboardAdmin() {
               </div>
             )}
           </section>
+
+          {/*Member Ticket Purchase Section*/}
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-neutral-800">Member Ticket Purchases</h2>
+            {memberLoading ? (
+              <div className="p-4 text-neutral-500">Loading report…</div>
+            ) : memberError ? (
+              <div className="p-4 text-red-500">{memberError}</div>
+            ) : memberPurchases.length === 0 ? (
+              <div className="p-4 text-neutral-500">No data available for this month.</div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-neutral-300 bg-white shadow-sm">
+                <table className="min-w-full text-sm text-neutral-800">
+                  <thead className="bg-neutral-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-semibold">Membership Type</th>
+                      <th className="px-4 py-2 text-center font-semibold">Total Tickets</th>
+                      <th className="px-4 py-2 text-right font-semibold">Amount Spent ($)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {memberPurchases.map((r, i) => (
+                      <tr key={i} className="border-t border-neutral-200 hover:bg-neutral-50">
+                        <td className="px-4 py-2">{r.membership_type}</td>
+                        <td className="px-4 py-2 text-center">{r.total_tickets_bought}</td>
+                        <td className="px-4 py-2 text-right">
+                          {Number(r.total_amount_spent).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
 
           {/* Employee Section */}
           <h1 className="text-lg font-semibold text-neutral-800">Employee Search</h1>
