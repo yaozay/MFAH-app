@@ -42,18 +42,25 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       image_url = null,
     } = req.body || {};
 
-    if (!title) return res.status(400).json({ error: "Title is required" });
+    if (!title) {
+      return res.status(400).json({ error: "Title is required" });
+    }
 
-    await pool.execute(
+    const [result] = await pool.execute(
       `INSERT INTO Artworks
         (title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url]
     );
 
-    res.status(201).json({ message: "Artwork created" });
+    res.status(201).json({ message: "Artwork created", id: result.insertId });
   } catch (err) {
     console.error("POST /artworks error:", err);
+
+    if (err.sqlState === "45000") {
+      return res.status(400).json({ error: err.sqlMessage });
+    }
+
     res.status(500).json({ error: "Failed to create artwork" });
   }
 });
