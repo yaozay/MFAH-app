@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useCart } from "./Cart/CartContext.jsx";
 
+
+const API_BASE = import.meta.env.VITE_API_BASE;
+
 export default function Tickets() {
   const [selectedTickets, setSelectedTickets] = useState({});
   const { user } = useAuth();
@@ -12,7 +15,7 @@ export default function Tickets() {
   const [ticketTypes, setTicketTypes] = useState([]);
 
   useEffect(() => {
-    fetch("api/tickets")
+    fetch(`${API_BASE}/api/tickets`)
       .then(res => res.json())
       .then(data =>{
         setTicketTypes(
