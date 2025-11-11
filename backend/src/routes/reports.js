@@ -478,6 +478,47 @@ router.get("/member-giftshop-purchases", async (req, res) => {
 });
 
 
+//Report: Supplier Gift Shop Sales (filtered by month)
+router.get("/supplier-giftshop-sales", async (req, res) => {
+  const { start, end } = req.query; 
+
+  try {
+    let sql = `
+      SELECT 
+        s.name AS supplier_name,
+        COALESCE(SUM(gst.total_price), 0) AS total_sales,
+        COUNT(DISTINCT gst.transaction_id) AS total_transactions,
+        COUNT(DISTINCT sp.product_id) AS unique_products_sold
+      FROM Gift_Shop_Transactions gst
+      JOIN Shop_Products sp ON gst.product_id = sp.product_id
+      JOIN Supplier_Products sup ON sp.product_id = sup.product_id
+      JOIN Suppliers s ON sup.supplier_id = s.supplier_id
+    `;
+
+    const params = [];
+
+    if (start && end) {
+      sql += `
+        WHERE gst.sale_date >= ? 
+          AND gst.sale_date < DATE_ADD(?, INTERVAL 1 DAY)
+      `;
+      params.push(start, end);
+    }
+
+    // 🟩 Group and sort results
+    sql += `
+      GROUP BY s.name
+      ORDER BY total_sales DESC;
+    `;
+
+    const [rows] = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /reports/supplier-giftshop-sales error:", err);
+    res.status(500).json({ error: "Failed to fetch supplier gift shop sales report" });
+  }
+});
+
 
 export default router;
 
