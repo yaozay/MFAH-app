@@ -346,9 +346,9 @@ export default function Reports() {
 
       {/* Exhibition Popularity */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
-        <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50">
-          <h2 className="text-2xl font-serif text-black">Exhibition Popularity</h2>
-          <p className="text-sm text-neutral-500">
+        <div className="px-6 py-4 bg-rose-600">
+          <h2 className="text-2xl font-serif text-white">Exhibition Popularity</h2>
+           <p className="text-sm text-rose-100">
             Title search, date filters, sorting & CSV export
           </p>
         </div>

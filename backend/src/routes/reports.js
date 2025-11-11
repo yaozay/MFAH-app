@@ -228,6 +228,16 @@ router.get("/exhibition-popularity", async (req, res) => {
     else if (from)  { exhibitWhere.push("e.end_date >= ?"); exhibitParams.push(from); }
     else if (to)    { exhibitWhere.push("e.start_date <= ?"); exhibitParams.push(to); }
 
+    //Exclude exhibits that havent fully ended yet
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayISO = today.toISOString().slice(0,10);
+    const cutoff = to || todayISO;
+
+    exhibitWhere.push("e.end_date IS NOT NULL");
+    exhibitWhere.push("e.end_date <= ?");
+    exhibitParams.push(cutoff);
+
+
     const exhibitWhereSql = exhibitWhere.length ? `WHERE ${exhibitWhere.join(" AND ")}` : "";
 
     // Count after filters
