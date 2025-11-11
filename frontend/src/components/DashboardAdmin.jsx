@@ -54,6 +54,9 @@ export default function DashboardAdmin() {
   const [giftshopLoading, setGiftshopLoading] = useState(false); 
   const [giftshopError, setGiftshopError] = useState(null);
 
+  const [supplierData, setSupplierData] = useState([]); 
+  const [supplierLoading, setSupplierLoading] = useState(false); 
+  const [supplierError, setSupplierError] = useState(null); 
 
 
   const fmtInt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n ?? 0);
@@ -130,6 +133,36 @@ export default function DashboardAdmin() {
       ignore = true; 
     };
   }, [selectedMonth, pane, token]);
+
+  useEffect(() => {
+    if (pane !== "dashboard") return; 
+    let ignore = false; 
+    (async () => {
+      setSupplierLoading(true); 
+      try {
+        const start = firstDayISO(selectedMonth); 
+        const end = lastDayISO(selectedMonth);    
+        const res = await fetch(
+          `${API_BASE}/api/reports/supplier-giftshop-sales?start=${start}&end=${end}`, 
+          {
+            credentials: "include",
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }
+        );
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`); 
+        const json = await res.json(); 
+        if (!ignore) setSupplierData(json); 
+      } catch (err) {
+        if (!ignore) setSupplierError(String(err.message || err)); 
+      } finally {
+        if (!ignore) setSupplierLoading(false); 
+      }
+    })();
+    return () => {
+      ignore = true; 
+    };
+  }, [selectedMonth, pane, token]);
+
 
   // ---- Employees ----
   const query = useMemo(() => {
@@ -272,6 +305,44 @@ export default function DashboardAdmin() {
               )}
             </div>
           </section>
+
+
+          {/*Supplier Gift Shop Sales Report*/}
+          <section className="space-y-4 mt-8">
+            <h2 className="text-xl font-semibold text-neutral-800">Supplier Gift Shop Sales</h2>
+            <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
+              {supplierLoading ? (
+                <div className="p-4 text-neutral-500">Loading supplier sales…</div>
+              ) : supplierError ? (
+                <div className="p-4 text-red-500">Failed to load report: {supplierError}</div>
+              ) : supplierData.length === 0 ? (
+                <div className="p-4 text-neutral-500">No supplier data for this month.</div>
+              ) : (
+                <table className="min-w-full text-sm text-neutral-800">
+                  <thead className="bg-neutral-100">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold">Supplier Name</th>
+                      <th className="px-3 py-2 text-right font-semibold">Total Sales</th>
+                      <th className="px-3 py-2 text-right font-semibold">Transactions</th>
+                      <th className="px-3 py-2 text-right font-semibold">Unique Products Sold</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supplierData.map((row, idx) => (
+                      <tr key={idx} className="border-t border-neutral-200">
+                        <td className="px-3 py-2">{row.supplier_name}</td>
+                        <td className="px-3 py-2 text-right">{fmtCurrency(parseFloat(row.total_sales))}</td>
+                        <td className="px-3 py-2 text-right">{row.total_transactions}</td>
+                        <td className="px-3 py-2 text-right">{row.unique_products_sold}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+
+
 
           {/* Employee Section */}
           <h1 className="text-lg font-semibold text-neutral-800">Employee Search</h1>
