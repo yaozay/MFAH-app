@@ -434,5 +434,50 @@ router.get("/admin-metrics", async (req, res) => {
   }
 });
 
+// (E) Report: Member Gift Shop Purchases
+router.get("/member-giftshop-purchases", async (req, res) => {
+  const { start, end } = req.query; // optional date filters YYYY-MM-DD
+
+  try {
+    let sql = `
+      SELECT 
+        mt.name AS membership_type,
+        COUNT(gst.transaction_id) AS total_transactions,
+        ROUND(AVG(gst.total_price), 2) AS avg_purchase_value,
+        COALESCE(SUM(gst.total_price), 0) AS total_spent
+      FROM Membership_records mr
+      JOIN Membership_Types mt 
+        ON mr.plan_id = mt.plan_id
+      JOIN Visitors v 
+        ON v.visitor_id = mr.visitor_id
+      LEFT JOIN Gift_Shop_Transactions gst 
+        ON gst.visitor_id = v.visitor_id
+    `;
+
+    const params = [];
+
+    if (start && end) {
+      sql += `
+        AND gst.sale_date >= ?
+        AND gst.sale_date < DATE_ADD(?, INTERVAL 1 DAY)
+      `;
+      params.push(start, end);
+    }
+
+    sql += `
+      GROUP BY mt.name
+      ORDER BY total_spent DESC;
+    `;
+
+    const [rows] = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /reports/member-giftshop-purchases error:", err);
+    res.status(500).json({ error: "Failed to fetch member gift shop purchases report" });
+  }
+});
+
+
+
 export default router;
 

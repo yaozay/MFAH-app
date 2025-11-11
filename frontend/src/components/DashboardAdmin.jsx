@@ -49,6 +49,13 @@ export default function DashboardAdmin() {
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState(null);
 
+
+  const [giftshopData, setGiftshopData] = useState([]); 
+  const [giftshopLoading, setGiftshopLoading] = useState(false); 
+  const [giftshopError, setGiftshopError] = useState(null);
+
+
+
   const fmtInt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n ?? 0);
   const fmtCurrency = (n) =>
     new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(Number.isFinite(n) ? n : 0);
@@ -92,6 +99,35 @@ export default function DashboardAdmin() {
     })();
     return () => {
       ignore = true;
+    };
+  }, [selectedMonth, pane, token]);
+
+  useEffect(() => {
+    if (pane !== "dashboard") return; 
+    let ignore = false; 
+    (async () => {
+      setGiftshopLoading(true); 
+      try {
+        const start = firstDayISO(selectedMonth); 
+        const end = lastDayISO(selectedMonth); 
+        const res = await fetch(
+          `${API_BASE}/api/reports/member-giftshop-purchases?start=${start}&end=${end}`, 
+          {
+            credentials: "include",
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }
+        );
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`); 
+        const json = await res.json(); 
+        if (!ignore) setGiftshopData(json); 
+      } catch (err) {
+        if (!ignore) setGiftshopError(String(err.message || err)); 
+      } finally {
+        if (!ignore) setGiftshopLoading(false); 
+      }
+    })();
+    return () => {
+      ignore = true; 
     };
   }, [selectedMonth, pane, token]);
 
@@ -201,6 +237,40 @@ export default function DashboardAdmin() {
                 <MetricCard title="Shop Sales" value={fmtCurrency(metrics.shop_sales)} />
               </div>
             )}
+          </section>
+
+          <section className="space-y-4 mt-8">
+            <h2 className="text-xl font-semibold text-neutral-800">Member Gift Shop Purchases</h2>
+            <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
+              {giftshopLoading ? (
+                <div className="p-4 text-neutral-500">Loading gift shop purchases…</div>
+              ) : giftshopError ? (
+                <div className="p-4 text-red-500">Failed to load report: {giftshopError}</div>
+              ) : giftshopData.length === 0 ? (
+                <div className="p-4 text-neutral-500">No data available for this month.</div>
+              ) : (
+                <table className="min-w-full text-sm text-neutral-800">
+                  <thead className="bg-neutral-100">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold">Membership Type</th>
+                      <th className="px-3 py-2 text-left font-semibold">Total Transactions</th>
+                      <th className="px-3 py-2 text-left font-semibold">Average Purchase</th>
+                      <th className="px-3 py-2 text-left font-semibold">Total Spent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {giftshopData.map((row, idx) => (
+                      <tr key={idx} className="border-t border-neutral-200">
+                        <td className="px-3 py-2">{row.membership_type}</td>
+                        <td className="px-3 py-2">{row.total_transactions}</td>
+                        <td className="px-3 py-2">{fmtCurrency(parseFloat(row.avg_purchase_value))}</td>
+                        <td className="px-3 py-2">{fmtCurrency(parseFloat(row.total_spent))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </section>
 
           {/* Employee Section */}
