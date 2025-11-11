@@ -27,11 +27,12 @@ import Cart from "./components/Cart/Cart.jsx";
 import Checkout from "./components/Cart/Checkout.jsx";
 import OrderSuccess from "./components/Cart/OrderSuccess.jsx";
 
-
+import ScrollToTop from "./components/ScrollToTop";
 
 export default function App() {
   return (
     <>
+      <ScrollToTop />  {/* Move it here, before Navbar */}
       <Navbar />
       <Routes>
         {/* Public */}
@@ -110,9 +111,6 @@ export default function App() {
           }
         />
         <Route path="/user-form" element={<UserForm />} />
-
-
-
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
