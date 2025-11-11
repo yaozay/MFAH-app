@@ -132,60 +132,64 @@ export default function Tickets() {
           ))}
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h3 className="text-2xl font-serif text-neutral-800 mb-6">
-            Order Summary
-          </h3>
+        {/* ✅ Only visitors see order summary */}
+{(!user || user.role === "visitor") && (
+  <div className="bg-white rounded-lg shadow-md p-8">
+    <h3 className="text-2xl font-serif text-neutral-800 mb-6">
+      Order Summary
+    </h3>
 
-          {Object.entries(selectedTickets).some(([_, qty]) => qty > 0) ? (
-            <>
-              <div className="space-y-3 mb-6 pb-6 border-b border-neutral-200">
-                {Object.entries(selectedTickets).map(([id, qty]) => {
-                  if (qty === 0) return null;
-                  const ticket = ticketTypes.find(t => t.id === parseInt(id));
-                  return (
-                    <div key={id} className="flex justify-between text-neutral-700">
-                      <span className="text-sm">
-                        {qty}x {ticket.name}
-                      </span>
-                      <span className="text-sm font-medium">
-                        ${(ticket.price * qty).toFixed(2)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-2 mb-6 pb-6 border-b border-neutral-200">
-                <div className="flex justify-between text-neutral-700">
-                  <span className="text-sm">Subtotal:</span>
-                  <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-neutral-700">
-                  <span className="text-sm">Sales Tax (8.25%):</span>
-                  <span className="text-sm font-medium">${salesTax.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center mb-8">
-                <span className="text-xl font-serif text-neutral-800">Total:</span>
-                <span className="text-3xl font-bold text-neutral-800">
-                  ${total.toFixed(2)}
+    {Object.entries(selectedTickets).some(([_, qty]) => qty > 0) ? (
+      <>
+        <div className="space-y-3 mb-6 pb-6 border-b border-neutral-200">
+          {Object.entries(selectedTickets).map(([id, qty]) => {
+            if (qty === 0) return null;
+            const ticket = ticketTypes.find(t => t.id === parseInt(id));
+            return (
+              <div key={id} className="flex justify-between text-neutral-700">
+                <span className="text-sm">
+                  {qty}x {ticket.name}
+                </span>
+                <span className="text-sm font-medium">
+                  ${(ticket.price * qty).toFixed(2)}
                 </span>
               </div>
-              <button
-                onClick={handleCheckout}
-                className="w-full bg-neutral-800 text-white py-3 font-medium rounded-lg hover:bg-neutral-900 transition"
-              >
-                {user ? "Proceed to Checkout" : "Login to Purchase"}
-              </button>
-            </>
-          ) : (
-            <p className="text-center text-neutral-500 py-8">
-              No tickets selected. Please select tickets above to continue.
-            </p>
-          )}
+            );
+          })}
         </div>
+
+        <div className="space-y-2 mb-6 pb-6 border-b border-neutral-200">
+          <div className="flex justify-between text-neutral-700">
+            <span className="text-sm">Subtotal:</span>
+            <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-neutral-700">
+            <span className="text-sm">Sales Tax (8.25%):</span>
+            <span className="text-sm font-medium">${salesTax.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mb-8">
+          <span className="text-xl font-serif text-neutral-800">Total:</span>
+          <span className="text-3xl font-bold text-neutral-800">
+            ${total.toFixed(2)}
+          </span>
+        </div>
+
+        <button
+          onClick={handleCheckout}
+          className="w-full bg-neutral-800 text-white py-3 font-medium rounded-lg hover:bg-neutral-900 transition"
+        >
+          {user ? "Proceed to Checkout" : "Login to Purchase"}
+        </button>
+      </>
+    ) : (
+      <p className="text-center text-neutral-500 py-8">
+        No tickets selected. Please select tickets above to continue.
+      </p>
+    )}
+    </div>
+  )}
       </div>
     </div>
   );

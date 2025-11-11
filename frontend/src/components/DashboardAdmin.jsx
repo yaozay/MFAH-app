@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import TicketTypesPane from "../TicketTypesPane";
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 
@@ -11,7 +12,7 @@ export default function DashboardAdmin() {
   const token = localStorage.getItem("token");
 
   // ---- pane toggle ----
-  const [pane, setPane] = useState("dashboard"); // 'dashboard' | 'users'
+  const [pane, setPane] = useState("dashboard"); // 'dashboard' | 'users' | 'tickets'
 
   // ---- Filters (Employees) ----
   const [q, setQ] = useState("");
@@ -178,179 +179,194 @@ export default function DashboardAdmin() {
   const totalPages = Math.max(1, Math.ceil((data.total || 0) / (data.pageSize || applied.pageSize || 10)));
 
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-b from-white to-neutral-50 min-h-screen text-neutral-900">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-neutral-800">Admin Dashboard</h1>
-          <p className="text-sm text-neutral-600">
-            Welcome{user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""} You have full control over
-            Artists, Artworks, Employees, and Users.
-          </p>
-        </div>
-
-        {/* Segmented toggle */}
-        <div className="inline-flex bg-neutral-100 rounded-3xl p-1 shadow-inner">
-          <button
-            onClick={() => setPane("dashboard")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
-              pane === "dashboard" ? "bg-white shadow text-neutral-900" : "text-neutral-600 hover:text-neutral-800"
-            }`}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setPane("users")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
-              pane === "users" ? "bg-white shadow text-neutral-900" : "text-neutral-600 hover:text-neutral-800"
-            }`}
-          >
-            Users
-          </button>
-        </div>
+  <div className="p-6 space-y-6 bg-gradient-to-b from-white to-neutral-50 min-h-screen text-neutral-900">
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-3xl font-semibold text-neutral-800">Admin Dashboard</h1>
+        <p className="text-sm text-neutral-600">
+          Welcome{user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""} You have full control over
+          Artists, Artworks, Employees, and Users.
+        </p>
       </div>
 
-      {pane === "dashboard" ? (
-        <>
-          {/* Performance Section */}
-          <section className="space-y-4">
-            <div className="flex items-end justify-between gap-3">
-              <h2 className="text-xl font-semibold text-neutral-800">Monthly Performance</h2>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-600">Month</label>
-                <input
-                  type="month"
-                  className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                />
-              </div>
+      {/* Segmented toggle */}
+      <div className="inline-flex bg-neutral-100 rounded-3xl p-1 shadow-inner">
+        <button
+          onClick={() => setPane("dashboard")}
+          className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
+            pane === "dashboard" ? "bg-white shadow text-neutral-900" : "text-neutral-600 hover:text-neutral-800"
+          }`}
+        >
+          Dashboard
+        </button>
+
+        <button
+          onClick={() => setPane("ticketTypes")}
+          className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
+            pane === "ticketTypes" ? "bg-white shadow text-neutral-900" : "text-neutral-600 hover:text-neutral-800"
+          }`}
+        >
+          Ticket Types
+        </button>
+
+        <button
+          onClick={() => setPane("users")}
+          className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
+            pane === "users" ? "bg-white shadow text-neutral-900" : "text-neutral-600 hover:text-neutral-800"
+          }`}
+        >
+          Users
+        </button>
+      </div>
+    </div>
+
+    {/* Main content */}
+    {pane === "dashboard" ? (
+      <>
+        {/* Performance Section */}
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="text-xl font-semibold text-neutral-800">Monthly Performance</h2>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-neutral-600">Month</label>
+              <input
+                type="month"
+                className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              />
             </div>
+          </div>
 
-            {metricsLoading ? (
-              <div className="p-4 text-neutral-500">Loading metrics…</div>
-            ) : metricsError ? (
-              <div className="p-4 text-red-500">Failed to load metrics: {metricsError}</div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <MetricCard title="Total Visitors" value={fmtInt(metrics.total_visitors)} />
-                <MetricCard title="Ticket Sales" value={fmtCurrency(metrics.ticket_sales)} />
-                <MetricCard title="Shop Sales" value={fmtCurrency(metrics.shop_sales)} />
-              </div>
-            )}
-          </section>
-
-          <section className="space-y-4 mt-8">
-            <h2 className="text-xl font-semibold text-neutral-800">Member Gift Shop Purchases</h2>
-            <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
-              {giftshopLoading ? (
-                <div className="p-4 text-neutral-500">Loading gift shop purchases…</div>
-              ) : giftshopError ? (
-                <div className="p-4 text-red-500">Failed to load report: {giftshopError}</div>
-              ) : giftshopData.length === 0 ? (
-                <div className="p-4 text-neutral-500">No data available for this month.</div>
-              ) : (
-                <table className="min-w-full text-sm text-neutral-800">
-                  <thead className="bg-neutral-100">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-semibold">Membership Type</th>
-                      <th className="px-3 py-2 text-left font-semibold">Total Transactions</th>
-                      <th className="px-3 py-2 text-left font-semibold">Average Purchase</th>
-                      <th className="px-3 py-2 text-left font-semibold">Total Spent</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {giftshopData.map((row, idx) => (
-                      <tr key={idx} className="border-t border-neutral-200">
-                        <td className="px-3 py-2">{row.membership_type}</td>
-                        <td className="px-3 py-2">{row.total_transactions}</td>
-                        <td className="px-3 py-2">{fmtCurrency(parseFloat(row.avg_purchase_value))}</td>
-                        <td className="px-3 py-2">{fmtCurrency(parseFloat(row.total_spent))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+          {metricsLoading ? (
+            <div className="p-4 text-neutral-500">Loading metrics…</div>
+          ) : metricsError ? (
+            <div className="p-4 text-red-500">Failed to load metrics: {metricsError}</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <MetricCard title="Total Visitors" value={fmtInt(metrics.total_visitors)} />
+              <MetricCard title="Ticket Sales" value={fmtCurrency(metrics.ticket_sales)} />
+              <MetricCard title="Shop Sales" value={fmtCurrency(metrics.shop_sales)} />
             </div>
-          </section>
+          )}
+        </section>
 
-          {/* Employee Section */}
-          <h1 className="text-lg font-semibold text-neutral-800">Employee Search</h1>
-          <form className="flex flex-wrap gap-2 items-end" onSubmit={onApply}>
-            <input
-              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm flex-1"
-              placeholder="Search name/email/phone"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-
-            <select
-              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-              value={departmentId}
-              onChange={(e) => setDepartmentId(e.target.value)}
-            >
-              <option value="">All Departments</option>
-              <option value="1">Administration / IT</option>
-              <option value="2">Curatorial</option>
-              <option value="3">Exhibitions & Events</option>
-              <option value="4">Visitor Services</option>
-              <option value="5">Retail / Shop</option>
-              <option value="6">Development</option>
-            </select>
-
-            <select
-              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="">All Roles</option>
-              <option value="curator">Curator</option>
-              <option value="manager">Manager</option>
-              <option value="security">Security</option>
-              <option value="guide">Guide</option>
-            </select>
-
-            <button type="submit" className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-400 text-sm">
-              Apply
-            </button>
-          </form>
-
-          {/* Employee Table */}
+        {/* Gift Shop Section */}
+        <section className="space-y-4 mt-8">
+          <h2 className="text-xl font-semibold text-neutral-800">Member Gift Shop Purchases</h2>
           <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
-            {loading ? (
-              <div className="p-4 text-neutral-500">Loading…</div>
-            ) : data.error ? (
-              <div className="p-4 text-red-500">{data.error}</div>
+            {giftshopLoading ? (
+              <div className="p-4 text-neutral-500">Loading gift shop purchases…</div>
+            ) : giftshopError ? (
+              <div className="p-4 text-red-500">Failed to load report: {giftshopError}</div>
+            ) : giftshopData.length === 0 ? (
+              <div className="p-4 text-neutral-500">No data available for this month.</div>
             ) : (
               <table className="min-w-full text-sm text-neutral-800">
                 <thead className="bg-neutral-100">
                   <tr>
-                    <th className="px-3 py-2 text-left font-semibold">ID</th>
-                    <th className="px-3 py-2 text-left font-semibold">First</th>
-                    <th className="px-3 py-2 text-left font-semibold">Last</th>
-                    <th className="px-3 py-2 text-left font-semibold">Role</th>
-                    <th className="px-3 py-2 text-left font-semibold">Email</th>
+                    <th className="px-3 py-2 text-left font-semibold">Membership Type</th>
+                    <th className="px-3 py-2 text-left font-semibold">Total Transactions</th>
+                    <th className="px-3 py-2 text-left font-semibold">Average Purchase</th>
+                    <th className="px-3 py-2 text-left font-semibold">Total Spent</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((r) => (
-                    <tr key={r.employee_id} className="border-t border-neutral-200">
-                      <td className="px-3 py-2">{r.employee_id}</td>
-                      <td className="px-3 py-2">{r.first_name}</td>
-                      <td className="px-3 py-2">{r.last_name}</td>
-                      <td className="px-3 py-2">{r.employee_role}</td>
-                      <td className="px-3 py-2">{r.email}</td>
+                  {giftshopData.map((row, idx) => (
+                    <tr key={idx} className="border-t border-neutral-200">
+                      <td className="px-3 py-2">{row.membership_type}</td>
+                      <td className="px-3 py-2">{row.total_transactions}</td>
+                      <td className="px-3 py-2">{fmtCurrency(parseFloat(row.avg_purchase_value))}</td>
+                      <td className="px-3 py-2">{fmtCurrency(parseFloat(row.total_spent))}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </div>
-        </>
-      ) : (
-        <UsersPane />
-      )}
-    </div>
-  );
+        </section>
+
+        {/* Employee Section */}
+        <h1 className="text-lg font-semibold text-neutral-800">Employee Search</h1>
+        <form className="flex flex-wrap gap-2 items-end" onSubmit={onApply}>
+          <input
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm flex-1"
+            placeholder="Search name/email/phone"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+
+          <select
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={departmentId}
+            onChange={(e) => setDepartmentId(e.target.value)}
+          >
+            <option value="">All Departments</option>
+            <option value="1">Administration / IT</option>
+            <option value="2">Curatorial</option>
+            <option value="3">Exhibitions & Events</option>
+            <option value="4">Visitor Services</option>
+            <option value="5">Retail / Shop</option>
+            <option value="6">Development</option>
+          </select>
+
+          <select
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="">All Roles</option>
+            <option value="curator">Curator</option>
+            <option value="manager">Manager</option>
+            <option value="security">Security</option>
+            <option value="guide">Guide</option>
+          </select>
+
+          <button type="submit" className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-400 text-sm">
+            Apply
+          </button>
+        </form>
+
+        {/* Employee Table */}
+        <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
+          {loading ? (
+            <div className="p-4 text-neutral-500">Loading…</div>
+          ) : data.error ? (
+            <div className="p-4 text-red-500">{data.error}</div>
+          ) : (
+            <table className="min-w-full text-sm text-neutral-800">
+              <thead className="bg-neutral-100">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">ID</th>
+                  <th className="px-3 py-2 text-left font-semibold">First</th>
+                  <th className="px-3 py-2 text-left font-semibold">Last</th>
+                  <th className="px-3 py-2 text-left font-semibold">Role</th>
+                  <th className="px-3 py-2 text-left font-semibold">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.rows.map((r) => (
+                  <tr key={r.employee_id} className="border-t border-neutral-200">
+                    <td className="px-3 py-2">{r.employee_id}</td>
+                    <td className="px-3 py-2">{r.first_name}</td>
+                    <td className="px-3 py-2">{r.last_name}</td>
+                    <td className="px-3 py-2">{r.employee_role}</td>
+                    <td className="px-3 py-2">{r.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </>
+    ) : pane === "ticketTypes" ? (
+      <TicketTypesPane />
+    ) : (
+      <UsersPane />
+    )}
+  </div>
+);
+
 }
 
 // ---- Reusable components ----
