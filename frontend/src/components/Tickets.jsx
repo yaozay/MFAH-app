@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useCart } from "./Cart/CartContext.jsx";
@@ -9,12 +9,23 @@ export default function Tickets() {
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  const ticketTypes = [
-    { id: 1, name: "General Admission", price: 15, description: "Access to all current exhibitions" },
-    { id: 2, name: "Student/Senior", price: 10, description: "Valid ID required" },
-    { id: 3, name: "Child (under 12)", price: 5, description: "Accompanied by an adult" },
-    { id: 4, name: "Family Pass (4 people)", price: 40, description: "Best value for families" },
-  ];
+  const [ticketTypes, setTicketTypes] = useState([]);
+
+  useEffect(() => {
+    fetch("api/tickets")
+      .then(res => res.json())
+      .then(data =>{
+        setTicketTypes(
+          data.map(t => ({
+            id: t.ticket_type_id,
+            name: t.name,
+            description: t.description,
+            price: t.total_price
+          }))
+        );
+      })
+      .catch(err => console.error("Error loading tickets:", err));
+  }, []);
 
   const handleQuantityChange = (id, quantity) => {
     setSelectedTickets(prev => ({
