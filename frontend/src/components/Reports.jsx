@@ -417,10 +417,6 @@ export default function Reports() {
                 <th className="px-4 py-3 text-left text-black">Run Days</th>
                 <th className="px-4 py-3 text-left text-black">Tickets</th>
                 <th className="px-4 py-3 text-left text-black">Revenue</th>
-                <th className="px-4 py-3 text-left text-black">Adult</th>
-                <th className="px-4 py-3 text-left text-black">Senior</th>
-                <th className="px-4 py-3 text-left text-black">Youth</th>
-                <th className="px-4 py-3 text-left text-black">Child</th>
               </tr>
             </thead>
             <tbody>
@@ -448,10 +444,6 @@ export default function Reports() {
                       <td className="px-4 py-3 text-rose-600 font-medium">
                         {fmtCurrency(r.total_revenue)}
                       </td>
-                      <td className="px-4 py-3">{fmtInt(r.adult)}</td>
-                      <td className="px-4 py-3">{fmtInt(r.senior)}</td>
-                      <td className="px-4 py-3">{fmtInt(r.youth)}</td>
-                      <td className="px-4 py-3">{fmtInt(r.child)}</td>
                     </tr>
                   );
                 })
@@ -459,7 +451,7 @@ export default function Reports() {
                 <tr>
                   <td
                     className="px-4 py-6 text-center text-neutral-500"
-                    colSpan={10}
+                    colSpan={6}
                   >
                     No results.
                   </td>

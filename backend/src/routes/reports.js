@@ -189,13 +189,14 @@ router.get("/employees"/*, requireAuth, requireAnyRole(["admin"])*/, async (req,
     return res.status(500).json({ error: err?.message || "Failed to fetch report" });
   }
 });
-// (D) Exhibition Popularity — date-robust + exact ticket-type labels + exhibition run-date filter
+//-------------------------------------------------///
+// (D) Exhibition Popularity — visit_date-based, keeps zero-sales, totals flexible, dynamic-friendly
 router.get("/exhibition-popularity", async (req, res) => {
   try {
     const {
       q = "",
-      from = "",           // YYYY-MM-DD (optional)
-      to = "",             // YYYY-MM-DD (optional)
+      from = "",  // YYYY-MM-DD (optional)
+      to = "",    // YYYY-MM-DD (optional)
       sort = "total_revenue",
       dir = "desc",
       page = "1",
@@ -203,15 +204,12 @@ router.get("/exhibition-popularity", async (req, res) => {
       format = "json",
     } = req.query;
 
+    // Sorting whitelist
     const SORT_MAP = {
       title: "e.title",
       run_days: "run_days",
       total_tickets: "total_tickets",
       total_revenue: "total_revenue",
-      adult: "adult",
-      senior: "senior",
-      youth: "youth",
-      child: "child",
       start_date: "e.start_date",
       end_date: "e.end_date",
     };
@@ -222,56 +220,31 @@ router.get("/exhibition-popularity", async (req, res) => {
     const pageSz  = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
     const offset  = (pageNum - 1) * pageSz;
 
-    // ---- Title search (on Exhibitions) ----
-    const where = [];
-    const whereParams = [];
-    if (q) {
-      where.push("e.title LIKE ?");
-      whereParams.push(`%${q}%`);
-    }
+    // ---- Exhibition filters (title + run-date overlap with [from,to]) ----
+    const exhibitWhere = [];
+    const exhibitParams = [];
+    if (q) { exhibitWhere.push("e.title LIKE ?"); exhibitParams.push(`%${q}%`); }
+    if (from && to) { exhibitWhere.push("(e.end_date >= ? AND e.start_date <= ?)"); exhibitParams.push(from, to); }
+    else if (from)  { exhibitWhere.push("e.end_date >= ?"); exhibitParams.push(from); }
+    else if (to)    { exhibitWhere.push("e.start_date <= ?"); exhibitParams.push(to); }
 
-    // ---- Exhibition run-date filter (overlap with [from, to]) ----
-    // Keep only exhibitions that intersect the requested date window.
-    const exhibitDateConds = [];
-    const exhibitDateParams = [];
-    if (from && to) {
-      exhibitDateConds.push("(e.end_date >= ? AND e.start_date <= ?)");
-      exhibitDateParams.push(from, to);
-    } else if (from) {
-      exhibitDateConds.push("e.end_date >= ?");
-      exhibitDateParams.push(from);
-    } else if (to) {
-      exhibitDateConds.push("e.start_date <= ?");
-      exhibitDateParams.push(to);
-    }
+    const exhibitWhereSql = exhibitWhere.length ? `WHERE ${exhibitWhere.join(" AND ")}` : "";
 
-    const combinedWhereParts = [...where, ...exhibitDateConds];
-    const combinedWhereParams = [...whereParams, ...exhibitDateParams];
-    const whereSql = combinedWhereParts.length ? `WHERE ${combinedWhereParts.join(" AND ")}` : "";
-
-    // ---- Ticket sales date filter (works for DATE or DATETIME) ----
-    const salesDateWhere = [];
-    const salesDateParams = [];
-    if (from) {
-      salesDateWhere.push(`DATE(t.date) >= ?`);
-      salesDateParams.push(from);
-    }
-    if (to) {
-      salesDateWhere.push(`DATE(t.date) <= ?`);
-      salesDateParams.push(to);
-    }
-    const salesDateSql = salesDateWhere.length ? `WHERE ${salesDateWhere.join(" AND ")}` : "";
-
-    // ---- Count exhibitions AFTER applying title + run-date filters ----
-    const countSql = `
-      SELECT COUNT(*) AS total
-      FROM Exhibitions e
-      ${whereSql}
-    `;
-    const [countRows] = await pool.query(countSql, combinedWhereParams);
+    // Count after filters
+    const countSql = `SELECT COUNT(*) AS total FROM Exhibitions e ${exhibitWhereSql}`;
+    const [countRows] = await pool.query(countSql, exhibitParams);
     const total = Number(countRows?.[0]?.total || 0);
 
-    // ---- Data: filter Ticket_Sales in subquery; LEFT JOIN preserves zero-sales rows ----
+    // ---- Optional visit_date filter for sales subquery ----
+    const salesDateConds = [];
+    const salesParams = [];
+    if (from) { salesDateConds.push("ts.visit_date >= ?"); salesParams.push(from); }
+    if (to)   { salesDateConds.push("ts.visit_date <= ?"); salesParams.push(to); }
+    const salesDateSql = salesDateConds.length ? `AND ${salesDateConds.join(" AND ")}` : "";
+
+    // ---- Data: attribute sales by visit_date within the exhibit run ----
+    // NOTE: your trigger sets purchase_price = (unit * ticket_amount) TOTAL for the row.
+    // So revenue = SUM(ts.purchase_price)  (do NOT multiply by ticket_amount again).
     const dataSql = `
       SELECT
         e.exhibition_id,
@@ -279,51 +252,52 @@ router.get("/exhibition-popularity", async (req, res) => {
         e.start_date,
         e.end_date,
         DATEDIFF(e.end_date, e.start_date) + 1 AS run_days,
-        0 AS adult,   -- no ticket_type in Ticket_Sales; keep 0s or remove these columns
-        0 AS senior,
-        0 AS youth,
-        0 AS child,
-        COALESCE(SUM(fs.ticket_amount), 0) AS total_tickets,
-        COALESCE(SUM(fs.purchase_price * fs.ticket_amount), 0.00) AS total_revenue
+        COALESCE(s.total_tickets, 0) AS total_tickets,
+        COALESCE(s.total_revenue, 0.00) AS total_revenue
       FROM Exhibitions e
-      LEFT JOIN Ticket_Sales fs
-        ON fs.visit_date BETWEEN e.start_date AND e.end_date
-      GROUP BY e.exhibition_id, e.title, e.start_date, e.end_date
-      ORDER BY total_revenue DESC, e.exhibition_id ASC
+      LEFT JOIN (
+        SELECT
+          e2.exhibition_id,
+          SUM(ts.ticket_amount)  AS total_tickets,
+          SUM(ts.purchase_price) AS total_revenue
+        FROM Ticket_Sales ts
+        JOIN Exhibitions e2
+          ON ts.visit_date BETWEEN e2.start_date AND e2.end_date
+        WHERE 1=1
+          ${salesDateSql}   -- optional window on visit_date
+        GROUP BY e2.exhibition_id
+      ) s
+        ON s.exhibition_id = e.exhibition_id
+      ${exhibitWhereSql}
+      ORDER BY ${sortCol} ${sortDir}, e.exhibition_id ASC
       LIMIT ? OFFSET ?;
     `;
     const [rows] = await pool.query(
       dataSql,
-      [...salesDateParams, ...combinedWhereParams, pageSz, offset]
+      [...exhibitParams, ...salesParams, pageSz, offset]
     );
 
     if (format === "csv") {
       const header = [
         "exhibition_id","title","start_date","end_date",
-        "run_days","total_tickets","total_revenue",
-        "adult","senior","youth","child"
+        "run_days","total_tickets","total_revenue"
       ];
-      const toMMDDYYYY = (d) => {
-        if (!d) return "";
-        const date = typeof d === "string" ? new Date(d) : d;
-        if (isNaN(date)) return "";
-        const mm = String(date.getMonth() + 1).padStart(2, "0");
-        const dd = String(date.getDate()).padStart(2, "0");
-        const yyyy = date.getFullYear();
-        return `${mm}/${dd}/${yyyy}`;
+      const toYYYYMMDD = (v) => {
+        if (!v) return "";
+        const d = new Date(v);
+        return isNaN(d) ? String(v) : d.toISOString().slice(0,10);
       };
       const csv = [
         header.join(","),
-        ...rows.map((r) =>
+        ...rows.map(r =>
           [
             r.exhibition_id,
-            r.title,
-            toMMDDYYYY(r.start_date),
-            toMMDDYYYY(r.end_date),
+            (r.title ?? "").toString().replaceAll('"','""'),
+            toYYYYMMDD(r.start_date),
+            toYYYYMMDD(r.end_date),
             r.run_days,
             r.total_tickets,
-            (Number(r.total_revenue || 0)).toFixed(2),
-            r.adult, r.senior, r.youth, r.child
+            Number(r.total_revenue || 0).toFixed(2)
           ]
           .map(v => (v ?? "").toString().replaceAll('"','""'))
           .map(v => /[",\n]/.test(v) ? `"${v}"` : v)
@@ -343,18 +317,20 @@ router.get("/exhibition-popularity", async (req, res) => {
   }
 });
 
+
 // --- helpers ---------------------------------------------------------------
 
-// Ticket sales: purchase_price * ticket_amount over purchased_date
+// Ticket sales (TOTAL): purchase_price already stores the total for each row
 async function getTicketSales(pool, start, end) {
   const sql = `
-    SELECT COALESCE(SUM(t.purchase_price * t.ticket_amount), 0) AS ticket_sales
+    SELECT COALESCE(SUM(t.purchase_price), 0) AS ticket_sales
     FROM Ticket_Sales t
     WHERE t.purchased_date >= ? AND t.purchased_date < DATE_ADD(?, INTERVAL 1 DAY)
   `;
   const [[row]] = await pool.query(sql, [start, end]);
   return Number(row.ticket_sales || 0);
 }
+
 
 // Count new memberships from Membership_records
 async function countNewMemberships(pool, start, end) {
