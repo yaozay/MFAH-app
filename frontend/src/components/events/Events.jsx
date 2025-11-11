@@ -24,11 +24,29 @@ export default function Events() {
     fetch(`${API}/api/events`)
       .then((res) => res.json())
       .then((data) => {
-        const formatted = data.map((e) => ({
-          ...e,
-          start: new Date(e.start),
-          end: new Date(e.end),
-        }));
+        const formatted = data.map((e) => {
+          const baseDate = new Date(e.event_date);
+          const [hh, mm, ss] = (e.event_time || "00:00:00").split(":").map(Number);
+
+          const start = new Date(
+            baseDate.getFullYear(),
+            baseDate.getMonth(),
+            baseDate.getDate(),
+            hh,
+            mm,
+            ss
+          );
+          const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+          return {
+            id: e.id,
+            title: e.title,
+            start,
+            end,
+            description: e.description || "",
+            venue_name: e.venue_name || "",
+          };
+        });
         setEvents(formatted);
       })
       .catch((err) => console.error("Error fetching events:", err));
