@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../Cart/CartContext";
+import { useAuth } from "../../lib/auth";
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, subtotal, tax, total, clearCart } = useCart();
+  const { user, token } = useAuth();
+
+  const API = import.meta.env.VITE_API_BASE;
 
   const onlyTickets =
     cartItems.length === 1 &&
@@ -80,7 +84,7 @@ export default function Checkout() {
     return err;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const v = validate();
     setErrors(v);
@@ -88,11 +92,73 @@ export default function Checkout() {
 
     setProcessing(true);
 
-    setTimeout(() => {
+    try {
+      const giftshopItems = cartItems.filter(
+        (item) =>
+          !(
+            item.ticket_type_id ||
+            item.ticketTypeId ||
+            item.category?.toLowerCase() === "ticket" ||
+            item.type?.toLowerCase() === "ticket"
+          )
+      );
+
+      const items = giftshopItems.map((i) => {
+        const quantity =
+          i.quantity ??
+          i.qty ??
+          i.count ??
+          i.amount ??
+          1;
+
+        const productId = i.product_id ?? i.productId ?? i.id;
+
+        return {
+          product_id: productId,
+          quantity,
+          total_price: (i.price ?? 0) * quantity,
+        };
+      });
+
+
+      console.log("🧾 Sending purchase payload:", {
+        visitor_id: user?.visitor_id ?? user?.visitorId ?? null,
+        items,
+      });
+
+
+      const visitorId = user?.visitor_id ?? user?.visitorId ?? null;
+
+      if (items.some((it) => !it.product_id)) {
+        alert("One or more cart items are missing product IDs.");
+        setProcessing(false);
+        return;
+      }
+
+
+      if (items.length > 0) {
+        const res = await fetch(`${API}/api/giftshop/purchase`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            visitor_id: visitorId,
+            items,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to record purchase");
+      }
+
       sessionStorage.setItem(
         "lastOrder",
         JSON.stringify({
-          shippingAddress: onlyTickets ? "Digital Delivery (mobile ticket)" : address,
+          shippingAddress: onlyTickets
+            ? "Digital Delivery (mobile ticket)"
+            : address,
           shippingMethod: onlyTickets
             ? { label: "Mobile Ticket", price: 0 }
             : shippingOptions[shippingMethod],
@@ -103,8 +169,14 @@ export default function Checkout() {
 
       clearCart();
       navigate("/order-success");
-    }, 1400);
+    } catch (err) {
+      console.error("Checkout error:", err);
+      alert(err.message || "Checkout failed");
+    } finally {
+      setProcessing(false);
+    }
   };
+
 
   if (cartItems.length === 0)
     return (

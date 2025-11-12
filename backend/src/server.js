@@ -74,12 +74,6 @@ app.use("/api/tickets", ticketsRouter);
 
 
 
-
-
-
-
-
-
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 

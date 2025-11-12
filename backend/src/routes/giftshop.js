@@ -121,4 +121,82 @@ router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req,
   }
 });
 
+
+router.post("/purchase", requireAuth, async (req, res) => {
+  console.log("🧾 Incoming purchase body:", req.body);
+
+  const { visitor_id, items } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "items are required" });
+  }
+  if (items.some(it => !it.product_id)) {
+    return res.status(400).json({ error: "Each item must include product_id" });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    let resolvedVisitorId = visitor_id;
+    if (!resolvedVisitorId) {
+
+      const [[userRow]] = await conn.query(
+        "SELECT email, first_name, last_name, role FROM Users WHERE user_id = ?",
+        [req.user.sub]
+      );
+      if (!userRow) throw new Error("Could not resolve logged-in user");
+
+
+      const [existing] = await conn.query(
+        "SELECT visitor_id FROM Visitors WHERE email = ? LIMIT 1",
+        [userRow.email]
+      );
+
+      if (existing.length > 0) {
+        resolvedVisitorId = existing[0].visitor_id;
+      } else {
+        const [insert] = await conn.query(
+          "INSERT INTO Visitors (first_name, last_name, email) VALUES (?, ?, ?)",
+          [userRow.first_name || "", userRow.last_name || "", userRow.email]
+        );
+        resolvedVisitorId = insert.insertId;
+      }
+    }
+
+    for (const item of items) {
+      const pid = item.product_id;
+      const qty = Number(item.quantity ?? 1);
+
+      const [[prod]] = await conn.query(
+        "SELECT price, quantity FROM Shop_Products WHERE product_id = ? FOR UPDATE",
+        [pid]
+      );
+      if (!prod) throw new Error(`Product ${pid} not found`);
+      if (prod.quantity < qty) {
+        throw new Error(`Not enough stock for product ${pid}`);
+      }
+
+      const lineTotal = Number(prod.price) * qty;
+
+
+      await conn.query(
+        `INSERT INTO Gift_Shop_Transactions
+         (department_id, visitor_id, product_id, quantity, sale_date, total_price)
+         VALUES (5, ?, ?, ?, CURDATE(), ?)`,
+        [resolvedVisitorId, pid, qty, lineTotal]
+      );
+    }
+
+    await conn.commit();
+    res.json({ message: "Purchase successful" });
+  } catch (err) {
+    await conn.rollback();
+    console.error("Error processing purchase:", err);
+    res.status(400).json({ error: err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+
 export default router;
