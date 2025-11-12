@@ -5,7 +5,6 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
-// ====== GET all active products ======
 router.get("/", async (_req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -21,7 +20,6 @@ router.get("/", async (_req, res) => {
   }
 });
 
-// ====== GET deleted products ======
 router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -37,7 +35,6 @@ router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res)
   }
 });
 
-// ====== ADD new product ======
 router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { sku, name, category, price, quantity, image_url } = req.body;
   if (!name || price == null)
@@ -58,7 +55,6 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
   }
 });
 
-// ====== UPDATE product ======
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { id } = req.params;
   const { sku, name, category, price, quantity, image_url, active = true } = req.body;
@@ -83,7 +79,7 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
   }
 });
 
-// ====== SOFT DELETE product ======
+
 router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { id } = req.params;
   try {
@@ -102,7 +98,6 @@ router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async 
   }
 });
 
-// ====== RESTORE deleted product ======
 router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
   const { id } = req.params;
   try {
@@ -121,7 +116,6 @@ router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req,
   }
 });
 
-// ====== PURCHASE route ======
 router.post("/purchase", requireAuth, async (req, res) => {
   console.log("🧾 Incoming purchase body:", req.body);
 
@@ -163,24 +157,22 @@ router.post("/purchase", requireAuth, async (req, res) => {
       const pid = item.product_id;
       const qty = Number(item.quantity ?? 1);
 
-      // 🔒 Lock the row so no two purchases modify the same stock simultaneously
       const [[prod]] = await conn.query(
         "SELECT name, price, quantity FROM Shop_Products WHERE product_id = ? FOR UPDATE",
         [pid]
       );
       if (!prod) throw new Error(`Product ${pid} not found`);
 
-      // ✅ Type-safe numeric conversions
+
       const currentStock = Number(prod.quantity);
       const purchaseQty = Number(qty);
       const newQty = currentStock - purchaseQty;
       const lineTotal = Number(prod.price) * purchaseQty;
 
-      console.log(
-        `🧾 Purchasing ${purchaseQty} of "${prod.name}": current stock = ${currentStock}, new stock = ${newQty}`
-      );
+      // console.log(
+      //   `🧾 Purchasing ${purchaseQty} of "${prod.name}": current stock = ${currentStock}, new stock = ${newQty}`
+      // );
 
-      // 🚫 Prevent overselling
       if (newQty < 0) {
         throw new Error(
           `Not enough stock for "${prod.name}". Only ${currentStock} left in inventory.`
