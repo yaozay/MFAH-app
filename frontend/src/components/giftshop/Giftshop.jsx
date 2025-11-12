@@ -8,7 +8,6 @@ export default function Giftshop() {
   const [sort, setSort] = useState("");
   const { addToCart } = useCart();
 
-
   const API = import.meta.env.VITE_API_BASE;
 
   useEffect(() => {
@@ -55,6 +54,7 @@ export default function Giftshop() {
       </h1>
 
       <div className="w-20 h-px bg-neutral-300 mx-auto mb-8"></div>
+
       <div className="flex flex-wrap gap-4 justify-end max-w-7xl mx-auto mb-10">
         <select
           value={filter}
@@ -78,13 +78,24 @@ export default function Giftshop() {
           <option value="price-desc">High → Low</option>
         </select>
       </div>
+
       <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
         {sorted.length > 0 ? (
           sorted.map((item) => (
             <div
               key={item.product_id}
-              className="flex flex-col items-center text-center group"
+              className="flex flex-col items-center text-center group relative"
             >
+              {item.quantity === 0 ? (
+                <span className="absolute top-2 left-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded">
+                  Out of Stock
+                </span>
+              ) : item.quantity > 0 && item.quantity <= 5 ? (
+                <span className="absolute top-2 left-2 bg-rose-600 text-white text-xs px-2 py-1 rounded">
+                  Only {item.quantity} left!
+                </span>
+              ) : null}
+
               <div className="w-full aspect-[1/1] lg:aspect-[3/4] bg-neutral-100 overflow-hidden rounded-lg mb-4 flex items-center justify-center shadow-sm group-hover:shadow-md transition">
                 {item.image_url ? (
                   <img
@@ -100,6 +111,7 @@ export default function Giftshop() {
                   <span className="text-gray-400 text-sm">No image</span>
                 )}
               </div>
+
               <h3 className="text-base font-serif text-neutral-800 mb-1">
                 {item.name}
               </h3>
@@ -109,8 +121,10 @@ export default function Giftshop() {
               <p className="text-rose-600 font-serif mb-3">
                 ${Number(item.price || 0).toFixed(2)}
               </p>
+
               <button
-                onClick={() => {
+                disabled={item.quantity === 0}
+                onClick={() =>
                   addToCart(
                     {
                       id: item.product_id,
@@ -120,13 +134,15 @@ export default function Giftshop() {
                       qty: 1,
                     },
                     "giftshop"
-                  );
-                }}
-                className="bg-rose-600 text-white text-sm font-medium rounded-full px-5 py-2 hover:bg-rose-700 transition focus:outline-none focus:ring-2 focus:ring-rose-400"
+                  )
+                }
+                className={`text-sm font-medium rounded-full px-5 py-2 transition focus:outline-none focus:ring-2 ${item.quantity === 0
+                    ? "bg-neutral-300 text-neutral-500 cursor-not-allowed"
+                    : "bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-400"
+                  }`}
               >
-                Add to Cart
+                {item.quantity === 0 ? "Out of Stock" : "Add to Cart"}
               </button>
-
             </div>
           ))
         ) : (

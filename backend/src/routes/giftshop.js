@@ -117,8 +117,6 @@ router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req,
 });
 
 router.post("/purchase", requireAuth, async (req, res) => {
-  console.log("🧾 Incoming purchase body:", req.body);
-
   const { visitor_id, items } = req.body || {};
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: "items are required" });
