@@ -5,8 +5,7 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
-
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT product_id, sku, name, category, price, quantity, image_url, active, deleted_at
@@ -36,10 +35,8 @@ router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res)
   }
 });
 
-
 router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { sku, name, category, price, quantity, image_url } = req.body;
-
   if (!name || price == null)
     return res.status(400).json({ error: "Name and price are required." });
 
@@ -51,7 +48,6 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       `,
       [sku, name, category, price, quantity || 0, image_url]
     );
-
     res.status(201).json({ message: "Product added", id: result.insertId });
   } catch (err) {
     console.error("Error adding product:", err);
@@ -102,7 +98,6 @@ router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async 
   }
 });
 
-
 router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
   const { id } = req.params;
   try {
@@ -118,6 +113,93 @@ router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req,
   } catch (err) {
     console.error("Error restoring product:", err);
     res.status(500).json({ error: "Failed to restore product" });
+  }
+});
+
+router.post("/purchase", requireAuth, async (req, res) => {
+  console.log("🧾 Incoming purchase body:", req.body);
+
+  const { visitor_id, items } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0)
+    return res.status(400).json({ error: "items are required" });
+  if (items.some((it) => !it.product_id))
+    return res.status(400).json({ error: "Each item must include product_id" });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    let resolvedVisitorId = visitor_id;
+    if (!resolvedVisitorId) {
+      const [[userRow]] = await conn.query(
+        "SELECT email, first_name, last_name, role FROM Users WHERE user_id = ?",
+        [req.user.sub]
+      );
+      if (!userRow) throw new Error("Could not resolve logged-in user");
+
+      const [existing] = await conn.query(
+        "SELECT visitor_id FROM Visitors WHERE email = ? LIMIT 1",
+        [userRow.email]
+      );
+
+      if (existing.length > 0) {
+        resolvedVisitorId = existing[0].visitor_id;
+      } else {
+        const [insert] = await conn.query(
+          "INSERT INTO Visitors (first_name, last_name, email) VALUES (?, ?, ?)",
+          [userRow.first_name || "", userRow.last_name || "", userRow.email]
+        );
+        resolvedVisitorId = insert.insertId;
+      }
+    }
+
+    for (const item of items) {
+      const pid = item.product_id;
+      const qty = Number(item.quantity ?? 1);
+
+      const [[prod]] = await conn.query(
+        "SELECT name, price, quantity FROM Shop_Products WHERE product_id = ? FOR UPDATE",
+        [pid]
+      );
+      if (!prod) throw new Error(`Product ${pid} not found`);
+
+
+      const currentStock = Number(prod.quantity);
+      const purchaseQty = Number(qty);
+      const newQty = currentStock - purchaseQty;
+      const lineTotal = Number(prod.price) * purchaseQty;
+
+      // console.log(
+      //   `🧾 Purchasing ${purchaseQty} of "${prod.name}": current stock = ${currentStock}, new stock = ${newQty}`
+      // );
+
+      if (newQty < 0) {
+        throw new Error(
+          `Not enough stock for "${prod.name}". Only ${currentStock} left in inventory.`
+        );
+      }
+
+      await conn.query(
+        "UPDATE Shop_Products SET quantity = ? WHERE product_id = ?",
+        [newQty, pid]
+      );
+
+      await conn.query(
+        `INSERT INTO Gift_Shop_Transactions
+     (department_id, visitor_id, product_id, quantity, sale_date, total_price)
+     VALUES (5, ?, ?, ?, CURDATE(), ?)`,
+        [resolvedVisitorId, pid, purchaseQty, lineTotal]
+      );
+    }
+
+    await conn.commit();
+    res.json({ message: "Purchase successful" });
+  } catch (err) {
+    await conn.rollback();
+    console.error("Error processing purchase:", err);
+    res.status(400).json({ error: err.message });
+  } finally {
+    conn.release();
   }
 });
 

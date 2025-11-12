@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_BASE;
 
 export default function EmployeeForm() {
   const [params] = useSearchParams();
-  const id = params.get("id"); // present => edit mode
+  const id = params.get("id");
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(!!id);
@@ -17,7 +17,7 @@ export default function EmployeeForm() {
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");           // phone
+  const [phone, setPhone] = useState("");
   const [employee_role, setEmployeeRole] = useState("");
   const [department_id, setDepartmentId] = useState("");
   const [hire_date, setHireDate] = useState("");

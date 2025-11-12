@@ -15,7 +15,7 @@ import giftshopRouter from "./routes/giftshop.js";
 import exhibitionsRouter from "./routes/exhibitions.js";
 import memberships from "./routes/memberships.js";
 import ticketsRouter from "./routes/tickets.js";
-
+import NotificationRouter from "./routes/notification.js"
 
 dotenv.config();
 
@@ -71,13 +71,7 @@ app.use("/api/employees", employeesRouter);
 app.use("/api/memberships", memberships);
 app.use("/api/exhibitions", exhibitionsRouter);
 app.use("/api/tickets", ticketsRouter);
-
-
-
-
-
-
-
+app.use("/api/notifications", NotificationRouter)
 
 
 app.get("/health", (req, res) => res.json({ ok: true }));
