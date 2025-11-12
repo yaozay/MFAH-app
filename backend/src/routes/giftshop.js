@@ -121,7 +121,6 @@ router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req,
   }
 });
 
-
 router.post("/purchase", requireAuth, async (req, res) => {
   console.log("🧾 Incoming purchase body:", req.body);
 
@@ -197,6 +196,4 @@ router.post("/purchase", requireAuth, async (req, res) => {
     conn.release();
   }
 });
-
-
 export default router;
