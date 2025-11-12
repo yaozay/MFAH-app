@@ -1,8 +1,51 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 
 export default function DashboardEmployee() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API = import.meta.env.VITE_API_BASE;
+
+  async function fetchNotifications() {
+    try {
+      const res = await fetch(`${API}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setNotifications(data);
+    } catch (err) {
+      console.error("Error loading notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function markAsRead(id) {
+    try {
+      const res = await fetch(`${API}/api/notifications/${id}/read`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Cannot resolve this alert yet — stock still low.");
+        return;
+      }
+      setNotifications((prev) => prev.filter((n) => n.notification_id !== id));
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  }
+
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [API, token]);
 
   return (
     <div className="min-h-screen bg-neutral-100 py-16 px-6 lg:px-12">
@@ -15,6 +58,44 @@ export default function DashboardEmployee() {
           {user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""}!
         </p>
 
+        <div className="mb-10">
+          <h2 className="text-2xl font-serif text-neutral-900 mb-4">
+            Low Stock Alerts
+          </h2>
+
+          {loading && <p className="text-neutral-500">Loading alerts...</p>}
+
+          {!loading && notifications.length === 0 && (
+            <p className="text-neutral-600 italic">No low-stock alerts</p>
+          )}
+
+          {!loading && notifications.length > 0 && (
+            <div className="space-y-3">
+              {notifications
+                .filter((n) => !n.is_read)
+                .slice(0, 5)
+                .map((note) => (
+                  <div
+                    key={note.notification_id}
+                    className="border border-rose-600 bg-white shadow-sm rounded-2xl p-4 transition-all duration-300 hover:shadow-md"
+                  >
+                    <p className="text-sm text-neutral-900">{note.message}</p>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {new Date(note.created_at).toLocaleString()}
+                    </p>
+                    <button
+                      onClick={() => markAsRead(note.notification_id)}
+                      className="mt-2 text-xs text-rose-600 hover:text-rose-700 font-medium"
+                    >
+                      Mark as resolved
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
+        {/* 🔗 Portal Cards */}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <PortalCard
             title="Manage Artists"

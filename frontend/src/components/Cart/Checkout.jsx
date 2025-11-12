@@ -121,12 +121,6 @@ export default function Checkout() {
       });
 
 
-      console.log("🧾 Sending purchase payload:", {
-        visitor_id: user?.visitor_id ?? user?.visitorId ?? null,
-        items,
-      });
-
-
       const visitorId = user?.visitor_id ?? user?.visitorId ?? null;
 
       if (items.some((it) => !it.product_id)) {
