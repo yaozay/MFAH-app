@@ -28,13 +28,7 @@ export default function Navbar() {
 
   const NavItems = () => (
     <>
-      {/* Public pages */}
-      {(!user || user.role === "visitor") && (
-        <NavLink to="/art" className={linkStyle}>
-          Art
-          <ActiveUnderline />
-        </NavLink>
-      )}
+      
       <NavLink to="/membership" className={linkStyle}>
         Membership
         <ActiveUnderline />
