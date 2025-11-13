@@ -6,40 +6,81 @@ import { stringify } from "csv-stringify/sync";
 
 const router = Router();
 
-// (A) Report: number of artworks per artist
-router.get("/artworks-per-artist"/*, requireAuth, requireAnyRole(["admin","employee"])*/, async (_req, res) => {
-  try {
-    const [rows] = await pool.execute(`
-      SELECT a.artist_id, a.full_name AS artist_name, COUNT(w.artwork_id) AS artwork_count
-      FROM Artists a
-      LEFT JOIN Artworks w ON a.artist_id = w.artist_id
-      GROUP BY a.artist_id, a.full_name
-      ORDER BY artwork_count DESC;
-    `);
-    res.json(rows);
-  } catch (err) {
-    console.error("GET /reports/artworks-per-artist error:", err);
-    res.status(500).json({ error: "Failed to fetch report" });
-  }
-});
+/* -------------------------------------------------------------------------- */
+/* (A) Artworks per Artist per Collection (3+ tables)                         */
+/* -------------------------------------------------------------------------- */
 
-// (B) Report: artworks created after 1900
-router.get("/modern-artworks"/*, requireAuth, requireAnyRole(["admin","employee"])*/, async (_req, res) => {
-  try {
-    const [rows] = await pool.execute(`
-      SELECT title, year_created, art_type, estimated_price
-      FROM Artworks
-      WHERE year_created >= 1900
-      ORDER BY year_created ASC;
-    `);
-    res.json(rows);
-  } catch (err) {
-    console.error("GET /reports/modern-artworks error:", err);
-    res.status(500).json({ error: "Failed to fetch report" });
-  }
-});
+router.get(
+  "/artworks-per-artist",
+  /* requireAuth, requireAnyRole(["admin","employee"]), */
+  async (_req, res) => {
+    try {
+      const [rows] = await pool.execute(`
+        SELECT
+          ar.artist_id,
+          ar.full_name AS artist_name,
+          c.collection_id,
+          c.collection_name,
+          COUNT(DISTINCT a.artwork_id) AS artwork_count,
+          COALESCE(SUM(a.estimated_price), 0) AS total_value
+        FROM Artists ar
+        LEFT JOIN Artworks a
+          ON a.artist_id = ar.artist_id
+        LEFT JOIN Collection_Artworks ca
+          ON ca.artwork_id = a.artwork_id
+        LEFT JOIN Collections c
+          ON c.collection_id = ca.collection_id
+        GROUP BY
+          ar.artist_id,
+          ar.full_name,
+          c.collection_id,
+          c.collection_name
+        ORDER BY
+          artwork_count DESC,
+          ar.full_name ASC;
+      `);
 
-// (C1) CSV: basic employees export
+      res.json(rows);
+    } catch (err) {
+      console.error("GET /reports/artworks-per-artist error:", err);
+      res.status(500).json({ error: "Failed to fetch report" });
+    }
+  }
+);
+
+
+/* -------------------------------------------------------------------------- */
+/* (B) Modern Artworks (after 1900)                                           */
+/* -------------------------------------------------------------------------- */
+
+router.get(
+  "/modern-artworks",
+  /* requireAuth, requireAnyRole(["admin","employee"]) */
+  async (_req, res) => {
+    try {
+      const [rows] = await pool.execute(`
+        SELECT 
+          title,
+          year_created,
+          art_type,
+          estimated_price
+        FROM Artworks
+        WHERE year_created >= 1900
+        ORDER BY year_created ASC;
+      `);
+
+      res.json(rows);
+    } catch (err) {
+      console.error("GET /reports/modern-artworks error:", err);
+      res.status(500).json({ error: "Failed to fetch report" });
+    }
+  }
+);
+
+/* -------------------------------------------------------------------------- */
+/* (C1) Basic Employees CSV                                                   */
+/* -------------------------------------------------------------------------- */
+
 router.get("/employees.csv", async (_req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -52,18 +93,26 @@ router.get("/employees.csv", async (_req, res) => {
     `);
 
     const header = ["employee_id", "first_name", "last_name"];
+
     const csv = [
       header.join(","),
-      ...rows.map(r =>
-        [r.employee_id, r.first_name, r.last_name]
-          .map(v => (v ?? "").toString().replaceAll('"', '""'))
-          .map(v => /[",\n]/.test(v) ? `"${v}"` : v)
+      ...rows.map((r) =>
+        [
+          r.employee_id,
+          r.first_name,
+          r.last_name,
+        ]
+          .map((v) => (v ?? "").toString().replaceAll('"', '""'))
+          .map((v) => (/["\n,]/.test(v) ? `"${v}"` : v))
           .join(",")
       ),
     ].join("\n");
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", 'attachment; filename="employee_basic_report.csv"');
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="employee_basic_report.csv"'
+    );
     res.status(200).send(csv);
   } catch (err) {
     console.error("GET /api/reports/employees.csv error:", err);
@@ -71,132 +120,148 @@ router.get("/employees.csv", async (_req, res) => {
   }
 });
 
-// (C2) Employees: filter/sort/paginate (now includes salary + CSV option)
-router.get("/employees"/*, requireAuth, requireAnyRole(["admin"])*/, async (req, res) => {
-  try {
-    const {
-      q = "",
-      department_id = "",
-      role = "",
-      sort = "id",
-      dir = "asc",
-      page = "1",
-      pageSize = "10",
-      format = "json",
-    } = req.query;
+/* -------------------------------------------------------------------------- */
+/* (C2) Employee Filters w/ Salary + CSV                                      */
+/* -------------------------------------------------------------------------- */
 
-    // Sorting whitelist (added salary)
-    const SORT_MAP = {
-      id: "e.employee_id",
-      name: "e.last_name",
-      role: "e.employee_role",
-      dept: "department_name",
-      hired: "e.hire_date",
-      phone: "e.phone",
-      salary: "e.salary",
-    };
-    const sortCol = SORT_MAP[sort] || SORT_MAP.id;
-    const sortDir = String(dir).toLowerCase() === "desc" ? "DESC" : "ASC";
+router.get(
+  "/employees",
+  /* requireAuth, requireAnyRole(["admin"]) */
+  async (req, res) => {
+    try {
+      const {
+        q = "",
+        department_id = "",
+        role = "",
+        sort = "id",
+        dir = "asc",
+        page = "1",
+        pageSize = "10",
+        format = "json",
+      } = req.query;
 
-    // Pagination
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const pageSz  = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
-    const offset  = (pageNum - 1) * pageSz;
+      const SORT_MAP = {
+        id: "e.employee_id",
+        name: "e.last_name",
+        role: "e.employee_role",
+        dept: "department_name",
+        hired: "e.hire_date",
+        phone: "e.phone",
+        salary: "e.salary",
+      };
 
-    // WHERE builder
-    const where = [];
-    const params = [];
+      const sortCol = SORT_MAP[sort] || SORT_MAP.id;
+      const sortDir = dir.toLowerCase() === "desc" ? "DESC" : "ASC";
 
-    if (q) {
-      where.push("(e.first_name LIKE ? OR e.last_name LIKE ? OR e.email LIKE ?)");
-      params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const pageSz = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
+      const offset = (pageNum - 1) * pageSz;
+
+      const where = [];
+      const params = [];
+
+      if (q) {
+        where.push("(e.first_name LIKE ? OR e.last_name LIKE ? OR e.email LIKE ?)");
+        params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+      }
+
+      if (department_id) {
+        where.push("e.department_id = ?");
+        params.push(department_id);
+      }
+
+      if (role) {
+        where.push("e.employee_role = ?");
+        params.push(role);
+      }
+
+      const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+      const countSql = `
+        SELECT COUNT(*) AS total
+        FROM Employees e
+        LEFT JOIN Departments d ON d.department_id = e.department_id
+        ${whereSql};
+      `;
+      const [countRows] = await pool.query(countSql, params);
+      const total = countRows[0]?.total ?? 0;
+
+      const dataSql = `
+        SELECT 
+          e.employee_id,
+          e.first_name,
+          e.last_name,
+          e.email,
+          e.phone,
+          e.employee_role,
+          e.hire_date,
+          e.salary,
+          d.name AS department_name
+        FROM Employees e
+        LEFT JOIN Departments d ON d.department_id = e.department_id
+        ${whereSql}
+        ORDER BY ${sortCol} ${sortDir}, e.employee_id ASC
+        LIMIT ? OFFSET ?;
+      `;
+
+      const [rows] = await pool.query(dataSql, [...params, pageSz, offset]);
+
+      if (format === "csv") {
+        const header = [
+          "employee_id",
+          "first_name",
+          "last_name",
+          "email",
+          "phone",
+          "employee_role",
+          "department_name",
+          "hire_date",
+          "salary",
+        ];
+
+        const csv = [
+          header.join(","),
+          ...rows.map((r) =>
+            [
+              r.employee_id,
+              r.first_name,
+              r.last_name,
+              r.email,
+              r.phone,
+              r.employee_role,
+              r.department_name,
+              r.hire_date?.toISOString?.().slice(0, 10) || r.hire_date || "",
+              r.salary,
+            ]
+              .map((v) => (v ?? "").toString().replaceAll('"', '""'))
+              .map((v) => (/["\n,]/.test(v) ? `"${v}"` : v))
+              .join(",")
+          ),
+        ].join("\n");
+
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", "attachment; filename=employees.csv");
+        return res.status(200).send(csv);
+      }
+
+      return res.json({ total, page: pageNum, pageSize: pageSz, rows });
+    } catch (err) {
+      console.error("GET /reports/employees error:", err);
+      return res.status(500).json({ error: err.message || "Failed to fetch report" });
     }
-    if (department_id) {
-      where.push("e.department_id = ?");
-      params.push(department_id);
-    }
-    if (role) {
-      where.push("e.employee_role = ?");
-      params.push(role);
-    }
-
-    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-
-    // Count total
-    const countSql = `
-      SELECT COUNT(*) AS total
-      FROM Employees e
-      LEFT JOIN Departments d ON d.department_id = e.department_id
-      ${whereSql}
-    `;
-    const [countRows] = await pool.query(countSql, params);
-    const total = countRows[0]?.total ?? 0;
-
-    // Page data (now selecting salary)
-    const dataSql = `
-      SELECT
-        e.employee_id,
-        e.first_name,
-        e.last_name,
-        e.email,
-        e.phone,
-        e.employee_role,
-        e.hire_date,
-        e.salary,
-        d.name AS department_name
-      FROM Employees e
-      LEFT JOIN Departments d ON d.department_id = e.department_id
-      ${whereSql}
-      ORDER BY ${sortCol} ${sortDir}, e.employee_id ASC
-      LIMIT ? OFFSET ?
-    `;
-    const [rows] = await pool.query(dataSql, [...params, pageSz, offset]);
-
-    // CSV or JSON
-    if (format === "csv") {
-      const header = [
-        "employee_id","first_name","last_name","email","phone","employee_role","department_name","hire_date","salary"
-      ];
-      const csv = [
-        header.join(","),
-        ...rows.map(r =>
-          [
-            r.employee_id,
-            r.first_name,
-            r.last_name,
-            r.email,
-            r.phone,
-            r.employee_role,
-            r.department_name,
-            (r.hire_date && r.hire_date.toISOString?.().slice(0,10)) || r.hire_date || "",
-            r.salary
-          ]
-          .map(v => (v ?? "").toString().replaceAll('"', '""'))
-          .map(v => /[",\n]/.test(v) ? `"${v}"` : v)
-          .join(",")
-        ),
-      ].join("\n");
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", "attachment; filename=employees.csv");
-      return res.status(200).send(csv);
-    }
-
-    // Default JSON for UI
-    return res.json({ total, page: pageNum, pageSize: pageSz, rows });
-  } catch (err) {
-    console.error("GET /reports/employees error:", err);
-    return res.status(500).json({ error: err?.message || "Failed to fetch report" });
   }
-});
-//-------------------------------------------------///
-// (D) Exhibition Popularity — visit_date-based, keeps zero-sales, totals flexible, dynamic-friendly
+);
+
+/* -------------------------------------------------------------------------- */
+/* (D) Exhibition Popularity Report                                           */
+/* -------------------------------------------------------------------------- */
+
 router.get("/exhibition-popularity", async (req, res) => {
   try {
     const {
       q = "",
-      from = "",  // YYYY-MM-DD (optional)
-      to = "",    // YYYY-MM-DD (optional)
+      from = "",
+      to = "",
       sort = "total_revenue",
       dir = "desc",
       page = "1",
@@ -204,7 +269,6 @@ router.get("/exhibition-popularity", async (req, res) => {
       format = "json",
     } = req.query;
 
-    // Sorting whitelist
     const SORT_MAP = {
       title: "e.title",
       run_days: "run_days",
@@ -213,50 +277,73 @@ router.get("/exhibition-popularity", async (req, res) => {
       start_date: "e.start_date",
       end_date: "e.end_date",
     };
+
     const sortCol = SORT_MAP[sort] || SORT_MAP.total_revenue;
     const sortDir = String(dir).toLowerCase() === "asc" ? "ASC" : "DESC";
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const pageSz  = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
-    const offset  = (pageNum - 1) * pageSz;
+    const pageSz = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
+    const offset = (pageNum - 1) * pageSz;
 
-    // ---- Exhibition filters (title + run-date overlap with [from,to]) ----
     const exhibitWhere = [];
     const exhibitParams = [];
-    if (q) { exhibitWhere.push("e.title LIKE ?"); exhibitParams.push(`%${q}%`); }
-    if (from && to) { exhibitWhere.push("(e.end_date >= ? AND e.start_date <= ?)"); exhibitParams.push(from, to); }
-    else if (from)  { exhibitWhere.push("e.end_date >= ?"); exhibitParams.push(from); }
-    else if (to)    { exhibitWhere.push("e.start_date <= ?"); exhibitParams.push(to); }
 
-    //Exclude exhibits that havent fully ended yet
-    const today = new Date(); today.setHours(0,0,0,0);
-    const todayISO = today.toISOString().slice(0,10);
-    const cutoff = to || todayISO;
+    if (q) {
+      exhibitWhere.push("e.title LIKE ?");
+      exhibitParams.push(`%${q}%`);
+    }
+
+    if (from && to) {
+      exhibitWhere.push("(e.end_date >= ? AND e.start_date <= ?)");
+      exhibitParams.push(from, to);
+    } else if (from) {
+      exhibitWhere.push("e.end_date >= ?");
+      exhibitParams.push(from);
+    } else if (to) {
+      exhibitWhere.push("e.start_date <= ?");
+      exhibitParams.push(to);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = to || today.toISOString().slice(0, 10);
 
     exhibitWhere.push("e.end_date IS NOT NULL");
     exhibitWhere.push("e.end_date <= ?");
     exhibitParams.push(cutoff);
 
+    const exhibitWhereSql = exhibitWhere.length
+      ? `WHERE ${exhibitWhere.join(" AND ")}`
+      : "";
 
-    const exhibitWhereSql = exhibitWhere.length ? `WHERE ${exhibitWhere.join(" AND ")}` : "";
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM Exhibitions e
+      ${exhibitWhereSql};
+    `;
 
-    // Count after filters
-    const countSql = `SELECT COUNT(*) AS total FROM Exhibitions e ${exhibitWhereSql}`;
     const [countRows] = await pool.query(countSql, exhibitParams);
     const total = Number(countRows?.[0]?.total || 0);
 
-    // ---- Optional visit_date filter for sales subquery ----
     const salesDateConds = [];
     const salesParams = [];
-    if (from) { salesDateConds.push("ts.visit_date >= ?"); salesParams.push(from); }
-    if (to)   { salesDateConds.push("ts.visit_date <= ?"); salesParams.push(to); }
-    const salesDateSql = salesDateConds.length ? `AND ${salesDateConds.join(" AND ")}` : "";
 
-    // ---- Data: attribute sales by visit_date within the exhibit run ----
-    // NOTE: your trigger sets purchase_price = (unit * ticket_amount) TOTAL for the row.
-    // So revenue = SUM(ts.purchase_price)  (do NOT multiply by ticket_amount again).
+    if (from) {
+      salesDateConds.push("ts.visit_date >= ?");
+      salesParams.push(from);
+    }
+    if (to) {
+      salesDateConds.push("ts.visit_date <= ?");
+      salesParams.push(to);
+    }
+
+    const salesDateSql =
+      salesDateConds.length > 0
+        ? `AND ${salesDateConds.join(" AND ")}`
+        : "";
+
     const dataSql = `
-      SELECT
+      SELECT 
         e.exhibition_id,
         e.title,
         e.start_date,
@@ -266,22 +353,22 @@ router.get("/exhibition-popularity", async (req, res) => {
         COALESCE(s.total_revenue, 0.00) AS total_revenue
       FROM Exhibitions e
       LEFT JOIN (
-        SELECT
+        SELECT 
           e2.exhibition_id,
-          SUM(ts.ticket_amount)  AS total_tickets,
+          SUM(ts.ticket_amount) AS total_tickets,
           SUM(ts.purchase_price) AS total_revenue
         FROM Ticket_Sales ts
-        JOIN Exhibitions e2
+        JOIN Exhibitions e2 
           ON ts.visit_date BETWEEN e2.start_date AND e2.end_date
         WHERE 1=1
-          ${salesDateSql}   -- optional window on visit_date
+        ${salesDateSql}
         GROUP BY e2.exhibition_id
-      ) s
-        ON s.exhibition_id = e.exhibition_id
+      ) s ON s.exhibition_id = e.exhibition_id
       ${exhibitWhereSql}
       ORDER BY ${sortCol} ${sortDir}, e.exhibition_id ASC
       LIMIT ? OFFSET ?;
     `;
+
     const [rows] = await pool.query(
       dataSql,
       [...exhibitParams, ...salesParams, pageSz, offset]
@@ -289,154 +376,140 @@ router.get("/exhibition-popularity", async (req, res) => {
 
     if (format === "csv") {
       const header = [
-        "exhibition_id","title","start_date","end_date",
-        "run_days","total_tickets","total_revenue"
+        "exhibition_id",
+        "title",
+        "start_date",
+        "end_date",
+        "run_days",
+        "total_tickets",
+        "total_revenue",
       ];
-      const toYYYYMMDD = (v) => {
+
+      const fmtDate = (v) => {
         if (!v) return "";
         const d = new Date(v);
-        return isNaN(d) ? String(v) : d.toISOString().slice(0,10);
+        return isNaN(d) ? String(v) : d.toISOString().slice(0, 10);
       };
+
       const csv = [
         header.join(","),
-        ...rows.map(r =>
+        ...rows.map((r) =>
           [
             r.exhibition_id,
-            (r.title ?? "").toString().replaceAll('"','""'),
-            toYYYYMMDD(r.start_date),
-            toYYYYMMDD(r.end_date),
+            (r.title ?? "").toString().replaceAll('"', '""'),
+            fmtDate(r.start_date),
+            fmtDate(r.end_date),
             r.run_days,
             r.total_tickets,
-            Number(r.total_revenue || 0).toFixed(2)
+            Number(r.total_revenue || 0).toFixed(2),
           ]
-          .map(v => (v ?? "").toString().replaceAll('"','""'))
-          .map(v => /[",\n]/.test(v) ? `"${v}"` : v)
-          .join(",")
+            .map((v) => (v ?? "").toString().replaceAll('"', '""'))
+            .map((v) => (/["\n,]/.test(v) ? `"${v}"` : v))
+            .join(",")
         ),
       ].join("\n");
 
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", "attachment; filename=exhibition_popularity.csv");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=exhibition_popularity.csv"
+      );
       return res.status(200).send(csv);
     }
 
-    return res.json({ total, page: pageNum, pageSize: pageSz, rows });
+    res.json({ total, page: pageNum, pageSize: pageSz, rows });
   } catch (err) {
     console.error("GET /reports/exhibition-popularity error:", err);
-    return res.status(500).json({ error: err?.message || "Failed to fetch report" });
+    res.status(500).json({ error: "Failed to fetch report" });
   }
 });
 
+/* -------------------------------------------------------------------------- */
+/* (E) Admin Metrics Helpers                                                  */
+/* -------------------------------------------------------------------------- */
 
-// --- helpers ---------------------------------------------------------------
-
-// Ticket sales (TOTAL): purchase_price already stores the total for each row
 async function getTicketSales(pool, start, end) {
   const sql = `
-    SELECT COALESCE(SUM(t.purchase_price), 0) AS ticket_sales
-    FROM Ticket_Sales t
-    WHERE t.purchased_date >= ? AND t.purchased_date < DATE_ADD(?, INTERVAL 1 DAY)
+    SELECT COALESCE(SUM(ts.purchase_price), 0) AS ticket_sales
+    FROM Ticket_Sales ts
+    WHERE ts.visit_date >= ?
+      AND ts.visit_date < DATE_ADD(?, INTERVAL 1 DAY);
   `;
   const [[row]] = await pool.query(sql, [start, end]);
   return Number(row.ticket_sales || 0);
 }
 
 
-// Count new memberships from Membership_records
 async function countNewMemberships(pool, start, end) {
-  // detect which date column Membership_records has
   const [cols] = await pool.query(`SHOW COLUMNS FROM Membership_records`);
-  const has = (n) => cols.some(c => c.Field === n);
-  const dateCol = has('start_date')
-    ? 'start_date'
-    : has('purchased_date')
-    ? 'purchased_date'
-    : has('created_at')
-    ? 'created_at'
+  const has = (n) => cols.some((c) => c.Field === n);
+
+  const dateCol = has("start_date")
+    ? "start_date"
+    : has("purchased_date")
+    ? "purchased_date"
+    : has("created_at")
+    ? "created_at"
     : null;
 
-  if (!dateCol) {
-    // no usable date column; treat as 0 rather than 500
-    return 0;
-  }
+  if (!dateCol) return 0;
 
   const sql = `
     SELECT COUNT(*) AS new_memberships
     FROM Membership_records mr
-    WHERE mr.${dateCol} >= ? AND mr.${dateCol} < DATE_ADD(?, INTERVAL 1 DAY)
+    WHERE mr.${dateCol} >= ?
+      AND mr.${dateCol} < DATE_ADD(?, INTERVAL 1 DAY);
   `;
   const [[row]] = await pool.query(sql, [start, end]);
   return Number(row.new_memberships || 0);
 }
 
-// (Optional) revenue from memberships this period
-async function getMembershipRevenue(pool, start, end) {
-  // If records already store the charge, sum that; otherwise join to Types.price
-  const [cols] = await pool.query(`SHOW COLUMNS FROM Membership_records`);
-  const has = (n) => cols.some(c => c.Field === n);
-  const dateCol = has('start_date') ? 'start_date' :
-                  has('purchased_date') ? 'purchased_date' : 'created_at';
-
-  if (has('amount') || has('total_price')) {
-    const amountExpr = has('amount') ? 'mr.amount' : 'mr.total_price';
-    const sql = `
-      SELECT COALESCE(SUM(${amountExpr}), 0) AS membership_revenue
-      FROM Membership_records mr
-      WHERE mr.${dateCol} >= ? AND mr.${dateCol} < DATE_ADD(?, INTERVAL 1 DAY)
-    `;
-    const [[row]] = await pool.query(sql, [start, end]);
-    return Number(row.membership_revenue || 0);
-  } else {
-    // join on plan price from Membership_Types
-    // assumes Membership_records has plan_id
-    const sql = `
-      SELECT COALESCE(SUM(mt.price), 0) AS membership_revenue
-      FROM Membership_records mr
-      JOIN Membership_Types mt ON mt.plan_id = mr.plan_id
-      WHERE mr.${dateCol} >= ? AND mr.${dateCol} < DATE_ADD(?, INTERVAL 1 DAY)
-    `;
-    const [[row]] = await pool.query(sql, [start, end]);
-    return Number(row.membership_revenue || 0);
-  }
-}
-
+/* -------------------------------------------------------------------------- */
+/* (F) Admin Metrics Endpoint                                                 */
+/* -------------------------------------------------------------------------- */
 
 router.get("/admin-metrics", async (req, res) => {
-  const { start, end } = req.query; // YYYY-MM-DD
+  const { start, end } = req.query;
+
   if (!start || !end) {
-    return res.status(400).json({ error: "start and end are required (YYYY-MM-DD)" });
+    return res
+      .status(400)
+      .json({ error: "start and end are required (YYYY-MM-DD)" });
   }
 
   try {
-    // Total Visitors
+    // 🔹 Total visitors this month = unique visitors with a visit_date in range
     const [[{ total_visitors }]] = await pool.query(
-      `SELECT COUNT(*) AS total_visitors
-         FROM Visitors v
-        WHERE v.last_visit >= ? AND v.last_visit < DATE_ADD(?, INTERVAL 1 DAY)`,
+      `
+      SELECT COUNT(DISTINCT ts.visitor_id) AS total_visitors
+      FROM Ticket_Sales ts
+      WHERE ts.visit_date >= ?
+        AND ts.visit_date < DATE_ADD(?, INTERVAL 1 DAY);
+      `,
       [start, end]
     );
 
+    // 🔹 Ticket sales this month, using visit_date
     const ticket_sales = await getTicketSales(pool, start, end);
 
-    // Gift shop sales (keep if g.total_price exists)
+    // 🔹 Shop sales logic stays the same
     const [[{ shop_sales }]] = await pool.query(
-      `SELECT COALESCE(SUM(g.total_price), 0) AS shop_sales
-         FROM Gift_Shop_Transactions g
-        WHERE g.sale_date >= ? AND g.sale_date < DATE_ADD(?, INTERVAL 1 DAY)`,
+      `
+      SELECT COALESCE(SUM(g.total_price), 0) AS shop_sales
+      FROM Gift_Shop_Transactions g
+      WHERE g.sale_date >= ?
+        AND g.sale_date < DATE_ADD(?, INTERVAL 1 DAY);
+      `,
       [start, end]
     );
 
     const new_memberships = await countNewMemberships(pool, start, end);
-
-    // Optional: include membership revenue if you want it on the dashboard
-    // const membership_revenue = await getMembershipRevenue(pool, start, end);
 
     res.json({
       total_visitors: Number(total_visitors || 0),
       ticket_sales,
       shop_sales: Number(shop_sales || 0),
       new_memberships,
-      // membership_revenue,
     });
   } catch (err) {
     console.error("GET /reports/admin-metrics error:", err);
@@ -444,9 +517,13 @@ router.get("/admin-metrics", async (req, res) => {
   }
 });
 
-// (E) Report: Member Gift Shop Purchases
+
+/* -------------------------------------------------------------------------- */
+/* (G) Member Gift Shop Purchases                                             */
+/* -------------------------------------------------------------------------- */
+
 router.get("/member-giftshop-purchases", async (req, res) => {
-  const { start, end } = req.query; // optional date filters YYYY-MM-DD
+  const { start, end } = req.query;
 
   try {
     let sql = `
@@ -456,12 +533,9 @@ router.get("/member-giftshop-purchases", async (req, res) => {
         ROUND(AVG(gst.total_price), 2) AS avg_purchase_value,
         COALESCE(SUM(gst.total_price), 0) AS total_spent
       FROM Membership_records mr
-      JOIN Membership_Types mt 
-        ON mr.plan_id = mt.plan_id
-      JOIN Visitors v 
-        ON v.visitor_id = mr.visitor_id
-      LEFT JOIN Gift_Shop_Transactions gst 
-        ON gst.visitor_id = v.visitor_id
+      JOIN Membership_Types mt ON mr.plan_id = mt.plan_id
+      JOIN Visitors v ON v.visitor_id = mr.visitor_id
+      LEFT JOIN Gift_Shop_Transactions gst ON gst.visitor_id = v.visitor_id
     `;
 
     const params = [];
@@ -487,10 +561,12 @@ router.get("/member-giftshop-purchases", async (req, res) => {
   }
 });
 
+/* -------------------------------------------------------------------------- */
+/* (H) Supplier Gift Shop Sales                                               */
+/* -------------------------------------------------------------------------- */
 
-//Report: Supplier Gift Shop Sales (filtered by month)
 router.get("/supplier-giftshop-sales", async (req, res) => {
-  const { start, end } = req.query; 
+  const { start, end } = req.query;
 
   try {
     let sql = `
@@ -509,13 +585,12 @@ router.get("/supplier-giftshop-sales", async (req, res) => {
 
     if (start && end) {
       sql += `
-        WHERE gst.sale_date >= ? 
-          AND gst.sale_date < DATE_ADD(?, INTERVAL 1 DAY)
+        WHERE gst.sale_date >= ?
+        AND gst.sale_date < DATE_ADD(?, INTERVAL 1 DAY)
       `;
       params.push(start, end);
     }
 
-    // 🟩 Group and sort results
     sql += `
       GROUP BY s.name
       ORDER BY total_sales DESC;
@@ -529,7 +604,10 @@ router.get("/supplier-giftshop-sales", async (req, res) => {
   }
 });
 
-// Collection Value Report 
+/* -------------------------------------------------------------------------- */
+/* (I) Collection Value Report                                                */
+/* -------------------------------------------------------------------------- */
+
 router.get("/collection-value", async (req, res) => {
   const { from, to } = req.query;
 
@@ -566,14 +644,11 @@ router.get("/collection-value", async (req, res) => {
     `;
 
     const [rows] = await pool.query(sql, params);
-    return res.json(rows);
+    res.json(rows);
   } catch (err) {
     console.error("GET /reports/collection-value error:", err);
     res.status(500).json({ error: "Failed to fetch collection value report" });
   }
 });
 
-
-
 export default router;
-
