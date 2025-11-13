@@ -12,6 +12,12 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [colFrom, setColFrom] = useState("");
+  const [colTo, setColTo] = useState("");
+  const [collectionValue, setCollectionValue] = useState([]);
+  const [loadingCollection, setLoadingCollection] = useState(false);
+
+
  
   const [q, setQ] = useState("");
   const [fromDate, setFromDate] = useState(""); 
@@ -95,6 +101,31 @@ export default function Reports() {
     fetchReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+useEffect(() => {
+  const fetchCollectionValue = async () => {
+    setLoadingCollection(true);
+
+    const p = new URLSearchParams();
+    if (colFrom) p.set("from", colFrom);
+    if (colTo) p.set("to", colTo);
+
+    try {
+      const res = await fetch(`${API}/api/reports/collection-value?${p.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const json = await res.json();
+      setCollectionValue(json);
+    } catch (err) {
+      console.error("collection value fetch err", err);
+    } finally {
+      setLoadingCollection(false);
+    }
+  };
+
+  fetchCollectionValue();
+}, [colFrom, colTo, API, token]);
+
 
   // ===== Build query string from APPLIED filters =====
   const popQuery = useMemo(() => {
@@ -343,6 +374,73 @@ export default function Reports() {
           </div>
         )}
       </section>
+
+      
+      {/* Collection Value Report */}
+      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
+
+        <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50">
+          <h2 className="text-2xl font-serif text-black">Collection Value Report</h2>
+          <p className="text-sm text-neutral-500">
+            Total value of each collection — filter by acquisition date
+          </p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 items-end p-6">
+          <input
+            type="date"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={colFrom}
+            onChange={(e) => setColFrom(e.target.value)}
+          />
+          <input
+            type="date"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={colTo}
+            onChange={(e) => setColTo(e.target.value)}
+          />
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          {loadingCollection ? (
+            <p className="p-6 text-neutral-500">Loading...</p>
+          ) : collectionValue.length ? (
+            <table className="min-w-full text-sm">
+              <thead className="bg-neutral-100">
+                <tr>
+                  <th className="px-6 py-3 text-left text-black">Collection</th>
+                  <th className="px-6 py-3 text-left text-black">Artworks</th>
+                  <th className="px-6 py-3 text-left text-black">Total Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {collectionValue.map((c) => (
+                  <tr key={c.collection_id} className="border-t border-neutral-200">
+                    <td className="px-6 py-3 font-semibold text-black">
+                      {c.collection_name}
+                    </td>
+                    <td className="px-6 py-3 text-neutral-600">
+                      {c.total_artworks}
+                    </td>
+                    <td className="px-6 py-3 text-rose-600 font-medium">
+                      {c.total_collection_value
+                        ? `$${Number(c.total_collection_value).toLocaleString()}`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="px-8 py-12 text-center text-neutral-500">
+              No data available.
+            </div>
+          )}
+        </div>
+      </section>
+      
 
       {/* Exhibition Popularity */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
