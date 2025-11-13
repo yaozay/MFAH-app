@@ -339,11 +339,12 @@ export default function EventsForm() {
                 <td className="p-3 text-sm">
                   {ev.approved === 1 ? (
                     <span className="text-emerald-700 font-medium">Approved</span>
+                  ) : ev.approved === -1 ? (
+                    <span className="text-red-700 font-medium">Rejected</span>
                   ) : (
                     <span className="text-amber-600 font-medium">Pending</span>
                   )}
                 </td>
-
                 <td className="p-3 flex gap-3 text-sm">
 
                   {!showDeleted ? (

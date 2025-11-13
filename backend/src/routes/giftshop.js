@@ -36,7 +36,7 @@ router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res)
 });
 
 router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
-  const { sku, name, category, price, quantity, image_url,supplier_id } = req.body;
+  const { sku, name, category, price, quantity, image_url, supplier_id } = req.body;
   if (!name || price == null)
     return res.status(400).json({ error: "Name and price are required." });
 
@@ -51,7 +51,7 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       [sku, name, category, price, quantity || 0, image_url]
     );
     const productId = result.insertId;
-    if (supplier_id) {                       
+    if (supplier_id) {
       await conn.query(
         `INSERT INTO Supplier_Products (supplier_id, product_id) VALUES (?, ?)`,
         [supplier_id, productId]
@@ -63,7 +63,7 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
     await conn.rollback();
     console.error("Error adding product:", err);
     res.status(500).json({ error: "Failed to add product" });
-  }finally {
+  } finally {
     conn.release();
   }
 });
@@ -73,7 +73,7 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
   const { sku, name, category, price, quantity, image_url, active = true, supplier_id } = req.body;
   const conn = await pool.getConnection();
   try {
-    await conn.beginTransaction(); 
+    await conn.beginTransaction();
     const [result] = await pool.query(
       `
         UPDATE Shop_Products
@@ -84,27 +84,27 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
     );
 
     if (result.affectedRows === 0)
-      await conn.rollback();  
-      return res.status(404).json({ error: "Product not found or deleted" });
+      await conn.rollback();
+    return res.status(404).json({ error: "Product not found or deleted" });
 
-      await conn.query(
-      `DELETE FROM Supplier_Products WHERE product_id = ?`, 
+    await conn.query(
+      `DELETE FROM Supplier_Products WHERE product_id = ?`,
       [id]
-    );    
+    );
     if (supplier_id) {
       await conn.query(
         `INSERT INTO Supplier_Products (supplier_id, product_id) VALUES (?, ?)`,
         [supplier_id, id]
-      );                                    
+      );
     }
 
-    await conn.commit();                    
+    await conn.commit();
     res.json({ message: "Product updated" });
   } catch (err) {
-    await conn.rollback(); 
+    await conn.rollback();
     console.error("Error updating product:", err);
     res.status(500).json({ error: err.message });
-  }finally {
+  } finally {
     conn.release();
   }
 });

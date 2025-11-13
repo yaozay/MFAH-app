@@ -259,7 +259,7 @@ router.patch(
         return res.status(404).json({ error: "Event not found" });
 
       await pool.query(
-        "UPDATE Events SET approved = 0 WHERE event_id = ?",
+        "UPDATE Events SET approved = -1 WHERE event_id = ?",
         [id]
       );
 
