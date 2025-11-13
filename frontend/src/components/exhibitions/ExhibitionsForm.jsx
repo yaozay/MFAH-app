@@ -2,18 +2,12 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth";
 
 export default function ExhibitionsForm() {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const [exhibitions, setExhibitions] = useState([]);
   const [venues, setVenues] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null);
-  const [search, setSearch] = useState("");
-  const [startFilter, setStartFilter] = useState("");
-  const [endFilter, setEndFilter] = useState("");
-  const [showDeleted, setShowDeleted] = useState(false);
-  const [deletedExhibitions, setDeletedExhibitions] = useState([]);
 
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
+    exhibition_id: null,
     title: "",
     start_date: "",
     end_date: "",
@@ -23,78 +17,68 @@ export default function ExhibitionsForm() {
     image_url: "",
   });
 
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   const API = import.meta.env.VITE_API_BASE;
 
-
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const [exhRes, venRes] = await Promise.all([
-          fetch(`${API}/api/exhibitions`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${API}/api/venues`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+    loadExhibitions();
+    loadVenues();
+  }, [showDeleted]);
 
-        const exhData = await exhRes.json();
-        const venData = await venRes.json();
-
-        setExhibitions(exhData);
-        setVenues(venData);
-      } catch (err) {
-        console.error("Error loading exhibitions:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (!showDeleted) fetchData();
-  }, [API, token, showDeleted]);
-
-
-  async function fetchDeleted() {
+  async function loadExhibitions() {
+    setError("");
+    setSuccess("");
     try {
-      const res = await fetch(`${API}/api/exhibitions/deleted`, {
+      const token = localStorage.getItem("token");
+      const endpoint = showDeleted
+        ? `${API}/api/exhibitions/deleted`
+        : `${API}/api/exhibitions`;
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load deleted exhibitions");
-      setDeletedExhibitions(data);
+      if (!res.ok) throw new Error(data.error || "Failed to load exhibitions");
+      setExhibitions(data);
     } catch (err) {
-      console.error("Error loading deleted exhibitions:", err);
-      alert(err.message);
-      setDeletedExhibitions([]);
+      setError(err.message);
+      setExhibitions([]);
     }
   }
 
-  async function handleRestore(id) {
+  async function loadVenues() {
     try {
-      const res = await fetch(`${API}/api/exhibitions/${id}/restore`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Failed to restore exhibition");
-
-      alert("Exhibition restored successfully!");
-      await fetchDeleted();
-    } catch (err) {
-      console.error("Restore failed:", err);
-      alert(err.message);
+      const res = await fetch(`${API}/api/venues`);
+      const data = await res.json();
+      setVenues(data);
+    } catch {
+      setVenues([]);
     }
   }
 
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.title || !form.start_date)
-      return alert("Title and start date are required.");
+    setError("");
+    setSuccess("");
 
-    const method = editing ? "PUT" : "POST";
-    const url = editing
-      ? `${API}/api/exhibitions/${editing.exhibition_id}`
+    if (!formData.title || !formData.start_date) {
+      setError("Title and Start Date are required.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    const method = editingId ? "PUT" : "POST";
+    const url = editingId
+      ? `${API}/api/exhibitions/${editingId}`
       : `${API}/api/exhibitions`;
 
     try {
@@ -104,64 +88,80 @@ export default function ExhibitionsForm() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(formData),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save exhibition");
 
-      if (!res.ok) throw new Error("Failed to save exhibition");
-
-      setForm({
-        title: "",
-        start_date: "",
-        end_date: "",
-        venue_id: "",
-        organizer: "",
-        description: "",
-        image_url: "",
-      });
-      setEditing(null);
-
-      const updated = await fetch(`${API}/api/exhibitions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setExhibitions(await updated.json());
+      setSuccess(
+        editingId ? "Exhibition updated successfully!" : "Exhibition added!"
+      );
+      resetForm();
+      loadExhibitions();
     } catch (err) {
-      console.error("Save failed:", err);
-      alert(err.message);
+      setError(err.message);
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm("Delete this exhibition?")) return;
+    if (!window.confirm("Are you sure you want to delete this exhibition?"))
+      return;
+    setError("");
+    setSuccess("");
+
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API}/api/exhibitions/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to delete exhibition");
-      setExhibitions((prev) => prev.filter((e) => e.exhibition_id !== id));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete exhibition");
+      setSuccess("Exhibition deleted successfully!");
+      loadExhibitions();
     } catch (err) {
-      console.error("Delete failed:", err);
-      alert(err.message);
+      setError(err.message);
     }
   }
 
-  function handleEdit(e) {
-    setEditing(e);
-    setForm({
-      title: e.title || "",
-      start_date: e.start_date || "",
-      end_date: e.end_date || "",
-      venue_id: e.venue_id || "",
-      organizer: e.organizer || "",
-      description: e.description || "",
-      image_url: e.image_url || "",
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  async function handleRestore(id) {
+    setError("");
+    setSuccess("");
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API}/api/exhibitions/${id}/restore`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to restore exhibition");
+      setSuccess("Exhibition restored successfully!");
+      loadExhibitions();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  function handleCancelEdit() {
-    setEditing(null);
-    setForm({
+  function handleEdit(ex) {
+    setEditingId(ex.exhibition_id);
+    setEditingTitle(ex.title || "");
+    setFormData({
+      exhibition_id: ex.exhibition_id,
+      title: ex.title || "",
+      start_date: ex.start_date ? ex.start_date.slice(0, 10) : "",
+      end_date: ex.end_date ? ex.end_date.slice(0, 10) : "",
+      venue_id: ex.venue_id || "",
+      organizer: ex.organizer || "",
+      description: ex.description || "",
+      image_url: ex.image_url || "",
+    });
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setEditingTitle("");
+    setFormData({
+      exhibition_id: null,
       title: "",
       start_date: "",
       end_date: "",
@@ -172,38 +172,51 @@ export default function ExhibitionsForm() {
     });
   }
 
-  if (loading)
+  const statusBadge = (status) => {
+    if (status === "approved") {
+      return (
+        <span className="text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full text-xs">
+          Approved
+        </span>
+      );
+    }
+    if (status === "rejected") {
+      return (
+        <span className="text-red-700 font-medium bg-red-50 px-2 py-0.5 rounded-full text-xs">
+          Rejected
+        </span>
+      );
+    }
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading exhibitions...
-      </div>
+      <span className="text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded-full text-xs">
+        Pending
+      </span>
     );
-
-  const filteredExhibitions = exhibitions.filter((e) => {
-    const titleMatch = e.title?.toLowerCase().includes(search.toLowerCase());
-    const organizerMatch = e.organizer?.toLowerCase().includes(search.toLowerCase());
-    const start = new Date(e.start_date);
-    const end = new Date(e.end_date);
-    const filterStart = startFilter ? new Date(startFilter) : null;
-    const filterEnd = endFilter ? new Date(endFilter) : null;
-    const inDateRange =
-      (!filterStart || end >= filterStart) &&
-      (!filterEnd || start <= filterEnd);
-    return (titleMatch || organizerMatch) && inDateRange;
-  });
+  };
 
   return (
     <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
-      <h1 className="text-3xl font-serif mb-6">
-        {editing ? "Edit Exhibition" : "Manage Exhibitions"}
+      <h1 className="text-3xl font-serif mb-6 text-neutral-800">
+        Manage Exhibitions
       </h1>
+
+      {/* Alerts */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-md mb-6">
+          <strong>Success:</strong> {success}
+        </div>
+      )}
+
+      {/* Admin toggle */}
       {user?.role === "admin" && (
         <div className="mb-6">
           <button
-            onClick={() => {
-              setShowDeleted((prev) => !prev);
-              if (!showDeleted) fetchDeleted();
-            }}
+            onClick={() => setShowDeleted((prev) => !prev)}
             className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
           >
             {showDeleted ? "Show Active Exhibitions" : "Show Deleted Exhibitions"}
@@ -211,266 +224,222 @@ export default function ExhibitionsForm() {
         </div>
       )}
 
+      {/* Form (hidden when viewing deleted) */}
       {!showDeleted && (
-        <>
-          {/* FORM SECTION */}
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white border rounded-xl shadow-sm p-6 mb-12"
-          >
-            <h2 className="text-lg font-serif font-medium mb-4 text-neutral-800">
-              {editing ? "Edit Exhibition" : "Add New Exhibition"}
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {["title", "organizer"].map((key) => (
-                <div key={key} className="flex flex-col">
-                  <label className="text-sm font-serif text-neutral-700 mb-1">
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                  </label>
-                  <input
-                    type="text"
-                    value={form[key]}
-                    onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                    className="border rounded-md p-2 text-sm"
-                  />
-                </div>
-              ))}
-
-              {/* Dates */}
-              <div className="flex flex-col">
-                <label className="text-sm font-serif text-neutral-700 mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={form.start_date}
-                  onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                  className="border rounded-md p-2 text-sm"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-serif text-neutral-700 mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={form.end_date}
-                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                  className="border rounded-md p-2 text-sm"
-                />
-              </div>
-
-              {/* Venue Dropdown */}
-              <div className="flex flex-col">
-                <label className="text-sm font-serif text-neutral-700 mb-1">
-                  Venue
-                </label>
-                <select
-                  value={form.venue_id}
-                  onChange={(e) => setForm({ ...form, venue_id: e.target.value })}
-                  className="border rounded-md p-2 text-sm"
-                >
-                  <option value="">Select a venue</option>
-                  {venues.map((v) => (
-                    <option key={v.venue_id} value={v.venue_id}>
-                      {v.name} — {v.location}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Image URL */}
-              <div className="flex flex-col sm:col-span-2">
-                <label className="text-sm font-serif text-neutral-700 mb-1">
-                  Image URL
-                </label>
-                <input
-                  type="text"
-                  value={form.image_url}
-                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                  className="border rounded-md p-2 text-sm"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="flex flex-col sm:col-span-2">
-                <label className="text-sm font-serif text-neutral-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows="4"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="border rounded-md p-2 text-sm"
-                />
-              </div>
-
-              {form.image_url && (
-                <div className="sm:col-span-2 flex justify-center">
-                  <div className="w-40 h-40 rounded-lg border overflow-hidden bg-neutral-100 flex items-center justify-center">
-                    <img
-                      src={form.image_url}
-                      alt="Preview"
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3 mt-8">
-              <button
-                type="submit"
-                className="flex-1 bg-rose-600 text-white py-2 rounded-md hover:bg-rose-700 transition"
-              >
-                {editing ? "Save Changes" : "Add Exhibition"}
-              </button>
-              {editing && (
-                <button
-                  type="button"
-                  onClick={handleCancelEdit}
-                  className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-md hover:bg-gray-400 transition"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-
-          {/* Search + Grid */}
-          <h6 className="text-2xl font-serif font-semibold mb-6 text-neutral-800 text-left">
-            All Exhibitions
-          </h6>
-
-          <div className="flex flex-col sm:flex-row gap-4 mb-8 max-w-4xl">
-            <input
-              type="text"
-              placeholder="Search by name or organizer..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 border border-neutral-300 rounded-md px-3 py-2 text-sm"
-            />
-            <input
-              type="date"
-              value={startFilter}
-              onChange={(e) => setStartFilter(e.target.value)}
-              className="border border-neutral-300 rounded-md px-3 py-2 text-sm"
-            />
-            <input
-              type="date"
-              value={endFilter}
-              onChange={(e) => setEndFilter(e.target.value)}
-              className="border border-neutral-300 rounded-md px-3 py-2 text-sm"
-            />
-            {(search || startFilter || endFilter) && (
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setStartFilter("");
-                  setEndFilter("");
-                }}
-                className="text-sm text-blue-600 underline hover:text-blue-800"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-w-7xl mx-auto">
-            {filteredExhibitions.map((e) => (
-              <div
-                key={e.exhibition_id}
-                className="border border-neutral-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition p-4 flex flex-col"
-              >
-                <div className="aspect-[1/1] bg-neutral-100 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
-                  {e.image_url ? (
-                    <img
-                      src={e.image_url.startsWith("http") ? e.image_url : `${API}${e.image_url}`}
-                      alt={e.title}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <span className="text-gray-400 text-sm">No image</span>
-                  )}
-                </div>
-                <h3 className="font-serif text-lg text-neutral-800 mb-1">{e.title}</h3>
-                <p className="text-sm text-neutral-500 mb-2">
-                  {e.organizer || "Organizer Unknown"}
-                </p>
-                <p className="text-sm text-gray-600 mb-1">
-                  {e.start_date?.split("T")[0]} → {e.end_date?.split("T")[0]}
-                </p>
-                <p className="text-sm text-gray-600 mb-3 truncate">{e.description}</p>
-                <div className="flex gap-3 mt-auto">
-                  <button
-                    onClick={() => handleEdit(e)}
-                    className="flex-1 bg-gray-500 text-white rounded-md py-1 hover:bg-gray-600 text-sm"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(e.exhibition_id)}
-                    className="flex-1 bg-rose-500 text-white rounded-md py-1 hover:bg-rose-600 text-sm"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {showDeleted && (
-        <div className="bg-white border rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-serif mb-4 text-neutral-800">
-            Deleted Exhibitions
+        <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-10">
+          <h2 className="text-xl font-serif text-neutral-800 mb-4">
+            {editingId
+              ? `Editing Exhibition: ${editingTitle}`
+              : "Create New Exhibition"}
           </h2>
 
-          {deletedExhibitions.length === 0 ? (
-            <p className="text-sm text-neutral-500">
-              No deleted exhibitions found.
-            </p>
-          ) : (
-            <table className="min-w-full bg-white border border-neutral-200 rounded-lg overflow-hidden">
-              <thead className="bg-rose-600 text-white">
-                <tr>
-                  <th className="p-3 text-left text-sm font-medium">Title</th>
-                  <th className="p-3 text-left text-sm font-medium">Organizer</th>
-                  <th className="p-3 text-left text-sm font-medium">Deleted At</th>
-                  <th className="p-3 text-left text-sm font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deletedExhibitions.map((e, i) => (
-                  <tr
-                    key={e.exhibition_id}
-                    className={`border-b ${i % 2 === 0 ? "bg-white" : "bg-neutral-50"
-                      }`}
-                  >
-                    <td className="p-3 text-sm">{e.title}</td>
-                    <td className="p-3 text-sm">{e.organizer || "—"}</td>
-                    <td className="p-3 text-sm">
-                      {e.deleted_at
-                        ? new Date(e.deleted_at).toLocaleString()
-                        : "—"}
-                    </td>
-                    <td className="p-3 text-sm">
-                      <button
-                        onClick={() => handleRestore(e.exhibition_id)}
-                        className="text-rose-700 hover:text-rose-500 text-sm"
-                      >
-                        Restore
-                      </button>
-                    </td>
-                  </tr>
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            <div className="md:col-span-2">
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Start Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="start_date"
+                value={formData.start_date}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                name="end_date"
+                value={formData.end_date}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Venue
+              </label>
+              <select
+                name="venue_id"
+                value={formData.venue_id}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              >
+                <option value="">Select Venue</option>
+                {venues.map((v) => (
+                  <option key={v.venue_id} value={v.venue_id}>
+                    {v.name}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Organizer
+              </label>
+              <input
+                type="text"
+                name="organizer"
+                value={formData.organizer}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+                rows={3}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Image URL
+              </label>
+              <input
+                type="url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={handleChange}
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
+            <div className="md:col-span-2 flex gap-3 mt-2">
+              <button
+                type="submit"
+                className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+              >
+                {editingId ? "Save Changes" : "Add Exhibition"}
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition"
+              >
+                {editingId ? "Cancel Edit" : "Clear"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
+        <h2 className="text-xl font-serif text-neutral-800 mb-4">
+          {showDeleted
+            ? "Deleted Exhibitions"
+            : `All Exhibitions (${exhibitions.length})`}
+        </h2>
+
+        <table className="min-w-full bg-white border border-neutral-200 rounded-lg overflow-hidden">
+          <thead className="bg-rose-600 text-white border-b border-neutral-200">
+            <tr>
+              <th className="p-3 text-left text-sm font-medium">Title</th>
+              <th className="p-3 text-left text-sm font-medium">Dates</th>
+              <th className="p-3 text-left text-sm font-medium">Venue</th>
+              <th className="p-3 text-left text-sm font-medium">Organizer</th>
+              <th className="p-3 text-left text-sm font-medium">Status</th>
+              <th className="p-3 text-left text-sm font-medium">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {exhibitions.map((ex, i) => (
+              <tr
+                key={ex.exhibition_id}
+                className={`border-b border-neutral-200 ${
+                  i % 2 === 0 ? "bg-white" : "bg-neutral-50"
+                } hover:bg-neutral-100 transition-colors`}
+              >
+                <td className="p-3 text-sm">{ex.title}</td>
+                <td className="p-3 text-sm">
+                  {ex.start_date
+                    ? new Date(ex.start_date).toLocaleDateString()
+                    : "—"}
+                  {" – "}
+                  {ex.end_date
+                    ? new Date(ex.end_date).toLocaleDateString()
+                    : "—"}
+                </td>
+                <td className="p-3 text-sm">{ex.venue_name || "—"}</td>
+                <td className="p-3 text-sm">{ex.organizer || "—"}</td>
+                <td className="p-3 text-sm">
+                  {statusBadge(ex.status || "pending")}
+                </td>
+
+                <td className="p-3 flex gap-3 text-sm">
+                  {!showDeleted ? (
+                    <>
+                      <button
+                        onClick={() => handleEdit(ex)}
+                        className="text-neutral-700 hover:text-black transition"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(ex.exhibition_id)}
+                        className="text-red-600 hover:text-red-800 transition"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleRestore(ex.exhibition_id)}
+                      className="text-rose-700 hover:text-rose-500 transition"
+                    >
+                      Restore
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+
+            {exhibitions.length === 0 && (
+              <tr>
+                <td colSpan="6" className="text-center text-neutral-500 p-4">
+                  {showDeleted
+                    ? "No deleted exhibitions."
+                    : "No exhibitions found."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
