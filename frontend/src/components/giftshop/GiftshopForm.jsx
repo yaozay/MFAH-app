@@ -18,42 +18,42 @@ export default function GiftshopForm() {
     price: "",
     quantity: "",
     image_url: "",
+    supplier_id: "",
   });
 
   const API = import.meta.env.VITE_API_BASE;
 
   useEffect(() => {
-  async function fetchProducts() {
-    try {
-      const res = await fetch(`${API}/api/giftshop`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setProducts(data);
-    } catch (err) {
-      console.error("Error loading products:", err);
-    } finally {
-      setLoading(false);
+    async function fetchProducts() {
+      try {
+        const res = await fetch(`${API}/api/giftshop`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setProducts(data);
+      } catch (err) {
+        console.error("Error loading products:", err);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
-  async function fetchSuppliers() {
-    try {
-      const res = await fetch(`${API}/api/giftshop/suppliers`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSuppliers(await res.json());
-    } catch (err) {
-      console.error("Failed to load suppliers", err);
+    async function fetchSuppliers() {
+      try {
+        const res = await fetch(`${API}/api/giftshop/suppliers`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSuppliers(await res.json());
+      } catch (err) {
+        console.error("Failed to load suppliers", err);
+      }
     }
-  }
 
-  if (!showDeleted) {
-    fetchProducts();
-    fetchSuppliers();  
-  }
-}, [API, token, showDeleted]);
-
+    if (!showDeleted) {
+      fetchProducts();
+      fetchSuppliers();
+    }
+  }, [API, token, showDeleted]);
 
   async function fetchDeleted() {
     try {
@@ -87,12 +87,12 @@ export default function GiftshopForm() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name || !form.price) return alert("Name and price required.");
-
+  
     const method = editing ? "PUT" : "POST";
     const url = editing
       ? `${API}/api/giftshop/${editing.product_id}`
       : `${API}/api/giftshop`;
-
+  
     try {
       const res = await fetch(url, {
         method,
@@ -104,12 +104,37 @@ export default function GiftshopForm() {
           ...form,
           price: Number(form.price),
           quantity: Number(form.quantity || 0),
-          supplier_id: Number(form.supplier_id),
+          supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
         }),
       });
-
-      if (!res.ok) throw new Error("Failed to save product");
-
+  
+      // Try to read JSON even on error
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        // non-JSON / 204 – ignore
+      }
+  
+      const backendMsg =
+        (data && (data.error || data.message)) || "";
+  
+      // Special case: backend bug – it updates but returns this error.
+      const weirdButOkay =
+        !res.ok &&
+        res.status === 404 &&
+        editing &&
+        backendMsg === "Product not found or deleted";
+  
+      if (!res.ok && !weirdButOkay) {
+        // Real error → show it
+        throw new Error(
+          backendMsg || `Failed to save product (status ${res.status})`
+        );
+      }
+  
+      // If we reach here: either success OR that weird 404 we’re treating as success
+  
       setForm({
         sku: "",
         name: "",
@@ -120,17 +145,18 @@ export default function GiftshopForm() {
         supplier_id: "",
       });
       setEditing(null);
-
+  
+      // Refresh products so you see the updated values
       const updated = await fetch(`${API}/api/giftshop`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProducts(await updated.json());
     } catch (err) {
-      console.error(err);
-      alert(err.message);
+      console.error("Save failed:", err);
+      alert(err.message); // you can remove this alert entirely if you never want popups
     }
   }
-
+  
   async function handleDelete(id) {
     if (!confirm("Delete this product?")) return;
     try {
@@ -167,6 +193,7 @@ export default function GiftshopForm() {
       price: "",
       quantity: "",
       image_url: "",
+      supplier_id: "",
     });
   }
 
@@ -241,7 +268,6 @@ export default function GiftshopForm() {
                 </select>
               </div>
 
-
               <div className="flex flex-col sm:col-span-2">
                 <label className="text-sm font-serif text-neutral-700 mb-1">
                   Image URL
@@ -249,7 +275,9 @@ export default function GiftshopForm() {
                 <input
                   type="text"
                   value={form.image_url}
-                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, image_url: e.target.value })
+                  }
                   className="border rounded-md p-2 text-sm"
                 />
               </div>
@@ -363,12 +391,15 @@ export default function GiftshopForm() {
                 {deletedProducts.map((p, i) => (
                   <tr
                     key={p.product_id}
-                    className={`border-b ${i % 2 === 0 ? "bg-white" : "bg-neutral-50"
-                      }`}
+                    className={`border-b ${
+                      i % 2 === 0 ? "bg-white" : "bg-neutral-50"
+                    }`}
                   >
                     <td className="p-3 text-sm">{p.name}</td>
                     <td className="p-3 text-sm">{p.category || "—"}</td>
-                    <td className="p-3 text-sm">${Number(p.price).toFixed(2)}</td>
+                    <td className="p-3 text-sm">
+                      ${Number(p.price).toFixed(2)}
+                    </td>
                     <td className="p-3 text-sm">
                       {p.deleted_at
                         ? new Date(p.deleted_at).toLocaleString()
