@@ -8,6 +8,9 @@ export default function GiftshopForm() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+
+  const [suppliers, setSuppliers] = useState([]);
+
   const [form, setForm] = useState({
     sku: "",
     name: "",
@@ -20,22 +23,36 @@ export default function GiftshopForm() {
   const API = import.meta.env.VITE_API_BASE;
 
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const res = await fetch(`${API}/api/giftshop`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setProducts(data);
-      } catch (err) {
-        console.error("Error loading products:", err);
-      } finally {
-        setLoading(false);
-      }
+  async function fetchProducts() {
+    try {
+      const res = await fetch(`${API}/api/giftshop`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setProducts(data);
+    } catch (err) {
+      console.error("Error loading products:", err);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    if (!showDeleted) fetchProducts();
-  }, [API, token, showDeleted]);
+  async function fetchSuppliers() {
+    try {
+      const res = await fetch(`${API}/api/giftshop/suppliers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuppliers(await res.json());
+    } catch (err) {
+      console.error("Failed to load suppliers", err);
+    }
+  }
+
+  if (!showDeleted) {
+    fetchProducts();
+    fetchSuppliers();  
+  }
+}, [API, token, showDeleted]);
 
 
   async function fetchDeleted() {
@@ -87,6 +104,7 @@ export default function GiftshopForm() {
           ...form,
           price: Number(form.price),
           quantity: Number(form.quantity || 0),
+          supplier_id: Number(form.supplier_id),
         }),
       });
 
@@ -99,6 +117,7 @@ export default function GiftshopForm() {
         price: "",
         quantity: "",
         image_url: "",
+        supplier_id: "",
       });
       setEditing(null);
 
@@ -134,6 +153,7 @@ export default function GiftshopForm() {
       price: p.price || "",
       quantity: p.quantity || "",
       image_url: p.image_url || "",
+      supplier_id: p.supplier_id || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -201,6 +221,26 @@ export default function GiftshopForm() {
                   />
                 </div>
               ))}
+              <div className="flex flex-col">
+                <label className="text-sm font-serif text-neutral-700 mb-1">
+                  Supplier
+                </label>
+                <select
+                  value={form.supplier_id}
+                  onChange={(e) =>
+                    setForm({ ...form, supplier_id: e.target.value })
+                  }
+                  className="border rounded-md p-2 text-sm"
+                >
+                  <option value="">Select Supplier</option>
+                  {suppliers.map((s) => (
+                    <option key={s.supplier_id} value={s.supplier_id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
 
               <div className="flex flex-col sm:col-span-2">
                 <label className="text-sm font-serif text-neutral-700 mb-1">
