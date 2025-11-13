@@ -529,6 +529,51 @@ router.get("/supplier-giftshop-sales", async (req, res) => {
   }
 });
 
+// Collection Value Report 
+router.get("/collection-value", async (req, res) => {
+  const { from, to } = req.query;
+
+  try {
+    const params = [];
+    let dateSql = "";
+
+    if (from && to) {
+      dateSql = "AND a.acquisition_date >= ? AND a.acquisition_date < DATE_ADD(?, INTERVAL 1 DAY)";
+      params.push(from, to);
+    } else if (from) {
+      dateSql = "AND a.acquisition_date >= ?";
+      params.push(from);
+    } else if (to) {
+      dateSql = "AND a.acquisition_date < DATE_ADD(?, INTERVAL 1 DAY)";
+      params.push(to);
+    }
+
+    const sql = `
+      SELECT 
+        c.collection_id,
+        c.collection_name,
+        COUNT(a.artwork_id) AS total_artworks,
+        COALESCE(SUM(a.estimated_price), 0) AS total_collection_value
+      FROM Collections c
+      LEFT JOIN Collection_Artworks ca 
+        ON c.collection_id = ca.collection_id
+      LEFT JOIN Artworks a 
+        ON ca.artwork_id = a.artwork_id
+      WHERE 1=1
+      ${dateSql}
+      GROUP BY c.collection_id, c.collection_name
+      ORDER BY total_collection_value DESC;
+    `;
+
+    const [rows] = await pool.query(sql, params);
+    return res.json(rows);
+  } catch (err) {
+    console.error("GET /reports/collection-value error:", err);
+    res.status(500).json({ error: "Failed to fetch collection value report" });
+  }
+});
+
+
 
 export default router;
 
