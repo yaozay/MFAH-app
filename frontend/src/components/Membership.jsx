@@ -290,19 +290,19 @@ export default function Memberships() {
                       ))}
                     </ul>
 
-                    {!manage && (
-                      <button
-                        disabled={busy || (!!active)}
-                        onClick={() => handleChoosePlan(plan)}
-                        className={`w-full py-3 font-medium rounded-lg transition-all ${
-                          plan.is_featured
-                            ? "bg-neutral-800 text-white hover:bg-neutral-900"
-                            : "bg-white text-neutral-800 border-2 border-neutral-800 hover:bg-neutral-800 hover:text-white"
-                        } ${busy || active ? "opacity-60 cursor-not-allowed" : ""}`}
-                      >
-                        {active ? "Already Active" : user ? "Choose Plan" : "Login to Choose"}
-                      </button>
-                    )}
+                    {!manage && (!user || (user.role !== "admin" && user.role !== "employee")) && (
+  <button
+    disabled={busy || (!!active)}
+    onClick={() => handleChoosePlan(plan)}
+    className={`w-full py-3 font-medium rounded-lg transition-all ${
+      plan.is_featured
+        ? "bg-neutral-800 text-white hover:bg-neutral-900"
+        : "bg-white text-neutral-800 border-2 border-neutral-800 hover:bg-neutral-800 hover:text-white"
+    } ${busy || active ? "opacity-60 cursor-not-allowed" : ""}`}
+  >
+    {active ? "Already Active" : user ? "Choose Plan" : "Login to Choose"}
+  </button>
+)}
                   </div>
                 </div>
               );
