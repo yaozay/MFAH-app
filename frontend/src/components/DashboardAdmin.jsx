@@ -42,13 +42,22 @@ export default function DashboardAdmin() {
   const [loading, setLoading] = useState(false);
 
   // ---- Metrics ----
-  const now = new Date();
-  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
-  const [metrics, setMetrics] = useState({ total_visitors: 0, ticket_sales: 0, shop_sales: 0 });
+
+  const [metrics, setMetrics] = useState({
+    total_visitors: 0,
+    ticket_sales: 0,
+    shop_sales: 0,
+  });
+
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState(null);
+  
+  const todayISO = new Date().toISOString().slice(0, 10); 
+  const [startDate, setStartDate] = useState(todayISO);  
+  const [endDate, setEndDate] = useState(todayISO);      
 
+
+ 
 
   const [giftshopData, setGiftshopData] = useState([]); 
   const [giftshopLoading, setGiftshopLoading] = useState(false); 
@@ -58,19 +67,14 @@ export default function DashboardAdmin() {
   const [supplierLoading, setSupplierLoading] = useState(false); 
   const [supplierError, setSupplierError] = useState(null); 
 
+  const [applyDateTrigger, setApplyDateTrigger] = useState(0);
+
 
   const fmtInt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n ?? 0);
   const fmtCurrency = (n) =>
     new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(Number.isFinite(n) ? n : 0);
 
-  const firstDayISO = (yyyyMm) => `${yyyyMm}-01`;
-  const lastDayISO = (yyyyMm) => {
-    const [y, m] = yyyyMm.split("-").map((s) => parseInt(s, 10));
-    const d = new Date(y, m, 0);
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${d.getFullYear()}-${mm}-${dd}`;
-  };
+
 
   // ---- Fetch metrics ----
   useEffect(() => {
@@ -79,9 +83,7 @@ export default function DashboardAdmin() {
     (async () => {
       setMetricsLoading(true);
       try {
-        const start = firstDayISO(selectedMonth);
-        const end = lastDayISO(selectedMonth);
-        const res = await fetch(`${API_BASE}/api/reports/admin-metrics?start=${start}&end=${end}`, {
+        const res = await fetch(`${API_BASE}/api/reports/admin-metrics?start=${startDate}&end=${endDate}`, {
           credentials: "include",
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
@@ -103,7 +105,7 @@ export default function DashboardAdmin() {
     return () => {
       ignore = true;
     };
-  }, [selectedMonth, pane, token]);
+  }, [applyDateTrigger, pane, token]); 
 
   useEffect(() => {
     if (pane !== "dashboard") return; 
@@ -111,10 +113,9 @@ export default function DashboardAdmin() {
     (async () => {
       setGiftshopLoading(true); 
       try {
-        const start = firstDayISO(selectedMonth); 
-        const end = lastDayISO(selectedMonth); 
+     
         const res = await fetch(
-          `${API_BASE}/api/reports/member-giftshop-purchases?start=${start}&end=${end}`, 
+          `${API_BASE}/api/reports/member-giftshop-purchases?start=${startDate}&end=${endDate}`, 
           {
             credentials: "include",
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -132,18 +133,17 @@ export default function DashboardAdmin() {
     return () => {
       ignore = true; 
     };
-  }, [selectedMonth, pane, token]);
-
+  },[applyDateTrigger, pane, token]);
+  
   useEffect(() => {
     if (pane !== "dashboard") return; 
     let ignore = false; 
     (async () => {
       setSupplierLoading(true); 
       try {
-        const start = firstDayISO(selectedMonth); 
-        const end = lastDayISO(selectedMonth);    
+        
         const res = await fetch(
-          `${API_BASE}/api/reports/supplier-giftshop-sales?start=${start}&end=${end}`, 
+          `${API_BASE}/api/reports/supplier-giftshop-sales?start=${startDate}&end=${endDate}`, 
           {
             credentials: "include",
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -161,7 +161,11 @@ export default function DashboardAdmin() {
     return () => {
       ignore = true; 
     };
-  }, [selectedMonth, pane, token]);
+  }, [applyDateTrigger, pane, token]);
+
+   const applyDateRange = () => {
+    setApplyDateTrigger((n) => n + 1); 
+  };
 
 
   // ---- Employees ----
@@ -247,17 +251,44 @@ export default function DashboardAdmin() {
           {/* Performance Section */}
           <section className="space-y-4">
             <div className="flex items-end justify-between gap-3">
-              <h2 className="text-xl font-semibold text-neutral-800">Monthly Performance</h2>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-600">Month</label>
+            <h2 className="text-xl font-semibold text-neutral-800">Performance</h2>
+
+            <div className="flex items-center gap-3">
+
+              {/* Start Date */}
+              <div className="flex flex-col">
+                <label className="text-sm text-neutral-600">Start Date</label>
                 <input
-                  type="month"
-                  className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  type="date"
+                  className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
+
+              <span className="text-neutral-600 font-semibold pb-2">to</span>
+
+              {/* End Date */}
+              <div className="flex flex-col">
+                <label className="text-sm text-neutral-600">End Date</label>
+                <input
+                  type="date"
+                  className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+
+              {/* Apply Button */}
+              <button
+                onClick={applyDateRange}
+                className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-400 text-sm"
+              >
+                Apply
+              </button>
+
             </div>
+          </div>
 
             {metricsLoading ? (
               <div className="p-4 text-neutral-500">Loading metrics…</div>
@@ -280,7 +311,7 @@ export default function DashboardAdmin() {
               ) : giftshopError ? (
                 <div className="p-4 text-red-500">Failed to load report: {giftshopError}</div>
               ) : giftshopData.length === 0 ? (
-                <div className="p-4 text-neutral-500">No data available for this month.</div>
+                <div className="p-4 text-neutral-500">No data available for this date range.</div>
               ) : (
                 <table className="min-w-full text-sm text-neutral-800">
                   <thead className="bg-neutral-100">
@@ -316,7 +347,7 @@ export default function DashboardAdmin() {
               ) : supplierError ? (
                 <div className="p-4 text-red-500">Failed to load report: {supplierError}</div>
               ) : supplierData.length === 0 ? (
-                <div className="p-4 text-neutral-500">No supplier data for this month.</div>
+                <div className="p-4 text-neutral-500">No supplier data for this date range.</div>
               ) : (
                 <table className="min-w-full text-sm text-neutral-800">
                   <thead className="bg-neutral-100">
