@@ -40,7 +40,9 @@ router.post("/me/password", requireAuth, async (req, res) => {
   if (!current_password || !new_password)
     return res.status(400).json({ error: "Missing fields" });
   if (String(new_password).length < 8)
-    return res.status(400).json({ error: "New password must be at least 8 characters" });
+    return res
+      .status(400)
+      .json({ error: "New password must be at least 8 characters" });
 
   try {
     const [[row]] = await pool.query(
@@ -50,7 +52,10 @@ router.post("/me/password", requireAuth, async (req, res) => {
     if (!row) return res.status(404).json({ error: "User not found" });
 
     const ok = await bcrypt.compare(current_password, row.password);
-    if (!ok) return res.status(400).json({ error: "Current password is incorrect" });
+    if (!ok)
+      return res
+        .status(400)
+        .json({ error: "Current password is incorrect" });
 
     const hash = await bcrypt.hash(new_password, 10);
     await pool.query(
@@ -64,16 +69,18 @@ router.post("/me/password", requireAuth, async (req, res) => {
   }
 });
 
-//admin-------------------
-
-
 
 // Get all users
-router.get("/", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
-  const [rows] = await pool.query(
-    "SELECT user_id, first_name, last_name, email, role, is_active, created_at, updated_at FROM Users"
-  );
-  res.json(rows);
+router.get("/", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT user_id, first_name, last_name, email, role, is_active, created_at, updated_at FROM Users"
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
 });
 
 // Add a new user
@@ -81,18 +88,16 @@ router.post("/", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
   const { first_name, last_name, email, password, role } = req.body;
   if (!email || !password)
     return res.status(400).json({ error: "Missing email or password" });
+
   try {
     const hash = await bcrypt.hash(password, 10);
-    //capture insertId and return it to caller
     const [result] = await pool.query(
       "INSERT INTO Users (first_name, last_name, email, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())",
       [first_name, last_name, email, hash, role || "visitor"]
     );
-    //include user_id in response
     res.json({ success: true, user_id: result.insertId });
   } catch (err) {
     console.error(err);
-    // optional: duplicate email check
     if (err && err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Email already exists" });
     }
@@ -100,90 +105,126 @@ router.post("/", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
   }
 });
 
-// general update route for admins to edit user profile fields
-router.patch("/:id", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
-  const { id } = req.params;
-  const {
-    first_name,
-    last_name,
-    email,
-    role,
-    is_active, // optional; if provided, must be 0 or 1
-  } = req.body || {};
+// General update route for admins to edit user profile fields
+router.patch(
+  "/:id",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { id } = req.params;
+    const {
+      first_name,
+      last_name,
+      email,
+      role,
+      is_active, 
+    } = req.body || {};
 
-  // Build dynamic SET clause safely
-  const fields = [];
-  const vals = [];
+    const fields = [];
+    const vals = [];
 
-  if (first_name !== undefined) {
-    fields.push("first_name = ?");
-    vals.push(String(first_name).trim());
+    if (first_name !== undefined) {
+      fields.push("first_name = ?");
+      vals.push(String(first_name).trim());
+    }
+    if (last_name !== undefined) {
+      fields.push("last_name = ?");
+      vals.push(String(last_name).trim());
+    }
+    if (email !== undefined) {
+      fields.push("email = ?");
+      vals.push(String(email).trim());
+    }
+    if (role !== undefined) {
+      const allowed = new Set(["admin", "employee", "visitor"]);
+      if (!allowed.has(role))
+        return res.status(400).json({ error: "Invalid role" });
+      fields.push("role = ?");
+      vals.push(role);
+    }
+    if (is_active !== undefined) {
+      if (!(is_active === 0 || is_active === 1)) {
+        return res.status(400).json({ error: "is_active must be 0 or 1" });
+      }
+      fields.push("is_active = ?");
+      vals.push(is_active);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: "No updatable fields provided" });
+    }
+
+    fields.push("updated_at = NOW()");
+    const sql = `UPDATE Users SET ${fields.join(", ")} WHERE user_id = ?`;
+    vals.push(id);
+
+    try {
+      const [result] = await pool.query(sql, vals);
+      if (result.affectedRows === 0)
+        return res.status(404).json({ error: "User not found" });
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      if (err && err.code === "ER_DUP_ENTRY") {
+        return res.status(409).json({ error: "Email already exists" });
+      }
+      res.status(500).json({ error: "Failed to update user" });
+    }
   }
-  if (last_name !== undefined) {
-    fields.push("last_name = ?");
-    vals.push(String(last_name).trim());
-  }
-  if (email !== undefined) {
-    fields.push("email = ?");
-    vals.push(String(email).trim());
-  }
-  if (role !== undefined) {
-    // Simple server-side guard
-    const allowed = new Set(["admin", "employee", "visitor"]);
-    if (!allowed.has(role)) return res.status(400).json({ error: "Invalid role" });
-    fields.push("role = ?");
-    vals.push(role);
-  }
-  if (is_active !== undefined) {
-    if (!(is_active === 0 || is_active === 1)) {
+);
+
+// Toggle is_active (enable/disable)
+router.patch(
+  "/:id/active",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { id } = req.params;
+    const { is_active } = req.body || {};
+
+    if (is_active !== 0 && is_active !== 1) {
       return res.status(400).json({ error: "is_active must be 0 or 1" });
     }
-    fields.push("is_active = ?");
-    vals.push(is_active);
-  }
 
-  if (fields.length === 0) {
-    return res.status(400).json({ error: "No updatable fields provided" });
-  }
-
-  fields.push("updated_at = NOW()");
-  const sql = `UPDATE Users SET ${fields.join(", ")} WHERE user_id = ?`;
-  vals.push(id);
-
-  try {
-    const [result] = await pool.query(sql, vals);
-    if (result.affectedRows === 0) return res.status(404).json({ error: "User not found" });
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    if (err && err.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ error: "Email already exists" });
+    try {
+      const [result] = await pool.query(
+        "UPDATE Users SET is_active = ?, updated_at = NOW() WHERE user_id = ?",
+        [is_active, id]
+      );
+      if (result.affectedRows === 0)
+        return res.status(404).json({ error: "User not found" });
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to update user status" });
     }
-    res.status(500).json({ error: "Failed to update user" });
   }
-});
+);
 
-// New route to toggle is_active (enable/disable)
-router.patch("/:id/active", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
-  const { id } = req.params;
-  const { is_active } = req.body || {};
+// Hard delete a user
+router.delete(
+  "/:id",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { id } = req.params;
 
-  if (is_active !== 0 && is_active !== 1) {
-    return res.status(400).json({ error: "is_active must be 0 or 1" });
+    try {
+      const [result] = await pool.query(
+        "DELETE FROM Users WHERE user_id = ?",
+        [id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ success: true, message: "User deleted successfully" });
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
   }
-
-  try {
-    const [result] = await pool.query(
-      "UPDATE Users SET is_active = ?, updated_at = NOW() WHERE user_id = ?",
-      [is_active, id]
-    );
-    if (result.affectedRows === 0)
-      return res.status(404).json({ error: "User not found" });
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to update user status" });
-  }
-});
+);
 
 export default router;
