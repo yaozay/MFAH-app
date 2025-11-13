@@ -5,6 +5,26 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
+router.get("/public", async (_req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        e.exhibition_id, e.title, e.start_date, e.end_date,
+        e.venue_id, v.name AS venue_name,
+        e.organizer, e.description, e.image_url
+      FROM Exhibitions e
+      LEFT JOIN Venues v ON e.venue_id = v.venue_id
+      WHERE e.deleted_at IS NULL
+      ORDER BY e.start_date ASC;
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching exhibitions:", err);
+    res.status(500).json({ error: "Failed to fetch exhibitions" });
+  }
+});
+
 
 router.get("/recent", async (req, res) => {
   try {

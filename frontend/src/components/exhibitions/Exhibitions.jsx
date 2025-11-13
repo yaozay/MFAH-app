@@ -13,7 +13,8 @@ export default function ExhibitionsScrollView() {
   useEffect(() => {
     async function fetchExhibitions() {
       try {
-        const res = await fetch(`${API}/api/exhibitions`);
+        const res = await fetch(`${API}/api/exhibitions/public`)
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load exhibitions");
         setExhibitions(data);

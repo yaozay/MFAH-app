@@ -86,35 +86,26 @@ router.post(
   }
 );
 
-router.put(
-  "/:id",
-  requireAuth,
-  requireAnyRole(["admin", "employee"]),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { title, event_date, event_time, description, venue_id } = req.body;
+router.put("/:id", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { title, event_date, event_time, venue_id, description } = req.body;
 
-      if (!title || !event_date)
-        return res.status(400).json({ error: "Title and event_date are required." });
+  try {
 
-      const [result] = await pool.query(
-        `UPDATE Events
-         SET title = ?, event_date = ?, event_time = ?, description = ?, venue_id = ?
-         WHERE event_id = ? AND deleted_at IS NULL`,
-        [title, event_date, event_time || null, description || null, venue_id || null, id]
-      );
+    await pool.query(
+      `UPDATE Events 
+       SET title = ?, event_date = ?, event_time = ?, venue_id = ?, description = ?, approved = 0
+       WHERE event_id = ?`,
+      [title, event_date, event_time, venue_id, description, id]
+    );
 
-      if (result.affectedRows === 0)
-        return res.status(404).json({ error: "Event not found or already deleted" });
-
-      res.json({ message: "Event updated successfully" });
-    } catch (err) {
-      console.error("Error updating event:", err);
-      res.status(500).json({ error: "Failed to update event" });
-    }
+    res.json({ message: "Event updated and sent back to pending approval." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update event" });
   }
-);
+});
+
 
 router.delete(
   "/:id",

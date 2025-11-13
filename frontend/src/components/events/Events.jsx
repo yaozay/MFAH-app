@@ -25,7 +25,10 @@ export default function Events() {
       .then((res) => res.json())
       .then((data) => {
         const formatted = data.map((e) => {
-          const date = new Date(e.event_date);
+          const dateOnly = e.event_date.split("T")[0]; // "2025-11-09"
+          const [year, month, day] = dateOnly.split("-").map(Number);
+
+          const date = new Date(year, month - 1, day);
           const [hh, mm, ss] =
             (e.event_time || "00:00:00").split(":").map(Number);
 
