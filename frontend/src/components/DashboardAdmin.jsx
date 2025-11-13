@@ -931,39 +931,51 @@ function MetricCard({ title, value }) {
   );
 }
 
-// ------------------------------------------------------
-// Users Pane — unchanged
-// ------------------------------------------------------
 function UsersPane() {
   const API_BASE = import.meta.env.VITE_API_BASE;
   const token = localStorage.getItem("token");
 
   const [q, setQ] = useState("");
   const [role, setRole] = useState("");
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]);        // all users from backend
+  const [filtered, setFiltered] = useState([]);  // users after search/filter
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  // 🔹 Fetch ALL users once (no filters in URL)
   const fetchUsers = async () => {
     setLoading(true);
     setErr("");
     try {
-      const p = new URLSearchParams();
-      if (q) p.set("q", q);
-      if (role) p.set("role", role);
-
-      const res = await fetch(`${API_BASE}/api/users?${p.toString()}`, {
+      const res = await fetch(`${API_BASE}/api/users`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         credentials: "include",
       });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || `Failed to fetch users`);
+      // try to parse JSON only if it's actually JSON
+      let json;
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        json = await res.json();
+      } else {
+        // non-JSON – treat as generic error if not ok
+        if (!res.ok) {
+          throw new Error(`Failed to fetch users (status ${res.status})`);
+        }
+        json = [];
+      }
 
-      setUsers(Array.isArray(json) ? json : json.rows || []);
+      if (!res.ok) {
+        throw new Error(json?.error || `Failed to fetch users`);
+      }
+
+      const rows = Array.isArray(json) ? json : json.rows || [];
+      setUsers(rows);
+      setFiltered(rows); // initially show all
     } catch (e) {
       setErr(String(e.message || e));
       setUsers([]);
+      setFiltered([]);
     } finally {
       setLoading(false);
     }
@@ -971,15 +983,40 @@ function UsersPane() {
 
   useEffect(() => {
     fetchUsers();
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 🔹 Apply search + role filter on the frontend
+  const applyFilters = () => {
+    const needle = q.trim().toLowerCase();
+    const selectedRole = role.trim().toLowerCase();
+
+    let rows = [...users];
+
+    if (needle) {
+      rows = rows.filter((u) => {
+        const name = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
+        const email = (u.email || "").toLowerCase();
+        return name.includes(needle) || email.includes(needle);
+      });
+    }
+
+    if (selectedRole) {
+      rows = rows.filter(
+        (u) => (u.role || "").toLowerCase() === selectedRole
+      );
+    }
+
+    setFiltered(rows);
+  };
+
+  // 🔹 Create user (afterwards re-fetch everything)
   const createUser = async () => {
     const first_name = prompt("Enter first name:") || "";
     const last_name = prompt("Enter last name:") || "";
     const email = prompt("Enter email:") || "";
     const password = prompt("Enter password:") || "";
-    const role =
+    const roleInput =
       prompt("Enter role (admin, employee, visitor):", "visitor") || "visitor";
 
     if (!email || !password) return alert("Email and password are required.");
@@ -997,20 +1034,28 @@ function UsersPane() {
           last_name,
           email,
           password,
-          role,
+          role: roleInput,
         }),
       });
 
-      const json = await res.json();
+      let json;
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        json = await res.json();
+      } else {
+        json = {};
+      }
+
       if (!res.ok) throw new Error(json.error || "Create failed");
 
-      await fetchUsers();
+      await fetchUsers();   // refresh list
       alert("User created.");
     } catch (e) {
       alert("Error: " + e.message);
     }
   };
 
+  // 🔹 Delete user (update state so row disappears, handle non-JSON safely)
   const deleteUser = async (id, email) => {
     if (!confirm(`Delete user ${email}? This cannot be undone.`)) return;
 
@@ -1021,10 +1066,23 @@ function UsersPane() {
         credentials: "include",
       });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Delete failed");
+      let json = {};
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        try {
+          json = await res.json();
+        } catch {
+          json = {};
+        }
+      }
 
+      if (!res.ok) {
+        throw new Error(json.error || `Delete failed (status ${res.status})`);
+      }
+
+      // remove from local state
       setUsers((prev) => prev.filter((u) => u.user_id !== id));
+      setFiltered((prev) => prev.filter((u) => u.user_id !== id));
     } catch (e) {
       alert("Error deleting user: " + e.message);
     }
@@ -1056,7 +1114,7 @@ function UsersPane() {
           </select>
 
           <button
-            onClick={fetchUsers}
+            onClick={applyFilters}
             className="px-3 py-2 rounded-lg text-sm bg-neutral-200 hover:bg-neutral-300"
           >
             Apply
@@ -1076,7 +1134,7 @@ function UsersPane() {
       <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
         {loading ? (
           <div className="p-4 text-neutral-500">Loading users…</div>
-        ) : users.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="p-4 text-neutral-500">No users found.</div>
         ) : (
           <table className="min-w-full text-sm text-neutral-800">
@@ -1093,7 +1151,7 @@ function UsersPane() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {filtered.map((u) => (
                 <tr key={u.user_id} className="border-t border-neutral-200">
                   <td className="px-3 py-2">{u.user_id}</td>
                   <td className="px-3 py-2">{u.first_name}</td>
