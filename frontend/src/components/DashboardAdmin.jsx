@@ -81,9 +81,9 @@ export default function DashboardAdmin() {
     return `${d.getFullYear()}-${mm}-${dd}`;
   };
 
-  // ================================
-  // 🔥 ADDED: PENDING EVENTS PANEL
-  // ================================
+  // -----------------------------
+  // Pending Events (existing)
+  // -----------------------------
   const [pendingEvents, setPendingEvents] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingError, setPendingError] = useState("");
@@ -109,11 +109,6 @@ export default function DashboardAdmin() {
       setPendingLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (pane !== "dashboard") return;
-    loadPendingEvents();
-  }, [pane]);
 
   const approveEvent = async (id) => {
     try {
@@ -149,7 +144,76 @@ export default function DashboardAdmin() {
     }
   };
 
+  // -----------------------------
+  // Pending Exhibitions (NEW)
+  // -----------------------------
+  const [pendingExhibitions, setPendingExhibitions] = useState([]);
+  const [pendingExhLoading, setPendingExhLoading] = useState(false);
+  const [pendingExhError, setPendingExhError] = useState("");
+
+  const loadPendingExhibitions = async () => {
+    setPendingExhLoading(true);
+    setPendingExhError("");
+
+    try {
+      const res = await fetch(`${API_BASE}/api/exhibitions/pending`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to load exhibitions");
+
+      setPendingExhibitions(json);
+    } catch (err) {
+      setPendingExhError(String(err.message));
+      setPendingExhibitions([]);
+    } finally {
+      setPendingExhLoading(false);
+    }
+  };
+
+  const approveExhibition = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/exhibitions/${id}/approve`, {
+        method: "PATCH",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Approve failed");
+
+      loadPendingExhibitions();
+    } catch (e) {
+      alert("Error approving exhibition: " + e.message);
+    }
+  };
+
+  const rejectExhibition = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/exhibitions/${id}/reject`, {
+        method: "PATCH",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Reject failed");
+
+      loadPendingExhibitions();
+    } catch (e) {
+      alert("Error rejecting exhibition: " + e.message);
+    }
+  };
+
   // ---- Fetch metrics ----
+  useEffect(() => {
+    if (pane !== "dashboard") return;
+    loadPendingEvents();
+    loadPendingExhibitions();
+  }, [pane]);
+
   useEffect(() => {
     if (pane !== "dashboard") return;
     let ignore = false;
@@ -185,7 +249,6 @@ export default function DashboardAdmin() {
     };
   }, [selectedMonth, pane, token]);
 
-  // ---- additional existing effects unchanged ----
   useEffect(() => {
     if (pane !== "dashboard") return;
     let ignore = false;
@@ -244,7 +307,6 @@ export default function DashboardAdmin() {
     };
   }, [selectedMonth, pane, token]);
 
-  // ---- Employee query ----
   const query = useMemo(() => {
     const p = new URLSearchParams();
     if (applied.q) p.set("q", applied.q);
@@ -325,7 +387,10 @@ export default function DashboardAdmin() {
       });
     }
 
-    if (dep) rows = rows.filter((row) => String(row.department_id) === String(dep));
+    if (dep)
+      rows = rows.filter(
+        (row) => String(row.department_id) === String(dep)
+      );
     if (r) rows = rows.filter((row) => row.employee_role === r);
 
     return rows;
@@ -350,7 +415,9 @@ export default function DashboardAdmin() {
       setData((prev) => ({
         ...prev,
         rows: prev.rows.map((row) =>
-          row.user_id === userId ? { ...row, is_active: currentActive ? 0 : 1 } : row
+          row.user_id === userId
+            ? { ...row, is_active: currentActive ? 0 : 1 }
+            : row
         ),
       }));
     } catch (e) {
@@ -366,27 +433,31 @@ export default function DashboardAdmin() {
             Admin Dashboard
           </h1>
           <p className="text-sm text-neutral-600">
-            Welcome{user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""} — You have full control over
-            Artists, Artworks, Events, Employees, and Users.
+            Welcome
+            {user ? `, ${user.first_name || ""} ${user.last_name || ""}` : ""} — You
+            have full control over Artists, Artworks, Events, Exhibitions,
+            Employees, and Users.
           </p>
         </div>
 
         <div className="inline-flex bg-neutral-100 rounded-3xl p-1 shadow-inner">
           <button
             onClick={() => setPane("dashboard")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "dashboard"
-              ? "bg-white shadow text-neutral-900"
-              : "text-neutral-600 hover:text-neutral-800"
-              }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
+              pane === "dashboard"
+                ? "bg-white shadow text-neutral-900"
+                : "text-neutral-600 hover:text-neutral-800"
+            }`}
           >
             Dashboard
           </button>
           <button
             onClick={() => setPane("users")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "users"
-              ? "bg-white shadow text-neutral-900"
-              : "text-neutral-600 hover:text-neutral-800"
-              }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
+              pane === "users"
+                ? "bg-white shadow text-neutral-900"
+                : "text-neutral-600 hover:text-neutral-800"
+            }`}
           >
             Users
           </button>
@@ -394,11 +465,13 @@ export default function DashboardAdmin() {
       </div>
 
       {/* =======================================
-           🔥 INSERTED — PENDING EVENTS PANEL
+           🔥 EVENT APPROVAL QUEUE
       ======================================== */}
       {pane === "dashboard" && (
         <section className="space-y-4 mt-6">
-          <h2 className="text-xl font-semibold text-neutral-800">Event Approval Queue</h2>
+          <h2 className="text-xl font-semibold text-neutral-800">
+            Event Approval Queue
+          </h2>
 
           <div className="rounded-xl border border-neutral-300 bg-white shadow-sm overflow-hidden">
             {pendingLoading ? (
@@ -406,7 +479,9 @@ export default function DashboardAdmin() {
             ) : pendingError ? (
               <div className="p-4 text-red-600">{pendingError}</div>
             ) : pendingEvents.length === 0 ? (
-              <div className="p-4 text-neutral-500">No pending events to approve.</div>
+              <div className="p-4 text-neutral-500">
+                No pending events to approve.
+              </div>
             ) : (
               <table className="min-w-full text-sm text-neutral-800">
                 <thead className="bg-neutral-100">
@@ -414,12 +489,17 @@ export default function DashboardAdmin() {
                     <th className="px-3 py-2 text-left font-semibold">Title</th>
                     <th className="px-3 py-2 text-left font-semibold">Date</th>
                     <th className="px-3 py-2 text-left font-semibold">Venue</th>
-                    <th className="px-3 py-2 text-left font-semibold">Actions</th>
+                    <th className="px-3 py-2 text-left font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingEvents.map((ev) => (
-                    <tr key={ev.event_id} className="border-t border-neutral-200">
+                    <tr
+                      key={ev.event_id}
+                      className="border-t border-neutral-200"
+                    >
                       <td className="px-3 py-2">{ev.title}</td>
                       <td className="px-3 py-2">
                         {new Date(ev.event_date).toLocaleDateString()}
@@ -433,6 +513,7 @@ export default function DashboardAdmin() {
                           >
                             Approve
                           </button>
+                          {/* Uncomment if you want manual reject for events too */}
                           {/* <button
                             onClick={() => rejectEvent(ev.event_id)}
                             className="bg-red-500 hover:bg-red-400 text-white text-xs px-3 py-1 rounded-md"
@@ -450,7 +531,84 @@ export default function DashboardAdmin() {
         </section>
       )}
 
-      {/* THE REST OF YOUR ORIGINAL DASHBOARD (UNCHANGED) */}
+      {/* =======================================
+           🔥 EXHIBITION APPROVAL QUEUE (NEW)
+      ======================================== */}
+      {pane === "dashboard" && (
+        <section className="space-y-4 mt-6">
+          <h2 className="text-xl font-semibold text-neutral-800">
+            Exhibition Approval Queue
+          </h2>
+
+          <div className="rounded-xl border border-neutral-300 bg-white shadow-sm overflow-hidden">
+            {pendingExhLoading ? (
+              <div className="p-4 text-neutral-500">
+                Loading pending exhibitions…
+              </div>
+            ) : pendingExhError ? (
+              <div className="p-4 text-red-600">{pendingExhError}</div>
+            ) : pendingExhibitions.length === 0 ? (
+              <div className="p-4 text-neutral-500">
+                No pending exhibitions to approve.
+              </div>
+            ) : (
+              <table className="min-w-full text-sm text-neutral-800">
+                <thead className="bg-neutral-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold">Title</th>
+                    <th className="px-3 py-2 text-left font-semibold">Dates</th>
+                    <th className="px-3 py-2 text-left font-semibold">Venue</th>
+                    <th className="px-3 py-2 text-left font-semibold">
+                      Organizer
+                    </th>
+                    <th className="px-3 py-2 text-left font-semibold">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingExhibitions.map((ex) => (
+                    <tr
+                      key={ex.exhibition_id}
+                      className="border-t border-neutral-200"
+                    >
+                      <td className="px-3 py-2">{ex.title}</td>
+                      <td className="px-3 py-2">
+                        {ex.start_date} – {ex.end_date}
+                      </td>
+                      <td className="px-3 py-2">
+                        {ex.venue_name ||
+                          (ex.venue_id ? `Venue #${ex.venue_id}` : "—")}
+                      </td>
+                      <td className="px-3 py-2">
+                        {ex.organizer || "—"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approveExhibition(ex.exhibition_id)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1 rounded-md"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => rejectExhibition(ex.exhibition_id)}
+                            className="bg-red-500 hover:bg-red-400 text-white text-xs px-3 py-1 rounded-md"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* THE REST OF YOUR ORIGINAL DASHBOARD (metrics, reports, employees, users) */}
       {pane === "dashboard" ? (
         <>
           {/* Monthly Performance */}
@@ -534,7 +692,9 @@ export default function DashboardAdmin() {
                     {giftshopData.map((row, idx) => (
                       <tr key={idx} className="border-t border-neutral-200">
                         <td className="px-3 py-2">{row.membership_type}</td>
-                        <td className="px-3 py-2">{row.total_transactions}</td>
+                        <td className="px-3 py-2">
+                          {row.total_transactions}
+                        </td>
                         <td className="px-3 py-2">
                           {fmtCurrency(parseFloat(row.avg_purchase_value))}
                         </td>
@@ -556,7 +716,9 @@ export default function DashboardAdmin() {
             </h2>
             <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
               {supplierLoading ? (
-                <div className="p-4 text-neutral-500">Loading supplier sales…</div>
+                <div className="p-4 text-neutral-500">
+                  Loading supplier sales…
+                </div>
               ) : supplierError ? (
                 <div className="p-4 text-red-500">
                   Failed to load report: {supplierError}
@@ -671,8 +833,12 @@ export default function DashboardAdmin() {
                     <th className="px-3 py-2 text-left font-semibold">Last</th>
                     <th className="px-3 py-2 text-left font-semibold">Role</th>
                     <th className="px-3 py-2 text-left font-semibold">Email</th>
-                    <th className="px-3 py-2 text-left font-semibold">Status</th>
-                    <th className="px-3 py-2 text-left font-semibold">Actions</th>
+                    <th className="px-3 py-2 text-left font-semibold">
+                      Status
+                    </th>
+                    <th className="px-3 py-2 text-left font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -690,15 +856,18 @@ export default function DashboardAdmin() {
                       <td className="px-3 py-2">
                         {r.user_id ? (
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${r.is_active
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-neutral-200 text-neutral-700"
-                              }`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              r.is_active
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-neutral-200 text-neutral-700"
+                            }`}
                           >
                             {r.is_active ? "Active" : "Inactive"}
                           </span>
                         ) : (
-                          <span className="text-neutral-500 text-xs">No user</span>
+                          <span className="text-neutral-500 text-xs">
+                            No user
+                          </span>
                         )}
                       </td>
 
@@ -714,12 +883,17 @@ export default function DashboardAdmin() {
 
                           {r.user_id ? (
                             <button
-                              onClick={() => toggleActive(r.user_id, r.is_active)}
-                              className={`px-2 py-1 rounded-md text-xs ${r.is_active
-                                ? "bg-red-500 hover:bg-red-400 text-white"
-                                : "bg-emerald-600 hover:bg-emerald-500 text-white"
-                                }`}
-                              title={r.is_active ? "Disable login" : "Enable login"}
+                              onClick={() =>
+                                toggleActive(r.user_id, r.is_active)
+                              }
+                              className={`px-2 py-1 rounded-md text-xs ${
+                                r.is_active
+                                  ? "bg-red-500 hover:bg-red-400 text-white"
+                                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                              }`}
+                              title={
+                                r.is_active ? "Disable login" : "Enable login"
+                              }
                             >
                               {r.is_active ? "Disable" : "Enable"}
                             </button>
@@ -750,7 +924,9 @@ function MetricCard({ title, value }) {
   return (
     <div className="rounded-xl bg-white border border-neutral-200 shadow-sm p-5 flex flex-col">
       <div className="text-sm text-neutral-500">{title}</div>
-      <div className="text-2xl font-semibold mt-2 text-neutral-800">{value}</div>
+      <div className="text-2xl font-semibold mt-2 text-neutral-800">
+        {value}
+      </div>
     </div>
   );
 }
@@ -803,7 +979,8 @@ function UsersPane() {
     const last_name = prompt("Enter last name:") || "";
     const email = prompt("Enter email:") || "";
     const password = prompt("Enter password:") || "";
-    const role = prompt("Enter role (admin, employee, visitor):", "visitor") || "visitor";
+    const role =
+      prompt("Enter role (admin, employee, visitor):", "visitor") || "visitor";
 
     if (!email || !password) return alert("Email and password are required.");
 
@@ -856,7 +1033,9 @@ function UsersPane() {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-neutral-800">User Management</h2>
+        <h2 className="text-xl font-semibold text-neutral-800">
+          User Management
+        </h2>
         <div className="flex gap-2">
           <input
             className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"

@@ -5,6 +5,7 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
+// Public exhibitions – only approved & not deleted
 router.get("/public", async (_req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -15,18 +16,19 @@ router.get("/public", async (_req, res) => {
       FROM Exhibitions e
       LEFT JOIN Venues v ON e.venue_id = v.venue_id
       WHERE e.deleted_at IS NULL
+        AND e.status = 'approved'
       ORDER BY e.start_date ASC;
     `);
 
     res.json(rows);
   } catch (err) {
-    console.error("Error fetching exhibitions:", err);
+    console.error("Error fetching public exhibitions:", err);
     res.status(500).json({ error: "Failed to fetch exhibitions" });
   }
 });
 
-
-router.get("/recent", async (req, res) => {
+// Public "recent" exhibitions – also only approved & not deleted
+router.get("/recent", async (_req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
@@ -35,8 +37,12 @@ router.get("/recent", async (req, res) => {
         e.organizer, e.description, e.image_url
       FROM Exhibitions e
       LEFT JOIN Venues v ON e.venue_id = v.venue_id
-      WHERE e.end_date >= CURDATE() 
-         OR e.start_date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH)
+      WHERE e.deleted_at IS NULL
+        AND e.status = 'approved'
+        AND (
+          e.end_date >= CURDATE() 
+          OR e.start_date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH)
+        )
       ORDER BY e.start_date ASC;
     `);
 
@@ -47,13 +53,43 @@ router.get("/recent", async (req, res) => {
   }
 });
 
+// 🔹 Admin: pending exhibitions (approval queue)
+router.get(
+  "/pending",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (_req, res) => {
+    try {
+      const [rows] = await pool.query(`
+        SELECT 
+          e.exhibition_id, e.title, e.start_date, e.end_date,
+          e.venue_id, v.name AS venue_name,
+          e.organizer, e.description, e.image_url,
+          e.status
+        FROM Exhibitions e
+        LEFT JOIN Venues v ON e.venue_id = v.venue_id
+        WHERE e.deleted_at IS NULL
+          AND e.status = 'pending'
+        ORDER BY e.start_date ASC;
+      `);
+
+      res.json(rows);
+    } catch (err) {
+      console.error("Error fetching pending exhibitions:", err);
+      res.status(500).json({ error: "Failed to fetch pending exhibitions" });
+    }
+  }
+);
+
+// 🔹 Internal list (staff) – show all non-deleted with status
 router.get("/", requireAuth, async (_req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
         e.exhibition_id, e.title, e.start_date, e.end_date,
         e.venue_id, e.organizer, e.description, e.image_url,
-        v.name AS venue_name
+        v.name AS venue_name,
+        e.status
       FROM Exhibitions e
       LEFT JOIN Venues v ON e.venue_id = v.venue_id
       WHERE e.deleted_at IS NULL
@@ -67,108 +103,256 @@ router.get("/", requireAuth, async (_req, res) => {
   }
 });
 
-router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
-  const { title, start_date, end_date, venue_id, organizer, description, image_url } = req.body;
+// 🔹 Create exhibition – trigger will set status='pending' & create notification
+router.post(
+  "/",
+  requireAuth,
+  requireAnyRole(["admin", "employee"]),
+  async (req, res) => {
+    const {
+      title,
+      start_date,
+      end_date,
+      venue_id,
+      organizer,
+      description,
+      image_url,
+    } = req.body;
 
-  if (!title || !start_date)
-    return res.status(400).json({ error: "Title and start date are required." });
+    if (!title || !start_date) {
+      return res
+        .status(400)
+        .json({ error: "Title and start date are required." });
+    }
 
-  try {
-    const [result] = await pool.query(
-      `
-        INSERT INTO Exhibitions (title, start_date, end_date, venue_id, organizer, description, image_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
-      [title, start_date, end_date || null, venue_id || null, organizer || null, description || null, image_url || null]
-    );
+    try {
+      const [result] = await pool.query(
+        `
+          INSERT INTO Exhibitions (title, start_date, end_date, venue_id, organizer, description, image_url)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          title,
+          start_date,
+          end_date || null,
+          venue_id || null,
+          organizer || null,
+          description || null,
+          image_url || null,
+        ]
+      );
 
-    res.status(201).json({ message: "Exhibition added", id: result.insertId });
-  } catch (err) {
-    console.error("Error adding exhibition:", err);
-    res.status(500).json({ error: "Failed to add exhibition" });
+      res
+        .status(201)
+        .json({ message: "Exhibition added", id: result.insertId });
+    } catch (err) {
+      console.error("Error adding exhibition:", err);
+      res.status(500).json({ error: "Failed to add exhibition" });
+    }
   }
-});
+);
 
-router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
-  const { id } = req.params;
-  const { title, start_date, end_date, venue_id, organizer, description, image_url } = req.body;
+// 🔹 Update exhibition (does not change status)
+router.put(
+  "/:id",
+  requireAuth,
+  requireAnyRole(["admin", "employee"]),
+  async (req, res) => {
+    const { id } = req.params;
+    const {
+      title,
+      start_date,
+      end_date,
+      venue_id,
+      organizer,
+      description,
+      image_url,
+    } = req.body;
 
-  try {
-    const [result] = await pool.query(
-      `
-      UPDATE Exhibitions
-      SET title = ?, start_date = ?, end_date = ?, venue_id = ?, organizer = ?, description = ?, image_url = ?
-      WHERE exhibition_id = ? AND deleted_at IS NULL
-      `,
-      [title, start_date, end_date || null, venue_id || null, organizer || null, description || null, image_url || null, id]
-    );
+    try {
+      const [result] = await pool.query(
+        `
+        UPDATE Exhibitions
+        SET title = ?, start_date = ?, end_date = ?, venue_id = ?, organizer = ?, description = ?, image_url = ?
+        WHERE exhibition_id = ? AND deleted_at IS NULL
+        `,
+        [
+          title,
+          start_date,
+          end_date || null,
+          venue_id || null,
+          organizer || null,
+          description || null,
+          image_url || null,
+          id,
+        ]
+      );
 
-    if (result.affectedRows === 0)
-      return res.status(404).json({ error: "Exhibition not found or deleted" });
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ error: "Exhibition not found or deleted" });
+      }
 
-    res.json({ message: "Exhibition updated successfully" });
-  } catch (err) {
-    console.error("Error updating exhibition:", err);
-    res.status(500).json({ error: "Failed to update exhibition" });
+      res.json({ message: "Exhibition updated successfully" });
+    } catch (err) {
+      console.error("Error updating exhibition:", err);
+      res.status(500).json({ error: "Failed to update exhibition" });
+    }
   }
-});
+);
 
-router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT 
-        e.exhibition_id, e.title, e.start_date, e.end_date,
-        e.venue_id, v.name AS venue_name,
-        e.organizer, e.description, e.image_url, e.deleted_at
-      FROM Exhibitions e
-      LEFT JOIN Venues v ON e.venue_id = v.venue_id
-      WHERE e.deleted_at IS NOT NULL
-      ORDER BY e.deleted_at DESC;
-    `);
+// 🔹 Approve exhibition
+router.patch(
+  "/:id/approve",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { id } = req.params;
 
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching deleted exhibitions:", err);
-    res.status(500).json({ error: "Failed to fetch deleted exhibitions" });
+    try {
+      const [result] = await pool.query(
+        `
+        UPDATE Exhibitions
+        SET status = 'approved'
+        WHERE exhibition_id = ? AND deleted_at IS NULL
+        `,
+        [id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ error: "Exhibition not found or already deleted" });
+      }
+
+      // Optional: mark related notification as handled if you want
+      // await pool.query(
+      //   "UPDATE Notifications SET status = 'handled' WHERE type = 'exhibition_request' AND body LIKE ?",
+      //   [`%ID ${id}).%`]
+      // );
+
+      res.json({ message: "Exhibition approved successfully" });
+    } catch (err) {
+      console.error("Error approving exhibition:", err);
+      res.status(500).json({ error: "Failed to approve exhibition" });
+    }
   }
-});
+);
 
-router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
-  const { id } = req.params;
+// 🔹 Reject exhibition
+router.patch(
+  "/:id/reject",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { id } = req.params;
 
-  try {
-    const [result] = await pool.query(
-      "UPDATE Exhibitions SET deleted_at = NOW() WHERE exhibition_id = ? AND deleted_at IS NULL",
-      [id]
-    );
+    try {
+      const [result] = await pool.query(
+        `
+        UPDATE Exhibitions
+        SET status = 'rejected'
+        WHERE exhibition_id = ? AND deleted_at IS NULL
+        `,
+        [id]
+      );
 
-    if (result.affectedRows === 0)
-      return res.status(404).json({ error: "Exhibition not found or already deleted" });
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ error: "Exhibition not found or already deleted" });
+      }
 
-    res.json({ message: "Exhibition soft-deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting exhibition:", err);
-    res.status(500).json({ error: "Failed to delete exhibition" });
+      res.json({ message: "Exhibition rejected successfully" });
+    } catch (err) {
+      console.error("Error rejecting exhibition:", err);
+      res.status(500).json({ error: "Failed to reject exhibition" });
+    }
   }
-});
+);
 
-router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
-  const { id } = req.params;
+// 🔹 Deleted exhibitions (unchanged)
+router.get(
+  "/deleted",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (_req, res) => {
+    try {
+      const [rows] = await pool.query(`
+        SELECT 
+          e.exhibition_id, e.title, e.start_date, e.end_date,
+          e.venue_id, v.name AS venue_name,
+          e.organizer, e.description, e.image_url, e.deleted_at,
+          e.status
+        FROM Exhibitions e
+        LEFT JOIN Venues v ON e.venue_id = v.venue_id
+        WHERE e.deleted_at IS NOT NULL
+        ORDER BY e.deleted_at DESC;
+      `);
 
-  try {
-    const [result] = await pool.query(
-      "UPDATE Exhibitions SET deleted_at = NULL WHERE exhibition_id = ? AND deleted_at IS NOT NULL",
-      [id]
-    );
-
-    if (result.affectedRows === 0)
-      return res.status(404).json({ error: "Exhibition not found or already active" });
-
-    res.json({ message: "Exhibition restored successfully" });
-  } catch (err) {
-    console.error("Error restoring exhibition:", err);
-    res.status(500).json({ error: "Failed to restore exhibition" });
+      res.json(rows);
+    } catch (err) {
+      console.error("Error fetching deleted exhibitions:", err);
+      res.status(500).json({ error: "Failed to fetch deleted exhibitions" });
+    }
   }
-});
+);
+
+// 🔹 Soft delete (unchanged)
+router.delete(
+  "/:id",
+  requireAuth,
+  requireAnyRole(["admin", "employee"]),
+  async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const [result] = await pool.query(
+        "UPDATE Exhibitions SET deleted_at = NOW() WHERE exhibition_id = ? AND deleted_at IS NULL",
+        [id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ error: "Exhibition not found or already deleted" });
+      }
+
+      res.json({ message: "Exhibition soft-deleted successfully" });
+    } catch (err) {
+      console.error("Error deleting exhibition:", err);
+      res.status(500).json({ error: "Failed to delete exhibition" });
+    }
+  }
+);
+
+// 🔹 Restore (unchanged)
+router.patch(
+  "/:id/restore",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const [result] = await pool.query(
+        "UPDATE Exhibitions SET deleted_at = NULL WHERE exhibition_id = ? AND deleted_at IS NOT NULL",
+        [id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ error: "Exhibition not found or already active" });
+      }
+
+      res.json({ message: "Exhibition restored successfully" });
+    } catch (err) {
+      console.error("Error restoring exhibition:", err);
+      res.status(500).json({ error: "Failed to restore exhibition" });
+    }
+  }
+);
 
 export default router;
