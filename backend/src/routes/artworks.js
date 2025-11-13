@@ -7,23 +7,40 @@ const router = Router();
 
 router.get("/", async (_req, res) => {
   try {
-    const [rows] = await pool.execute(
+    const [artworks] = await pool.execute(
       `SELECT 
-         aw.artwork_id,
-         aw.title,
-         aw.artist_id,
-         ar.full_name AS artist_name,
-         aw.year_created,
-         aw.art_type,
-         aw.acquisition_date,
-         aw.estimated_price,
-         aw.image_url
-       FROM Artworks aw
-       LEFT JOIN Artists ar ON aw.artist_id = ar.artist_id
-       WHERE aw.deleted_at IS NULL
-       ORDER BY aw.title`
+        aw.artwork_id,
+        aw.title,
+        aw.artist_id,
+        ar.full_name AS artist_name,
+        aw.year_created,
+        aw.art_type,
+        aw.acquisition_date,
+        aw.estimated_price,
+        aw.image_url,
+        c.collection_id,
+        c.collection_name
+      FROM Artworks aw
+      LEFT JOIN Artists ar ON aw.artist_id = ar.artist_id
+      LEFT JOIN Collection_Artworks ca ON aw.artwork_id = ca.artwork_id
+      LEFT JOIN Collections c ON ca.collection_id = c.collection_id
+      WHERE aw.deleted_at IS NULL
+      ORDER BY aw.title`
     );
-    res.json(rows);
+    const [artists] = await pool.execute(
+      `SELECT artist_id, full_name FROM Artists WHERE deleted_at IS NULL`
+    );
+
+    const [collections] = await pool.execute(
+      `SELECT collection_id, collection_name FROM Collections`
+    );
+
+    res.json({
+      artworks,         
+      artists,          
+      collections        
+    });
+
   } catch (err) {
     console.error("GET /artworks error:", err);
     res.status(500).json({ error: "Failed to fetch artworks" });
@@ -31,6 +48,7 @@ router.get("/", async (_req, res) => {
 });
 
 router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
+  const conn = await pool.getConnection();
   try {
     const {
       title,
@@ -40,21 +58,37 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       acquisition_date = null,
       estimated_price = null,
       image_url = null,
+      collection_id 
     } = req.body || {};
 
     if (!title) {
       return res.status(400).json({ error: "Title is required" });
     }
+    if (!collection_id)                
+      return res.status(400).json({ error: "Collection is required" });
 
-    const [result] = await pool.execute(
+    await conn.beginTransaction(); 
+
+    const [result] = await conn.execute(
       `INSERT INTO Artworks
         (title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url]
     );
 
+    const artworkId = result.insertId;
+
+    await conn.execute(                 
+      `INSERT INTO Collection_Artworks (collection_id, artwork_id)
+       VALUES (?, ?)`,
+      [collection_id, artworkId]
+    );
+
+    await conn.commit();  
+
     res.status(201).json({ message: "Artwork created", id: result.insertId });
   } catch (err) {
+    await conn.rollback();              
     console.error("POST /artworks error:", err);
 
     if (err.sqlState === "45000") {
@@ -62,10 +96,13 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
     }
 
     res.status(500).json({ error: "Failed to create artwork" });
+  }finally {
+    conn.release();                    
   }
 });
 
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
+  const conn = await pool.getConnection();
   try {
     const { id } = req.params;
     const {
@@ -76,21 +113,38 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
       acquisition_date = null,
       estimated_price = null,
       image_url = null,
+      collection_id 
     } = req.body || {};
 
     if (!title) return res.status(400).json({ error: "Title is required" });
+    
+    if (!collection_id)                 
+      return res.status(400).json({ error: "Collection is required" });
 
-    await pool.execute(
+    await conn.beginTransaction();
+
+    await conn.execute(
       `UPDATE Artworks
          SET title=?, artist_id=?, year_created=?, art_type=?, acquisition_date=?, estimated_price=?, image_url=?
        WHERE artwork_id=? AND deleted_at IS NULL`,
       [title, artist_id, year_created, art_type, acquisition_date, estimated_price, image_url, id]
     );
+    await conn.execute(
+      `INSERT INTO Collection_Artworks (artwork_id, collection_id)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE collection_id = VALUES(collection_id)`,
+      [id, collection_id]
+    );
+    
+     await conn.commit();  
 
     res.json({ message: "Artwork updated" });
   } catch (err) {
+    await conn.rollback();
     console.error("PUT /artworks/:id error:", err);
     res.status(500).json({ error: "Failed to update artwork" });
+  }finally {
+    conn.release();                    
   }
 });
 
@@ -107,7 +161,7 @@ router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async 
 
 router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
   try {
-    const [rows] = await pool.execute(
+    const [artworks] = await pool.execute(
       `SELECT 
          aw.artwork_id,
          aw.title,
@@ -122,7 +176,7 @@ router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res)
        WHERE aw.deleted_at IS NOT NULL
        ORDER BY aw.deleted_at DESC`
     );
-    res.json(rows);
+    res.json(artworks); 
   } catch (err) {
     console.error("GET /artworks/deleted error:", err);
     res.status(500).json({ error: "Failed to fetch deleted artworks" });

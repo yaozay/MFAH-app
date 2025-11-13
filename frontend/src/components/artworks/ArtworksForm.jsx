@@ -19,6 +19,7 @@ export default function ArtworksForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showDeleted, setShowDeleted] = useState(false);
+  const [collections, setCollections] = useState([]);
 
   const API = import.meta.env.VITE_API_BASE;
 
@@ -27,32 +28,47 @@ export default function ArtworksForm() {
   }, [showDeleted]);
 
   async function fetchAll() {
-    setError("");
-    setSuccess("");
-    try {
-      const token = localStorage.getItem("token");
-      const url = showDeleted
-        ? `${API}/api/artworks/deleted`
-        : `${API}/api/artworks`;
+  setError("");
+  setSuccess("");
 
-      const [artworksRes, artistsRes] = await Promise.all([
-        fetch(url, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/api/artists`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-      const artworksData = await artworksRes.json();
-      const artistsData = await artistsRes.json();
+  try {
+    const token = localStorage.getItem("token");
 
-      if (!artworksRes.ok) throw new Error(artworksData.error || "Failed to load artworks");
-      if (!artistsRes.ok) throw new Error(artistsData.error || "Failed to load artists");
+    // If showing deleted artworks
+    if (showDeleted) {
+      const res = await fetch(`${API}/api/artworks/deleted`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      setArtworks(artworksData);
-      setArtists(artistsData);
-    } catch (err) {
-      setError(err.message);
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to load deleted artworks");
+
+      setArtworks(data);       // data is an array
+      setArtists([]);          // no artists in deleted view
+      setCollections([]);      // no collections in deleted view
+      return;
     }
+
+    // If showing active artworks
+    const res = await fetch(`${API}/api/artworks`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || "Failed to load artworks");
+
+    setArtworks(data.artworks);
+    setArtists(data.artists);
+    setCollections(data.collections);
+
+  } catch (err) {
+    setError(err.message);
   }
+}
+
+
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -76,6 +92,7 @@ export default function ArtworksForm() {
       estimated_price:
         formData.estimated_price !== "" ? Number(formData.estimated_price) : null,
       image_url: formData.image_url || null,
+      collection_id: Number(formData.collection_id),
     };
 
     try {
@@ -112,6 +129,7 @@ export default function ArtworksForm() {
         : "",
       estimated_price: a.estimated_price ?? "",
       image_url: a.image_url || "",
+      collection_id: a.collection_id ?? "",
     });
   }
 
@@ -157,6 +175,7 @@ export default function ArtworksForm() {
       acquisition_date: "",
       estimated_price: "",
       image_url: "",
+      collection_id: "",
     });
   }
 
@@ -288,6 +307,26 @@ export default function ArtworksForm() {
                 className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
               />
             </div>
+            <div>
+              <label className="block text-sm font-serif text-neutral-700 mb-1">
+                Collection <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="collection_id"
+                value={formData.collection_id}
+                onChange={handleChange}
+                required
+                className="w-full p-2 border border-neutral-300 rounded-md focus:ring-1 focus:ring-neutral-600"
+              >
+                <option value="">Select Collection</option>
+                {collections.map((c) => (
+                  <option key={c.collection_id} value={c.collection_id}>
+                    {c.collection_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
 
             <div className="md:col-span-2">
               <label className="block text-sm font-serif text-neutral-700 mb-1">
