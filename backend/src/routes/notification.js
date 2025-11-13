@@ -5,21 +5,29 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
-router.get("/", requireAuth, requireAnyRole(["employee", "admin"]), async (_req, res) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT n.notification_id, n.message, n.created_at, n.is_read,
-             p.name AS product_name
-      FROM Notifications n
-      LEFT JOIN Shop_Products p ON n.product_id = p.product_id
-      ORDER BY n.created_at DESC;
-    `);
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching notifications:", err);
-    res.status(500).json({ error: "Failed to fetch notifications" });
+router.get(
+  "/",
+  requireAuth,
+  requireAnyRole(["employee", "admin"]),
+  async (_req, res) => {
+    try {
+      const [rows] = await pool.query(`
+        SELECT n.notification_id, n.message, n.created_at, n.is_read,
+               p.name AS product_name
+        FROM Notifications n
+        LEFT JOIN Shop_Products p ON n.product_id = p.product_id
+        WHERE n.type = 'low_stock'
+        ORDER BY n.created_at DESC;
+      `);
+
+      res.json(rows);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
   }
-});
+);
+
 
 router.patch("/:id/read", requireAuth, requireAnyRole(["employee", "admin"]), async (req, res) => {
   const notificationId = req.params.id;

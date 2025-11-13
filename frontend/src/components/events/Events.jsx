@@ -7,7 +7,6 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 const locales = { "en-US": enUS };
 const API = import.meta.env.VITE_API_BASE;
 
-
 const localizer = dateFnsLocalizer({
   format,
   parse,
@@ -21,25 +20,29 @@ export default function Events() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
-    fetch(`${API}/api/events`)
+
+    fetch(`${API}/api/events/public`)
       .then((res) => res.json())
       .then((data) => {
         const formatted = data.map((e) => {
-          const baseDate = new Date(e.event_date);
-          const [hh, mm, ss] = (e.event_time || "00:00:00").split(":").map(Number);
+          const date = new Date(e.event_date);
+          const [hh, mm, ss] =
+            (e.event_time || "00:00:00").split(":").map(Number);
 
           const start = new Date(
-            baseDate.getFullYear(),
-            baseDate.getMonth(),
-            baseDate.getDate(),
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate(),
             hh,
             mm,
             ss
           );
-          const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+
+          const end = new Date(start.getTime() + 180 * 180 * 1000);
 
           return {
-            id: e.id,
+            id: e.id || e.event_id,
             title: e.title,
             start,
             end,
@@ -47,6 +50,7 @@ export default function Events() {
             venue_name: e.venue_name || "",
           };
         });
+
         setEvents(formatted);
       })
       .catch((err) => console.error("Error fetching events:", err));
@@ -55,7 +59,9 @@ export default function Events() {
   return (
     <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl font-serif text-center mb-2 text-neutral-800">Events</h1>
+        <h1 className="text-4xl font-serif text-center mb-2 text-neutral-800">
+          Events
+        </h1>
         <div className="w-20 h-px bg-neutral-300 mx-auto mb-8"></div>
         <p className="text-lg text-neutral-600 text-center mb-8">
           Discover upcoming events and exhibitions at Houston MFA
@@ -80,6 +86,7 @@ export default function Events() {
             <h2 className="text-2xl font-bold text-neutral-900 mb-2">
               {selectedEvent.title}
             </h2>
+
             <p className="text-neutral-700 mb-2">
               <strong>Date:</strong>{" "}
               {selectedEvent.start.toLocaleDateString("en-US", {
@@ -88,6 +95,7 @@ export default function Events() {
                 year: "numeric",
               })}
             </p>
+
             <p className="text-neutral-700 mb-2">
               <strong>Time:</strong>{" "}
               {selectedEvent.start.toLocaleTimeString([], {
@@ -95,6 +103,11 @@ export default function Events() {
                 minute: "2-digit",
               })}
             </p>
+
+            <p className="text-neutral-700 mb-2">
+              <strong>Venue:</strong> {selectedEvent.venue_name || "—"}
+            </p>
+
             <p className="text-neutral-700">{selectedEvent.description}</p>
           </div>
         )}
