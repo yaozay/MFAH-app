@@ -202,29 +202,36 @@ export default function Memberships() {
       </div>
 
       {/* Admin toolbar */}
-      {admin && (
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="text-sm text-neutral-600">
-            Admin mode {manage ? "(on)" : "(off)"}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setManage((v) => !v)}
-              className="px-3 py-2 border border-neutral-800 rounded-lg text-neutral-800 bg-white hover:bg-neutral-800 hover:text-white"
-            >
-              {manage ? "Hide Manage" : "Manage Plans"}
-            </button>
-            {manage && (
-              <button
-                onClick={openCreate}
-                className="px-3 py-2 rounded-lg bg-neutral-800 text-white hover:bg-neutral-900"
-              >
-                + New Plan
-              </button>
-            )}
-          </div>
-        </div>
+     {admin && (
+  <div className="mb-6 flex items-center justify-between gap-3">
+
+    {/* Admin mode indicator */}
+    <div className="text-sm text-neutral-600">
+      Admin mode {manage ? "(on)" : "(off)"}
+    </div>
+
+    {/* Buttons */}
+    <div className="flex gap-2">
+      <button
+        onClick={() => setManage((v) => !v)}
+        className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+      >
+        {manage ? "Hide Manage" : "Manage Plans"}
+      </button>
+
+      {manage && (
+        <button
+          onClick={openCreate}
+          className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+        >
+          + New Plan
+        </button>
       )}
+    </div>
+
+  </div>
+)}
+
 
       {error && <div className="text-center text-red-600 mb-4">{error}</div>}
 

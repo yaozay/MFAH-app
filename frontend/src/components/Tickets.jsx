@@ -143,14 +143,29 @@ export default function Tickets() {
   <div className="min-h-screen bg-neutral-100 py-16 px-6">
     {/* Admin Mode Toggle */}
     {user?.role === "admin" && (
-      <div className="mb-6 flex" style={{ marginLeft: '12.5%' }}> 
-        {/* Align with ticket boxes (same left margin) */}
-        <button onClick={() => setManage(!manage)}>
-          {manage ? "Hide Manage" : "Manage Tickets"}
-        </button>
-        {manage && <button onClick={openCreate}>+ New Ticket</button>}
-      </div>
+  <div className="mb-6 flex gap-3" style={{ marginLeft: "12.5%" }}>
+    
+    {/* Toggle Manage */}
+    <button
+      onClick={() => setManage((prev) => !prev)}
+      className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+    >
+      {manage ? "Hide Manage" : "Manage Tickets"}
+    </button>
+
+    {/* New Ticket Button (only visible when manage === true) */}
+    {manage && (
+      <button
+        onClick={openCreate}
+        className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-500 transition"
+      >
+        + New Ticket
+      </button>
     )}
+
+  </div>
+)}
+
 
     {/* Tickets List */}
     <div className="flex flex-col items-center gap-6">
