@@ -10,11 +10,30 @@ const router = Router();
 router.get("/types", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT plan_id AS id, name, price, discount_amt, duration_months, people_included,
-              description, is_active, is_featured, display_order
-       FROM Membership_Types
-       WHERE is_active = 1
-       ORDER BY COALESCE(display_order, 9999), name`
+      `SELECT 
+         mt.plan_id AS id,
+         mt.name,
+         mt.price,
+         mt.discount_amt,
+         mt.duration_months,
+         mt.people_included,
+         mt.description,
+         mt.is_active,
+         mt.is_featured,
+         mt.display_order,
+         CASE 
+           WHEN mt.plan_id = (
+             SELECT plan_id 
+             FROM Membership_records 
+             GROUP BY plan_id 
+             ORDER BY COUNT(*) DESC 
+             LIMIT 1
+           ) THEN 1 
+           ELSE 0 
+         END AS is_top
+       FROM Membership_Types mt
+       WHERE mt.is_active = 1
+       ORDER BY COALESCE(mt.display_order, 9999), mt.name`
     );
     res.json(rows);
   } catch (e) {
@@ -22,6 +41,7 @@ router.get("/types", async (req, res) => {
     res.status(500).json({ message: "Failed to load membership types" });
   }
 });
+
 
 // visitor
 
