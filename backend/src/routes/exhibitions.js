@@ -5,7 +5,8 @@ import { requireAnyRole } from "../utils/authorize.js";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+
+router.get("/recent", async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
@@ -18,6 +19,7 @@ router.get("/", async (req, res) => {
          OR e.start_date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH)
       ORDER BY e.start_date ASC;
     `);
+
     res.json(rows);
   } catch (err) {
     console.error("Error fetching recent exhibitions:", err);
@@ -25,7 +27,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET all exhibitions
 router.get("/", requireAuth, async (_req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -38,6 +39,7 @@ router.get("/", requireAuth, async (_req, res) => {
       WHERE e.deleted_at IS NULL
       ORDER BY e.start_date ASC;
     `);
+
     res.json(rows);
   } catch (err) {
     console.error("Error fetching exhibitions:", err);
@@ -45,7 +47,6 @@ router.get("/", requireAuth, async (_req, res) => {
   }
 });
 
-// POST new exhibition
 router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { title, start_date, end_date, venue_id, organizer, description, image_url } = req.body;
 
@@ -58,7 +59,7 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
         INSERT INTO Exhibitions (title, start_date, end_date, venue_id, organizer, description, image_url)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-      [title, start_date, end_date, venue_id || null, organizer || null, description || null, image_url || null]
+      [title, start_date, end_date || null, venue_id || null, organizer || null, description || null, image_url || null]
     );
 
     res.status(201).json({ message: "Exhibition added", id: result.insertId });
@@ -68,7 +69,6 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
   }
 });
 
-// PUT update exhibition
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { id } = req.params;
   const { title, start_date, end_date, venue_id, organizer, description, image_url } = req.body;
@@ -93,8 +93,6 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
   }
 });
 
-
-// DELETE exhibition
 router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -107,6 +105,7 @@ router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res)
       WHERE e.deleted_at IS NOT NULL
       ORDER BY e.deleted_at DESC;
     `);
+
     res.json(rows);
   } catch (err) {
     console.error("Error fetching deleted exhibitions:", err);
@@ -116,6 +115,7 @@ router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res)
 
 router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { id } = req.params;
+
   try {
     const [result] = await pool.query(
       "UPDATE Exhibitions SET deleted_at = NOW() WHERE exhibition_id = ? AND deleted_at IS NULL",
@@ -134,6 +134,7 @@ router.delete("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async 
 
 router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req, res) => {
   const { id } = req.params;
+
   try {
     const [result] = await pool.query(
       "UPDATE Exhibitions SET deleted_at = NULL WHERE exhibition_id = ? AND deleted_at IS NOT NULL",
