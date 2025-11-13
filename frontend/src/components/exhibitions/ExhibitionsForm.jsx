@@ -79,12 +79,13 @@ export default function ExhibitionsForm() {
       if (!res.ok) throw new Error("Failed to restore exhibition");
 
       alert("Exhibition restored successfully!");
-      setShowDeleted(false);
+      await fetchDeleted();
     } catch (err) {
       console.error("Restore failed:", err);
       alert(err.message);
     }
   }
+
 
   async function handleSubmit(e) {
     e.preventDefault();

@@ -311,6 +311,8 @@ export default function EventsForm() {
               <th className="p-3 text-left text-sm font-medium">Date</th>
               <th className="p-3 text-left text-sm font-medium">Time</th>
               <th className="p-3 text-left text-sm font-medium">Venue</th>
+              <th className="p-3 text-left text-sm font-medium">Approved</th>
+
               <th className="p-3 text-left text-sm font-medium">Actions</th>
             </tr>
           </thead>
@@ -331,8 +333,19 @@ export default function EventsForm() {
                 <td className="p-3 text-sm">
                   {ev.event_time || "—"}
                 </td>
+
                 <td className="p-3 text-sm">{ev.venue_name || "—"}</td>
+
+                <td className="p-3 text-sm">
+                  {ev.approved === 1 ? (
+                    <span className="text-emerald-700 font-medium">Approved</span>
+                  ) : (
+                    <span className="text-amber-600 font-medium">Pending</span>
+                  )}
+                </td>
+
                 <td className="p-3 flex gap-3 text-sm">
+
                   {!showDeleted ? (
                     <>
                       <button

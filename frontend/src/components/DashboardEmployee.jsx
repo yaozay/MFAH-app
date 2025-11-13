@@ -6,6 +6,7 @@ export default function DashboardEmployee() {
   const { user, token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const API = import.meta.env.VITE_API_BASE;
 
   async function fetchNotifications() {

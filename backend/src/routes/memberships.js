@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { pool } from "../db.js"; 
+import { pool } from "../db.js";
 import { requireAuth } from "../utils/requireAuth.js";
 import { requireAnyRole } from "../utils/authorize.js";
 
@@ -146,7 +146,7 @@ router.post("/types", requireAuth, requireAnyRole(["admin"]), async (req, res) =
          description, is_active, is_featured, display_order, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))`,
       [name, price, discount_amt, duration_months, people_included,
-       description, is_active, is_featured, display_order]
+        description, is_active, is_featured, display_order]
     );
     res.status(201).json({ plan_id: r.insertId });
   } catch (e) {
@@ -157,51 +157,51 @@ router.post("/types", requireAuth, requireAnyRole(["admin"]), async (req, res) =
 
 // PUT (edit)
 router.put(
-    "/types/:planId",
-    requireAuth,
-    requireAnyRole(["admin"]),   
-    async (req, res) => {
-      const { planId } = req.params;
-      const fields = [
-        "name","price","discount_amt","duration_months","people_included",
-        "description","is_active","is_featured","display_order"
-      ];
-      const sets = [];
-      const values = [];
-      for (const f of fields) {
-        if (req.body[f] !== undefined) { sets.push(`${f} = ?`); values.push(req.body[f]); }
-      }
-      if (!sets.length) return res.status(400).json({ message: "No updates" });
-  
-      try {
-        const [r] = await pool.query(
-          `UPDATE Membership_Types SET ${sets.join(", ")}, updated_at = NOW(3)
+  "/types/:planId",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { planId } = req.params;
+    const fields = [
+      "name", "price", "discount_amt", "duration_months", "people_included",
+      "description", "is_active", "is_featured", "display_order"
+    ];
+    const sets = [];
+    const values = [];
+    for (const f of fields) {
+      if (req.body[f] !== undefined) { sets.push(`${f} = ?`); values.push(req.body[f]); }
+    }
+    if (!sets.length) return res.status(400).json({ message: "No updates" });
+
+    try {
+      const [r] = await pool.query(
+        `UPDATE Membership_Types SET ${sets.join(", ")}, updated_at = NOW(3)
            WHERE plan_id = ?`,
-          [...values, planId]
-        );
-        return res.status(200).json({ affected: r.affectedRows });
-      } catch (e) {
-        console.error("PUT /types/:planId", e);
-        return res.status(500).json({ message: "Update failed" });
-      }
+        [...values, planId]
+      );
+      return res.status(200).json({ affected: r.affectedRows });
+    } catch (e) {
+      console.error("PUT /types/:planId", e);
+      return res.status(500).json({ message: "Update failed" });
     }
-  );
-  
-  router.delete(
-    "/types/:planId",
-    requireAuth,
-    requireAnyRole(["admin"]),  
-    async (req, res) => {
-      const { planId } = req.params;
-      try {
-        await pool.query(`DELETE FROM Membership_Types WHERE plan_id = ?`, [planId]);
-        return res.status(200).json({ ok: true }); 
-      } catch (e) {
-        console.error("DELETE /types/:planId", e);
-        return res.status(500).json({ message: "Delete failed" });
-      }
+  }
+);
+
+router.delete(
+  "/types/:planId",
+  requireAuth,
+  requireAnyRole(["admin"]),
+  async (req, res) => {
+    const { planId } = req.params;
+    try {
+      await pool.query(`DELETE FROM Membership_Types WHERE plan_id = ?`, [planId]);
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      console.error("DELETE /types/:planId", e);
+      return res.status(500).json({ message: "Delete failed" });
     }
-  );
-  
+  }
+);
+
 
 export default router;
