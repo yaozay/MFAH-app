@@ -146,6 +146,21 @@ router.patch("/:id/restore", requireAuth, requireAnyRole(["admin"]), async (req,
   }
 });
 
+router.get("/suppliers", requireAuth, async (_req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT supplier_id, name 
+      FROM Suppliers 
+      ORDER BY name ASC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching suppliers:", err);
+    res.status(500).json({ error: "Failed to load suppliers" });
+  }
+});
+
+
 router.post("/purchase", requireAuth, async (req, res) => {
   const { visitor_id, items } = req.body || {};
   if (!Array.isArray(items) || items.length === 0)
@@ -230,18 +245,5 @@ router.post("/purchase", requireAuth, async (req, res) => {
     conn.release();
   }
 });
-
-router.get("/suppliers", requireAuth, async (_req, res) => {
-  try {
-    const [rows] = await pool.query(
-      "SELECT supplier_id, name FROM Suppliers ORDER BY name ASC"
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching suppliers:", err);
-    res.status(500).json({ error: "Failed to load suppliers" });
-  }
-});
-
 
 export default router;
