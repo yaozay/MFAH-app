@@ -443,30 +443,26 @@ export default function DashboardAdmin() {
         <div className="inline-flex bg-neutral-100 rounded-3xl p-1 shadow-inner">
           <button
             onClick={() => setPane("dashboard")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
-              pane === "dashboard"
-                ? "bg-white shadow text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-800"
-            }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "dashboard"
+              ? "bg-white shadow text-neutral-900"
+              : "text-neutral-600 hover:text-neutral-800"
+              }`}
           >
             Dashboard
           </button>
           <button
             onClick={() => setPane("users")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
-              pane === "users"
-                ? "bg-white shadow text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-800"
-            }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "users"
+              ? "bg-white shadow text-neutral-900"
+              : "text-neutral-600 hover:text-neutral-800"
+              }`}
           >
             Users
           </button>
         </div>
       </div>
 
-      {/* =======================================
-           🔥 EVENT APPROVAL QUEUE
-      ======================================== */}
+
       {pane === "dashboard" && (
         <section className="space-y-4 mt-6">
           <h2 className="text-xl font-semibold text-neutral-800">
@@ -513,13 +509,13 @@ export default function DashboardAdmin() {
                           >
                             Approve
                           </button>
-                          {/* Uncomment if you want manual reject for events too */}
-                          {/* <button
+
+                          <button
                             onClick={() => rejectEvent(ev.event_id)}
                             className="bg-red-500 hover:bg-red-400 text-white text-xs px-3 py-1 rounded-md"
                           >
                             Reject
-                          </button> */}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -856,11 +852,10 @@ export default function DashboardAdmin() {
                       <td className="px-3 py-2">
                         {r.user_id ? (
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                              r.is_active
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-neutral-200 text-neutral-700"
-                            }`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${r.is_active
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-neutral-200 text-neutral-700"
+                              }`}
                           >
                             {r.is_active ? "Active" : "Inactive"}
                           </span>
@@ -886,11 +881,10 @@ export default function DashboardAdmin() {
                               onClick={() =>
                                 toggleActive(r.user_id, r.is_active)
                               }
-                              className={`px-2 py-1 rounded-md text-xs ${
-                                r.is_active
-                                  ? "bg-red-500 hover:bg-red-400 text-white"
-                                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
-                              }`}
+                              className={`px-2 py-1 rounded-md text-xs ${r.is_active
+                                ? "bg-red-500 hover:bg-red-400 text-white"
+                                : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                                }`}
                               title={
                                 r.is_active ? "Disable login" : "Enable login"
                               }
