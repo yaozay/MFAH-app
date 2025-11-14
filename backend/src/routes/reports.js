@@ -342,7 +342,7 @@ router.get("/exhibition-popularity", async (req, res) => {
         ? `AND ${salesDateConds.join(" AND ")}`
         : "";
 
-    const dataSql = `
+        const dataSql = `
       SELECT 
         e.exhibition_id,
         e.title,
@@ -350,7 +350,17 @@ router.get("/exhibition-popularity", async (req, res) => {
         e.end_date,
         DATEDIFF(e.end_date, e.start_date) + 1 AS run_days,
         COALESCE(s.total_tickets, 0) AS total_tickets,
-        COALESCE(s.total_revenue, 0.00) AS total_revenue
+        COALESCE(s.total_revenue, 0.00) AS total_revenue,
+        (
+          SELECT tt.name
+          FROM Ticket_Sales ts
+          JOIN Ticket_Type tt
+            ON tt.ticket_type_id = ts.ticket_type_id
+          WHERE ts.visit_date BETWEEN e.start_date AND e.end_date
+          GROUP BY ts.ticket_type_id
+          ORDER BY SUM(ts.ticket_amount) DESC
+          LIMIT 1
+        ) AS top_ticket_type
       FROM Exhibitions e
       LEFT JOIN (
         SELECT 
@@ -373,6 +383,7 @@ router.get("/exhibition-popularity", async (req, res) => {
       dataSql,
       [...exhibitParams, ...salesParams, pageSz, offset]
     );
+
 
     if (format === "csv") {
       const header = [
