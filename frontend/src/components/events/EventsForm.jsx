@@ -325,11 +325,16 @@ export default function EventsForm() {
                   } hover:bg-neutral-100 transition-colors`}
               >
                 <td className="p-3 text-sm">{ev.title}</td>
+
                 <td className="p-3 text-sm">
                   {ev.event_date
-                    ? new Date(ev.event_date).toLocaleDateString()
+                    ? (() => {
+                      const [year, month, day] = ev.event_date.slice(0, 10).split("-");
+                      return `${month}/${day}/${year}`;
+                    })()
                     : "—"}
                 </td>
+
                 <td className="p-3 text-sm">
                   {ev.event_time || "—"}
                 </td>
@@ -345,8 +350,8 @@ export default function EventsForm() {
                     <span className="text-amber-600 font-medium">Pending</span>
                   )}
                 </td>
-                <td className="p-3 flex gap-3 text-sm">
 
+                <td className="p-3 flex gap-3 text-sm">
                   {!showDeleted ? (
                     <>
                       <button
@@ -377,13 +382,12 @@ export default function EventsForm() {
             {events.length === 0 && (
               <tr>
                 <td colSpan="5" className="text-center text-neutral-500 p-4">
-                  {showDeleted
-                    ? "No deleted events."
-                    : "No events found."}
+                  {showDeleted ? "No deleted events." : "No events found."}
                 </td>
               </tr>
             )}
           </tbody>
+
         </table>
       </div>
     </div>
