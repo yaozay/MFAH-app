@@ -425,6 +425,17 @@ export default function DashboardAdmin() {
     }
   };
 
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+
+    // Handles: "2025-11-29T06:00:00.000Z" OR "2025-11-29"
+    const clean = dateStr.slice(0, 10);
+    const [yyyy, mm, dd] = clean.split("-");
+
+    return `${mm}/${dd}/${yyyy}`;
+  }
+
+
   return (
     <div className="p-6 space-y-6 bg-gradient-to-b from-white to-neutral-50 min-h-screen text-neutral-900">
       <div className="flex items-center justify-between">
@@ -461,6 +472,31 @@ export default function DashboardAdmin() {
           </button>
         </div>
       </div>
+
+      {pane === "dashboard" && (
+        <>
+          {(pendingEvents.length > 0 || pendingExhibitions.length > 0) && (
+            <div className="p-4 mb-4 rounded-lg border border-rose-300 bg-rose-50 text-black shadow-sm">
+              <h3 className="text-lg font-semibold mb-1">Event & Exhibition Alerts</h3>
+
+              {pendingEvents.length > 0 && (
+                <p className="text-sm">
+                  • <strong>{pendingEvents.length}</strong> event
+                  {pendingEvents.length !== 1 ? "s" : ""} pending approval
+                </p>
+              )}
+
+              {pendingExhibitions.length > 0 && (
+                <p className="text-sm">
+                  • <strong>{pendingExhibitions.length}</strong> exhibition
+                  {pendingExhibitions.length !== 1 ? "s" : ""} pending approval
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
 
 
       {pane === "dashboard" && (
@@ -528,8 +564,9 @@ export default function DashboardAdmin() {
       )}
 
       {/* =======================================
-           🔥 EXHIBITION APPROVAL QUEUE (NEW)
+           EXHIBITION APPROVAL QUEUE (NEW)
       ======================================== */}
+
       {pane === "dashboard" && (
         <section className="space-y-4 mt-6">
           <h2 className="text-xl font-semibold text-neutral-800">
@@ -569,26 +606,38 @@ export default function DashboardAdmin() {
                       className="border-t border-neutral-200"
                     >
                       <td className="px-3 py-2">{ex.title}</td>
+
+                      {/* FIXED DATE FORMATTING */}
                       <td className="px-3 py-2">
-                        {ex.start_date} – {ex.end_date}
+                        {ex.start_date ? formatDate(ex.start_date) : "—"}{" "}
+                        –{" "}
+                        {ex.end_date ? formatDate(ex.end_date) : "—"}
                       </td>
+
                       <td className="px-3 py-2">
                         {ex.venue_name ||
                           (ex.venue_id ? `Venue #${ex.venue_id}` : "—")}
                       </td>
+
                       <td className="px-3 py-2">
                         {ex.organizer || "—"}
                       </td>
+
                       <td className="px-3 py-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => approveExhibition(ex.exhibition_id)}
+                            onClick={() =>
+                              approveExhibition(ex.exhibition_id)
+                            }
                             className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1 rounded-md"
                           >
                             Approve
                           </button>
+
                           <button
-                            onClick={() => rejectExhibition(ex.exhibition_id)}
+                            onClick={() =>
+                              rejectExhibition(ex.exhibition_id)
+                            }
                             className="bg-red-500 hover:bg-red-400 text-white text-xs px-3 py-1 rounded-md"
                           >
                             Reject
@@ -603,6 +652,7 @@ export default function DashboardAdmin() {
           </div>
         </section>
       )}
+
 
       {/* THE REST OF YOUR ORIGINAL DASHBOARD (metrics, reports, employees, users) */}
       {pane === "dashboard" ? (
