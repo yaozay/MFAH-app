@@ -56,9 +56,21 @@ router.post("/login", async (req, res) => {
 
 
 router.get("/me", requireAuth, async (req, res) => {
-  // req.user is set by requireAuth
-  res.json({ user: req.user });
+  try {
+    const [rows] = await pool.query(
+      "SELECT user_id, first_name, last_name, email, role FROM Users WHERE user_id = ?",
+      [req.user.sub]
+    );
+
+    if (!rows.length) return res.status(404).json({ error: "User not found" });
+
+    res.json({ user: rows[0] });
+  } catch (err) {
+    console.error("Error in /me:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
+
 
 router.post("/logout", requireAuth, async (req, res) => {
   res.status(204).end();
