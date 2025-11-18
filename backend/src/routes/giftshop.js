@@ -71,10 +71,13 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { id } = req.params;
   const { sku, name, category, price, quantity, image_url, active = true, supplier_id } = req.body;
+
   const conn = await pool.getConnection();
+
   try {
     await conn.beginTransaction();
-    const [result] = await pool.query(
+
+    const [result] = await conn.query(
       `
         UPDATE Shop_Products
         SET sku = ?, name = ?, category = ?, price = ?, quantity = ?, image_url = ?, active = ?
@@ -83,14 +86,13 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
       [sku, name, category, price, quantity, image_url, active, id]
     );
 
-    if (result.affectedRows === 0)
+    if (result.affectedRows === 0) {
       await conn.rollback();
-    return res.status(404).json({ error: "Product not found or deleted" });
+      return res.status(404).json({ error: "Product not found or deleted" });
+    }
 
-    await conn.query(
-      `DELETE FROM Supplier_Products WHERE product_id = ?`,
-      [id]
-    );
+    await conn.query(`DELETE FROM Supplier_Products WHERE product_id = ?`, [id]);
+
     if (supplier_id) {
       await conn.query(
         `INSERT INTO Supplier_Products (supplier_id, product_id) VALUES (?, ?)`,
@@ -100,6 +102,7 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
 
     await conn.commit();
     res.json({ message: "Product updated" });
+
   } catch (err) {
     await conn.rollback();
     console.error("Error updating product:", err);
