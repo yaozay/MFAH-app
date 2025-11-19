@@ -10,15 +10,9 @@ export default function Checkout() {
 
   const API = import.meta.env.VITE_API_BASE;
 
-  const onlyTickets =
+  const hasOnlyTickets =
     cartItems.length === 1 &&
-    (
-      cartItems[0].ticket_type_id ||
-      cartItems[0].ticketTypeId ||
-      cartItems[0].category?.toLowerCase() === "ticket" ||
-      cartItems[0].type?.toLowerCase() === "ticket"
-    );
-
+    cartItems[0].type?.toLowerCase() === "ticket";
 
   const shippingOptions = {
     standard: { label: "Standard (5–7 days)", price: 4.99 },
@@ -27,7 +21,7 @@ export default function Checkout() {
   };
 
   const [shippingMethod, setShippingMethod] = useState("standard");
-  const shippingCost = onlyTickets ? 0 : shippingOptions[shippingMethod].price;
+  const shippingCost = hasOnlyTickets ? 0 : shippingOptions[shippingMethod].price;
   const finalTotal = subtotal + tax + shippingCost;
 
   const [address, setAddress] = useState({
@@ -50,18 +44,16 @@ export default function Checkout() {
   const [errors, setErrors] = useState({});
   const [processing, setProcessing] = useState(false);
 
-  const updateAddress = (e) => {
+  const updateAddress = (e) =>
     setAddress((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
-  const updateCard = (e) => {
+  const updateCard = (e) =>
     setCard((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
   const validate = () => {
     const err = {};
 
-    if (!onlyTickets) {
+    if (!hasOnlyTickets) {
       if (!address.fullName.trim()) err.fullName = "Required";
       if (!address.street.trim()) err.street = "Required";
       if (!address.city.trim()) err.city = "Required";
@@ -93,44 +85,50 @@ export default function Checkout() {
     setProcessing(true);
 
     try {
-      const giftshopItems = cartItems.filter(
-        (item) =>
-          !(
-            item.ticket_type_id ||
-            item.ticketTypeId ||
-            item.category?.toLowerCase() === "ticket" ||
-            item.type?.toLowerCase() === "ticket"
-          )
-      );
-
-      const items = giftshopItems.map((i) => {
-        const quantity =
-          i.quantity ??
-          i.qty ??
-          i.count ??
-          i.amount ??
-          1;
-
-        const productId = i.product_id ?? i.productId ?? i.id;
-
-        return {
-          product_id: productId,
-          quantity,
-          total_price: (i.price ?? 0) * quantity,
-        };
-      });
-
-
       const visitorId = user?.visitor_id ?? user?.visitorId ?? null;
 
-      if (items.some((it) => !it.product_id)) {
-        alert("One or more cart items are missing product IDs.");
-        setProcessing(false);
-        return;
+      // PROCESS MEMBERSHIP FIRST
+      const membershipItem = cartItems.find((i) => i.type === "membership");
+
+      if (membershipItem) {
+        const res = await fetch(`${API}/api/memberships/purchase`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            plan_id: membershipItem.membership_plan_id,
+          }),
+        });
+
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.message || "Membership purchase failed");
       }
 
+      // PROCESS GIFT SHOP ITEMS
+      const giftshopItems = cartItems.filter(
+        (item) => item.type !== "ticket" && item.type !== "membership"
+      );
 
-      if (items.length > 0) {
+      if (giftshopItems.length > 0) {
+        const items = giftshopItems.map((i) => {
+          const quantity = i.qty ?? 1;
+          const productId = i.product_id ?? i.productId ?? i.id;
+
+          return {
+            product_id: productId,
+            quantity,
+            total_price: (i.price ?? 0) * quantity,
+          };
+        });
+
+        if (items.some((it) => !it.product_id)) {
+          alert("One or more cart items are missing product IDs.");
+          setProcessing(false);
+          return;
+        }
+
         const res = await fetch(`${API}/api/giftshop/purchase`, {
           method: "POST",
           headers: {
@@ -147,13 +145,14 @@ export default function Checkout() {
         if (!res.ok) throw new Error(data.error || "Failed to record purchase");
       }
 
+      // STORE ORDER SUMMARY
       sessionStorage.setItem(
         "lastOrder",
         JSON.stringify({
-          shippingAddress: onlyTickets
+          shippingAddress: hasOnlyTickets
             ? "Digital Delivery (mobile ticket)"
             : address,
-          shippingMethod: onlyTickets
+          shippingMethod: hasOnlyTickets
             ? { label: "Mobile Ticket", price: 0 }
             : shippingOptions[shippingMethod],
           shippingCost,
@@ -171,7 +170,6 @@ export default function Checkout() {
     }
   };
 
-
   if (cartItems.length === 0)
     return (
       <div className="min-h-screen bg-neutral-100 p-6 flex flex-col items-center justify-center">
@@ -183,7 +181,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-neutral-100 p-6">
       <div className="max-w-3xl mx-auto space-y-10">
 
-        {!onlyTickets && (
+        {!hasOnlyTickets && (
           <>
             <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm space-y-4">
               <h2 className="text-xl font-serif mb-2">Shipping Address</h2>
@@ -228,7 +226,6 @@ export default function Checkout() {
           </>
         )}
 
-        {/* Payment Section */}
         <form
           onSubmit={handleSubmit}
           className="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm space-y-4"
@@ -309,7 +306,6 @@ export default function Checkout() {
           </button>
         </form>
 
-        {/* Order Summary */}
         <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm text-lg space-y-2">
           <h2 className="text-xl font-serif mb-4">Order Summary</h2>
 
