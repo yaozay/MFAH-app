@@ -271,6 +271,15 @@ export default function ProfileVisitor() {
           </form>
         </section>
       </div>
+      <div className="text-center mt-12">
+        <a
+          href="/purchase-history"
+          className="text-neutral-700 underline hover:text-neutral-900 text-lg font-serif"
+        >
+          View Purchase History →
+        </a>
+      </div>
+
     </div>
   );
 }

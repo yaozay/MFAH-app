@@ -28,6 +28,7 @@ import Checkout from "./components/Cart/Checkout.jsx";
 import OrderSuccess from "./components/Cart/OrderSuccess.jsx";
 
 import ScrollToTop from "./components/ScrollToTop";
+import PurchaseHistory from "./components/PurchaseHistory.jsx";
 
 export default function App() {
   return (
@@ -49,6 +50,8 @@ export default function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/purchase-history" element={<PurchaseHistory />} />
+
 
         {/* Dashboards */}
         <Route

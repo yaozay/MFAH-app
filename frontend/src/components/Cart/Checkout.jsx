@@ -11,8 +11,7 @@ export default function Checkout() {
   const API = import.meta.env.VITE_API_BASE;
 
   const hasOnlyTickets =
-    cartItems.length === 1 &&
-    cartItems[0].type?.toLowerCase() === "ticket";
+    cartItems.length === 1 && cartItems[0].type?.toLowerCase() === "ticket";
 
   const shippingOptions = {
     standard: { label: "Standard (5–7 days)", price: 4.99 },
@@ -47,8 +46,17 @@ export default function Checkout() {
   const updateAddress = (e) =>
     setAddress((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const updateCard = (e) =>
-    setCard((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const updateCard = (e) => {
+    let { name, value } = e.target;
+
+    if (name === "number") {
+      value = value.replace(/\D/g, "").slice(0, 16);
+      value = value.replace(/(.{4})/g, "$1 ").trim();
+    }
+
+    setCard((prev) => ({ ...prev, [name]: value }));
+  };
 
   const validate = () => {
     const err = {};
@@ -57,18 +65,14 @@ export default function Checkout() {
       if (!address.fullName.trim()) err.fullName = "Required";
       if (!address.street.trim()) err.street = "Required";
       if (!address.city.trim()) err.city = "Required";
-      if (!address.state.trim() || address.state.length < 2) err.state = "Required";
+      if (!address.state.trim()) err.state = "Required";
       if (!/^\d{5}$/.test(address.zip)) err.zip = "Invalid ZIP";
     }
 
     if (!card.name.trim()) err.cardName = "Required";
     if (!/^\d{13,19}$/.test(card.number.replace(/\s+/g, "")))
       err.cardNumber = "Invalid card number";
-    if (
-      !/^\d{2}$/.test(card.expMonth) ||
-      Number(card.expMonth) < 1 ||
-      Number(card.expMonth) > 12
-    )
+    if (!/^\d{2}$/.test(card.expMonth) || Number(card.expMonth) < 1 || Number(card.expMonth) > 12)
       err.expMonth = "Invalid month";
     if (!/^\d{2,4}$/.test(card.expYear)) err.expYear = "Invalid year";
     if (!/^\d{3,4}$/.test(card.cvv)) err.cvv = "Invalid CVV";
@@ -87,7 +91,7 @@ export default function Checkout() {
     try {
       const visitorId = user?.visitor_id ?? user?.visitorId ?? null;
 
-      // PROCESS MEMBERSHIP FIRST
+
       const membershipItem = cartItems.find((i) => i.type === "membership");
 
       if (membershipItem) {
@@ -106,7 +110,6 @@ export default function Checkout() {
         if (!res.ok) throw new Error(j.message || "Membership purchase failed");
       }
 
-      // PROCESS GIFT SHOP ITEMS
       const giftshopItems = cartItems.filter(
         (item) => item.type !== "ticket" && item.type !== "membership"
       );
@@ -115,7 +118,6 @@ export default function Checkout() {
         const items = giftshopItems.map((i) => {
           const quantity = i.qty ?? 1;
           const productId = i.product_id ?? i.productId ?? i.id;
-
           return {
             product_id: productId,
             quantity,
@@ -123,29 +125,42 @@ export default function Checkout() {
           };
         });
 
-        if (items.some((it) => !it.product_id)) {
-          alert("One or more cart items are missing product IDs.");
-          setProcessing(false);
-          return;
-        }
-
         const res = await fetch(`${API}/api/giftshop/purchase`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            visitor_id: visitorId,
-            items,
-          }),
+          body: JSON.stringify({ visitor_id: visitorId, items }),
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to record purchase");
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || "Failed to record purchase");
       }
 
-      // STORE ORDER SUMMARY
+
+      const ticketItems = cartItems.filter((i) => i.type === "ticket");
+
+      if (ticketItems.length > 0) {
+        const ticketsPayload = ticketItems.map((t) => ({
+          ticket_type_id: t.ticket_type_id ?? t.id,
+          quantity: t.qty,
+        }));
+
+        const res = await fetch(`${API}/api/tickets/purchase`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ tickets: ticketsPayload }),
+        });
+
+        const tj = await res.json();
+        if (!res.ok) throw new Error(tj.error || "Ticket purchase failed");
+      }
+
+      // Store order summary for success screen
       sessionStorage.setItem(
         "lastOrder",
         JSON.stringify({
@@ -271,6 +286,7 @@ export default function Checkout() {
                 <p className="text-rose-500 text-sm">{errors.expMonth}</p>
               )}
             </div>
+
             <div className="flex-1">
               <label className="block mb-1 text-sm font-serif">Exp. Year</label>
               <input
@@ -280,6 +296,7 @@ export default function Checkout() {
                 className="w-full border border-neutral-300 rounded px-3 py-2"
               />
             </div>
+
             <div className="w-24">
               <label className="block mb-1 text-sm font-serif">CVV</label>
               <input
@@ -306,11 +323,12 @@ export default function Checkout() {
           </button>
         </form>
 
+
         <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-sm text-lg space-y-2">
           <h2 className="text-xl font-serif mb-4">Order Summary</h2>
-
           <p>Subtotal: ${subtotal.toFixed(2)}</p>
           <p>Tax (8.25%): ${tax.toFixed(2)}</p>
+
           <p>
             Shipping:{" "}
             {shippingCost === 0 ? (
