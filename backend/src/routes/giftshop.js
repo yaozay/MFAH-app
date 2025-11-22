@@ -71,10 +71,13 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
 router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (req, res) => {
   const { id } = req.params;
   const { sku, name, category, price, quantity, image_url, active = true, supplier_id } = req.body;
+
   const conn = await pool.getConnection();
+
   try {
     await conn.beginTransaction();
-    const [result] = await pool.query(
+
+    const [result] = await conn.query(
       `
         UPDATE Shop_Products
         SET sku = ?, name = ?, category = ?, price = ?, quantity = ?, image_url = ?, active = ?
@@ -83,14 +86,13 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
       [sku, name, category, price, quantity, image_url, active, id]
     );
 
-    if (result.affectedRows === 0)
+    if (result.affectedRows === 0) {
       await conn.rollback();
-    return res.status(404).json({ error: "Product not found or deleted" });
+      return res.status(404).json({ error: "Product not found or deleted" });
+    }
 
-    await conn.query(
-      `DELETE FROM Supplier_Products WHERE product_id = ?`,
-      [id]
-    );
+    await conn.query(`DELETE FROM Supplier_Products WHERE product_id = ?`, [id]);
+
     if (supplier_id) {
       await conn.query(
         `INSERT INTO Supplier_Products (supplier_id, product_id) VALUES (?, ?)`,
@@ -100,6 +102,7 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
 
     await conn.commit();
     res.json({ message: "Product updated" });
+
   } catch (err) {
     await conn.rollback();
     console.error("Error updating product:", err);
@@ -162,23 +165,27 @@ router.get("/suppliers", requireAuth, async (_req, res) => {
 
 
 router.post("/purchase", requireAuth, async (req, res) => {
-  const { visitor_id, items } = req.body || {};
-  if (!Array.isArray(items) || items.length === 0)
-    return res.status(400).json({ error: "items are required" });
-  if (items.some((it) => !it.product_id))
-    return res.status(400).json({ error: "Each item must include product_id" });
+  const { tickets } = req.body || {};
+
+  if (!Array.isArray(tickets) || tickets.length === 0) {
+    return res.status(400).json({ error: "tickets array required" });
+  }
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    let resolvedVisitorId = visitor_id;
-    if (!resolvedVisitorId) {
+    // FIXED: Always pull user ID from JWT `sub`
+    const userId = req.user?.sub ?? null;
+
+    let visitorId = req.user?.visitor_id ?? null;
+
+    // Resolve visitor_id
+    if (!visitorId) {
       const [[userRow]] = await conn.query(
-        "SELECT email, first_name, last_name, role FROM Users WHERE user_id = ?",
-        [req.user.sub]
+        "SELECT email, first_name, last_name FROM Users WHERE user_id = ?",
+        [userId]
       );
-      if (!userRow) throw new Error("Could not resolve logged-in user");
 
       const [existing] = await conn.query(
         "SELECT visitor_id FROM Visitors WHERE email = ? LIMIT 1",
@@ -186,64 +193,46 @@ router.post("/purchase", requireAuth, async (req, res) => {
       );
 
       if (existing.length > 0) {
-        resolvedVisitorId = existing[0].visitor_id;
+        visitorId = existing[0].visitor_id;
       } else {
-        const [insert] = await conn.query(
+        const [insertV] = await conn.query(
           "INSERT INTO Visitors (first_name, last_name, email) VALUES (?, ?, ?)",
           [userRow.first_name || "", userRow.last_name || "", userRow.email]
         );
-        resolvedVisitorId = insert.insertId;
+        visitorId = insertV.insertId;
       }
     }
 
-    for (const item of items) {
-      const pid = item.product_id;
-      const qty = Number(item.quantity ?? 1);
+    // Insert tickets
+    for (const t of tickets) {
+      const ticketTypeId = t.ticket_type_id;
+      const qty = Number(t.quantity ?? t.amount ?? 1);
 
-      const [[prod]] = await conn.query(
-        "SELECT name, price, quantity FROM Shop_Products WHERE product_id = ? FOR UPDATE",
-        [pid]
-      );
-      if (!prod) throw new Error(`Product ${pid} not found`);
-
-
-      const currentStock = Number(prod.quantity);
-      const purchaseQty = Number(qty);
-      const newQty = currentStock - purchaseQty;
-      const lineTotal = Number(prod.price) * purchaseQty;
-
-      // console.log(
-      //   `🧾 Purchasing ${purchaseQty} of "${prod.name}": current stock = ${currentStock}, new stock = ${newQty}`
-      // );
-
-      if (newQty < 0) {
-        throw new Error(
-          `Not enough stock for "${prod.name}". Only ${currentStock} left in inventory.`
-        );
-      }
-
-      await conn.query(
-        "UPDATE Shop_Products SET quantity = ? WHERE product_id = ?",
-        [newQty, pid]
+      const [[ticketType]] = await conn.query(
+        "SELECT total_price FROM Ticket_Type WHERE ticket_type_id = ?",
+        [ticketTypeId]
       );
 
+      const totalPrice = Number(ticketType.total_price) * qty;
+
       await conn.query(
-        `INSERT INTO Gift_Shop_Transactions
-     (department_id, visitor_id, product_id, quantity, sale_date, total_price)
-     VALUES (5, ?, ?, ?, CURDATE(), ?)`,
-        [resolvedVisitorId, pid, purchaseQty, lineTotal]
+        `INSERT INTO Ticket_Sales
+          (visitor_id, user_id, ticket_amount, purchased_date, visit_date, purchase_price, ticket_type_id)
+         VALUES (?, ?, ?, CURDATE(), CURDATE(), ?, ?)`,
+        [visitorId, userId, qty, totalPrice, ticketTypeId]
       );
     }
 
     await conn.commit();
-    res.json({ message: "Purchase successful" });
+    res.json({ message: "Ticket purchase successful" });
+
   } catch (err) {
     await conn.rollback();
-    console.error("Error processing purchase:", err);
     res.status(400).json({ error: err.message });
   } finally {
     conn.release();
   }
 });
+
 
 export default router;

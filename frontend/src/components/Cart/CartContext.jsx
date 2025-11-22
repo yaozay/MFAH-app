@@ -13,42 +13,68 @@ export function CartProvider({ children }) {
     localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Add to cart (supports both tickets + giftshop items)
-  const addToCart = (item, type) => {
+  const addToCart = (item, overrideType = null) => {
+    const finalType = overrideType || item.type;
+
     setCartItems((prev) => {
-      const existing = prev.find(
-        (i) => i.id === item.id && i.type === type
-      );
+      const existing = prev.find((i) => {
+        if (finalType === "membership") {
+          return (
+            i.type === "membership" &&
+            i.membership_plan_id === item.membership_plan_id
+          );
+        }
+        return i.type === finalType && i.id === item.id;
+      });
 
       if (existing) {
+        if (finalType === "membership") {
+          return prev;
+        }
+
         return prev.map((i) =>
-          i.id === item.id && i.type === type
-            ? { ...i, qty: i.qty + (item.qty || 1) }
-            : i
+          i === existing ? { ...i, qty: i.qty + (item.qty || 1) } : i
         );
       }
 
-      return [...prev, { ...item, type, qty: item.qty || 1 }];
+      return [
+        ...prev,
+        {
+          ...item,
+          type: finalType,
+          qty: item.qty || 1,
+        },
+      ];
     });
   };
 
   const updateQty = (id, type, qty) => {
     setCartItems((prev) =>
-      prev.map((i) =>
-        i.id === id && i.type === type ? { ...i, qty } : i
-      )
+      prev.map((i) => {
+        if (type === "membership") return i;
+        return i.id === id && i.type === type ? { ...i, qty } : i;
+      })
     );
   };
 
-  const removeFromCart = (id, type) => {
+  const removeFromCart = (key, type) => {
     setCartItems((prev) =>
-      prev.filter((i) => !(i.id === id && i.type === type))
+      prev.filter((i) => {
+        if (type === "membership") {
+          return !(i.type === "membership" && i.membership_plan_id === key);
+        }
+        return !(i.type === type && i.id === key);
+      })
     );
   };
 
   const clearCart = () => setCartItems([]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.qty,
+    0
+  );
+
   const tax = subtotal * TAX_RATE;
   const total = subtotal + tax;
 

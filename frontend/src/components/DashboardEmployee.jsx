@@ -84,12 +84,12 @@ export default function DashboardEmployee() {
                     <p className="text-xs text-neutral-500 mt-1">
                       {new Date(note.created_at).toLocaleString()}
                     </p>
-                    <button
+                    {/* <button
                       onClick={() => markAsRead(note.notification_id)}
                       className="mt-2 text-xs text-rose-600 hover:text-rose-700 font-medium"
                     >
                       Mark as resolved
-                    </button>
+                    </button> */}
                   </div>
                 ))}
             </div>
