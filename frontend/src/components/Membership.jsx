@@ -9,7 +9,7 @@ function isAdminUser(user) {
   if (!user) return false;
   if (user.role && String(user.role).toLowerCase() === "admin") return true;
   if (Array.isArray(user.roles)) {
-    return user.roles.map(r => String(r).toLowerCase()).includes("admin");
+    return user.roles.map((r) => String(r).toLowerCase()).includes("admin");
   }
   return false;
 }
@@ -63,6 +63,7 @@ export default function Memberships() {
     }
   }
 
+
   async function loadActive() {
     if (!user) return setActive(null);
     try {
@@ -76,8 +77,14 @@ export default function Memberships() {
     }
   }
 
-  useEffect(() => { loadPlans(); }, []);
-  useEffect(() => { loadActive(); }, [user, headersAuth]);
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  useEffect(() => {
+    loadActive();
+  }, [user, headersAuth]);
+
 
   const handleAddMembershipToCart = (plan) => {
     if (!user) {
@@ -90,31 +97,27 @@ export default function Memberships() {
       return;
     }
 
-    if (cartItems.some(i => i.type === "membership")) {
+    if (cartItems.some((i) => i.type === "membership")) {
       alert("You already have a membership in your cart.");
       return;
     }
 
     const finalPrice = Number(plan.price) - Number(plan.discount_amt);
-    const plan_id = plan.plan_id ?? plan.id;
 
     addToCart({
       type: "membership",
-      membership_plan_id: plan_id,
+      membership_plan_id: plan.plan_id,
       name: plan.name,
       price: finalPrice,
       duration_months: plan.duration_months,
       people_included: plan.people_included,
-      quantity: 1
+      quantity: 1,
     });
-
-    // alert("Membership added to cart.");
-    // navigate("/cart");
   };
 
   const openCreate = () => {
     setEditing({
-      id: null,
+      plan_id: null,
       name: "",
       price: "",
       discount_amt: 0,
@@ -123,26 +126,34 @@ export default function Memberships() {
       description: "",
       is_active: 1,
       is_featured: 0,
-      display_order: (plans[plans.length - 1]?.display_order || plans.length) + 1,
+      display_order: (plans[plans.length - 1]?.display_order ?? plans.length) + 1,
     });
     setModalOpen(true);
   };
 
   const openEdit = (p) => {
-    setEditing({ ...p });
+    setEditing({
+      ...p,
+      plan_id: p.plan_id,
+    });
     setModalOpen(true);
   };
 
   const savePlan = async () => {
     if (!editing) return;
     setBusy(true);
+
     try {
       const body = { ...editing };
+      const planId = body.plan_id;
+
       if (!body.name || !body.price || !body.duration_months) {
-        alert("Name, price, and duration_months are required");
+        alert("Name, price, and duration months are required");
         return;
       }
-      if (body.id == null) {
+
+      if (!planId) {
+
         const r = await fetch(`${API_BASE}/api/memberships/types`, {
           method: "POST",
           headers: headersAuth,
@@ -151,7 +162,7 @@ export default function Memberships() {
         const j = await r.json().catch(() => ({}));
         if (!r.ok) return alert(j?.message || "Create failed");
       } else {
-        const r = await fetch(`${API_BASE}/api/memberships/types/${body.id}`, {
+        const r = await fetch(`${API_BASE}/api/memberships/types/${planId}`, {
           method: "PUT",
           headers: headersAuth,
           body: JSON.stringify(body),
@@ -159,6 +170,7 @@ export default function Memberships() {
         const j = await r.json().catch(() => ({}));
         if (!r.ok) return alert(j?.message || "Update failed");
       }
+
       await loadPlans();
       setModalOpen(false);
       setEditing(null);
@@ -167,14 +179,16 @@ export default function Memberships() {
     }
   };
 
-  const deletePlan = async (id) => {
+  const deletePlan = async (plan_id) => {
     if (!confirm("Delete this plan?")) return;
+
     setBusy(true);
     try {
-      const r = await fetch(`${API_BASE}/api/memberships/types/${id}`, {
+      const r = await fetch(`${API_BASE}/api/memberships/types/${plan_id}`, {
         method: "DELETE",
         headers: headersAuth,
       });
+
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         alert(j?.message || "Delete failed");
@@ -189,14 +203,16 @@ export default function Memberships() {
   return (
     <div className="min-h-screen bg-neutral-100 py-16 px-6">
       <div className="max-w-6xl mx-auto">
+        {/* -------------------------------------- HEADER -------------------------------------- */}
         <div className="text-center mb-6">
           <h1 className="text-4xl font-serif text-neutral-800 mb-4 tracking-wide">
             Membership
           </h1>
           <div className="w-20 h-px bg-neutral-300 mx-auto mb-6"></div>
           <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-            Join our community and enjoy exclusive benefits while supporting the arts
+            Join our community and enjoy exclusive benefits while supporting the arts.
           </p>
+
           {user && active && (
             <div className="mt-6 inline-block bg-white border border-neutral-200 rounded-lg px-4 py-3 text-sm text-neutral-700">
               Active: <strong>{active.name}</strong> (ends {active.end_date})
@@ -204,6 +220,7 @@ export default function Memberships() {
           )}
         </div>
 
+        {/* ----------------------------- ADMIN CONTROLS ----------------------------- */}
         {admin && (
           <div className="mb-6 flex items-center justify-between gap-3">
             <div className="text-sm text-neutral-600">
@@ -216,6 +233,7 @@ export default function Memberships() {
               >
                 {manage ? "Hide Manage" : "Manage Plans"}
               </button>
+
               {manage && (
                 <button
                   onClick={openCreate}
@@ -230,6 +248,7 @@ export default function Memberships() {
 
         {error && <div className="text-center text-red-600 mb-4">{error}</div>}
 
+        {/* -------------------------------------- PLANS -------------------------------------- */}
         {loading ? (
           <div className="text-center text-neutral-600">Loading…</div>
         ) : (
@@ -242,12 +261,13 @@ export default function Memberships() {
 
               return (
                 <div
-                  key={plan.plan_id ?? plan.id}
+                  key={plan.plan_id}
                   className={`bg-white rounded-lg shadow-md transition-all duration-300 ${isTopPlan
                     ? "ring-2 ring-neutral-800 transform md:scale-105"
                     : "hover:shadow-lg"
                     }`}
                 >
+                  {/* Featured banner */}
                   {isTopPlan && (
                     <div className="bg-neutral-800 text-white text-center py-2 rounded-t-lg">
                       <span className="text-sm font-medium">Most Popular</span>
@@ -255,10 +275,12 @@ export default function Memberships() {
                   )}
 
                   <div className="p-8">
+                    {/* Title + Admin edit/delete */}
                     <div className="flex items-start justify-between">
                       <h2 className="text-2xl font-serif text-neutral-800 mb-2">
                         {plan.name || "Untitled Plan"}
                       </h2>
+
                       {admin && manage && (
                         <div className="flex gap-2 -mt-1">
                           <button
@@ -268,7 +290,7 @@ export default function Memberships() {
                             Edit
                           </button>
                           <button
-                            onClick={() => deletePlan(plan.id)}
+                            onClick={() => deletePlan(plan.plan_id)}
                             className="px-2 py-1 text-xs border rounded text-red-700"
                           >
                             Delete
@@ -277,21 +299,24 @@ export default function Memberships() {
                       )}
                     </div>
 
+                    {/* Price */}
                     <div className="mb-6 pb-6 border-b border-neutral-200">
                       <span className="text-4xl font-bold text-neutral-900">
                         {priceFmt(finalPrice)}
                       </span>
                       <span className="text-neutral-600 ml-2">
-                        per {plan.duration_months ?? "?"} month
-                        {(plan.duration_months ?? 1) > 1 ? "s" : ""}
+                        per {plan.duration_months} month
+                        {plan.duration_months > 1 ? "s" : ""}
                       </span>
                     </div>
 
+                    {/* Feature list */}
                     <ul className="space-y-3 mb-8">
                       <li className="text-neutral-700 text-sm leading-relaxed">
-                        Includes up to {plan.people_included ?? 1}{" "}
-                        {(plan.people_included ?? 1) > 1 ? "people" : "person"}
+                        Includes up to {plan.people_included}{" "}
+                        {plan.people_included > 1 ? "people" : "person"}
                       </li>
+
                       {(plan.description?.split("\n").slice(0, 4) || []).map(
                         (line, idx) => (
                           <li
@@ -304,6 +329,7 @@ export default function Memberships() {
                       )}
                     </ul>
 
+                    {/* CTA */}
                     {!manage &&
                       (!user ||
                         (user.role !== "admin" && user.role !== "employee")) && (
@@ -335,7 +361,7 @@ export default function Memberships() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">
-                {editing?.id == null ? "Create Membership Plan" : "Edit Membership Plan"}
+                {editing?.plan_id == null ? "Create Membership Plan" : "Edit Membership Plan"}
               </h3>
               <button
                 onClick={() => {
@@ -348,6 +374,7 @@ export default function Memberships() {
               </button>
             </div>
 
+            {/* Form */}
             <div className="grid md:grid-cols-2 gap-3">
               <LabeledInput
                 label="Name"
@@ -386,15 +413,20 @@ export default function Memberships() {
                 value={editing?.display_order ?? 1}
                 onChange={(v) => setEditing((s) => ({ ...s, display_order: v }))}
               />
+
               <LabeledSelect
                 label="Active"
                 value={Number(editing?.is_active ?? 1)}
-                onChange={(v) => setEditing((s) => ({ ...s, is_active: Number(v) }))}
+                onChange={(v) =>
+                  setEditing((s) => ({ ...s, is_active: Number(v) }))
+                }
               />
               <LabeledSelect
                 label="Featured"
                 value={Number(editing?.is_featured ?? 0)}
-                onChange={(v) => setEditing((s) => ({ ...s, is_featured: Number(v) }))}
+                onChange={(v) =>
+                  setEditing((s) => ({ ...s, is_featured: Number(v) }))
+                }
               />
             </div>
 
@@ -421,6 +453,7 @@ export default function Memberships() {
               >
                 Cancel
               </button>
+
               <button
                 disabled={busy}
                 className="px-3 py-2 rounded-lg bg-neutral-800 text-white hover:bg-neutral-900 disabled:opacity-60"
@@ -437,7 +470,7 @@ export default function Memberships() {
 }
 
 function LabeledInput({ label, type = "text", step, value, onChange }) {
-  const safeValue = value === null || value === undefined ? "" : value;
+  const safeValue = value ?? "";
   return (
     <div>
       <label className="text-sm text-neutral-700">{label}</label>
@@ -453,7 +486,7 @@ function LabeledInput({ label, type = "text", step, value, onChange }) {
 }
 
 function LabeledSelect({ label, value, onChange }) {
-  const safeValue = value === null || value === undefined ? "" : value;
+  const safeValue = value ?? "";
   return (
     <div>
       <label className="text-sm text-neutral-700">{label}</label>

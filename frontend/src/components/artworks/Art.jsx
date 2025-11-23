@@ -13,8 +13,14 @@ export default function Art() {
       try {
         const res = await fetch(`${API}/api/artworks`);
         const data = await res.json();
+
         if (!res.ok) throw new Error(data.error || "Failed to load artworks");
-        setArtworks(data);
+        if (!Array.isArray(data.artworks)) {
+          setError("⚠️ API did not return an array of artworks.");
+          return;
+        }
+
+        setArtworks(data.artworks);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -47,18 +53,17 @@ export default function Art() {
   return (
     <div className="min-h-screen bg-neutral-100 py-12 px-6 lg:px-12">
       <header className="pt-12 pb-6 px-6 lg:px-12">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl font-serif text-neutral-800 mb-4 tracking-wide">
-              Art Gallery
-            </h1>
-            <div className="w-24 h-px bg-neutral-300 mx-auto my-4"></div>
-            <p className="text-neutral-600 text-lg">
-              {artworks.length} {artworks.length === 1 ? "artwork" : "artworks"} in collection
-            </p>
-          </div>
+        <div className="max-w-6xl mx-auto text-center">
+          <h1 className="text-4xl font-serif text-neutral-800 mb-4 tracking-wide">
+            Art Gallery
+          </h1>
+          <div className="w-24 h-px bg-neutral-300 mx-auto my-4"></div>
+          <p className="text-neutral-600 text-lg">
+            {artworks.length} {artworks.length === 1 ? "artwork" : "artworks"} in
+            collection
+          </p>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 flex justify-center gap-3">
             {["grid", "list"].map((mode) => (
               <button
                 key={mode}
@@ -72,21 +77,19 @@ export default function Art() {
               </button>
             ))}
           </div>
-
         </div>
       </header>
-
 
       <main className="max-w-7xl mx-auto px-6 py-10">
         {artworks.length === 0 ? (
           <div className="text-center py-24">
-            <div className="text-8xl mb-6">🎨</div>
+            <div className="text-8xl mb-6"></div>
             <p className="text-neutral-500 text-xl">
               No artworks available at the moment.
             </p>
           </div>
         ) : view === "grid" ? (
-          // --- GRID VIEW ---
+          // GRID VIEW
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {artworks.map((a) => (
               <div
@@ -102,7 +105,7 @@ export default function Art() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-rose-100 to-amber-100">
-                      <span className="text-5xl">🎨</span>
+                      <span className="text-5xl"></span>
                     </div>
                   )}
 
@@ -122,6 +125,7 @@ export default function Art() {
                       {a.artist_name}
                     </p>
                   )}
+
                   <div className="flex items-center justify-between mb-3">
                     {a.year_created && (
                       <span className="text-sm text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full">
@@ -134,6 +138,7 @@ export default function Art() {
                       </span>
                     )}
                   </div>
+
                   {a.acquisition_date && (
                     <p className="text-xs text-neutral-400 border-t border-neutral-100 pt-3">
                       Acquired{" "}
@@ -145,7 +150,7 @@ export default function Art() {
             ))}
           </div>
         ) : (
-          // --- LIST VIEW ---
+          // LIST VIEW
           <div className="space-y-4">
             {artworks.map((a) => (
               <div
@@ -166,6 +171,7 @@ export default function Art() {
                       </div>
                     )}
                   </div>
+
                   <div className="flex-1 p-6">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -178,6 +184,7 @@ export default function Art() {
                           </p>
                         )}
                       </div>
+
                       {a.estimated_price && (
                         <p className="text-emerald-600 font-bold text-lg">
                           ${Number(a.estimated_price).toLocaleString()}
