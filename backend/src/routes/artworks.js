@@ -36,9 +36,9 @@ router.get("/", async (_req, res) => {
     );
 
     res.json({
-      artworks,         
-      artists,          
-      collections        
+      artworks,
+      artists,
+      collections
     });
 
   } catch (err) {
@@ -58,16 +58,16 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
       acquisition_date = null,
       estimated_price = null,
       image_url = null,
-      collection_id 
+      collection_id
     } = req.body || {};
 
     if (!title) {
       return res.status(400).json({ error: "Title is required" });
     }
-    if (!collection_id)                
+    if (!collection_id)
       return res.status(400).json({ error: "Collection is required" });
 
-    await conn.beginTransaction(); 
+    await conn.beginTransaction();
 
     const [result] = await conn.execute(
       `INSERT INTO Artworks
@@ -78,17 +78,17 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
 
     const artworkId = result.insertId;
 
-    await conn.execute(                 
+    await conn.execute(
       `INSERT INTO Collection_Artworks (collection_id, artwork_id)
        VALUES (?, ?)`,
       [collection_id, artworkId]
     );
 
-    await conn.commit();  
+    await conn.commit();
 
     res.status(201).json({ message: "Artwork created", id: result.insertId });
   } catch (err) {
-    await conn.rollback();              
+    await conn.rollback();
     console.error("POST /artworks error:", err);
 
     if (err.sqlState === "45000") {
@@ -96,8 +96,8 @@ router.post("/", requireAuth, requireAnyRole(["admin", "employee"]), async (req,
     }
 
     res.status(500).json({ error: "Failed to create artwork" });
-  }finally {
-    conn.release();                    
+  } finally {
+    conn.release();
   }
 });
 
@@ -113,12 +113,12 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
       acquisition_date = null,
       estimated_price = null,
       image_url = null,
-      collection_id 
+      collection_id
     } = req.body || {};
 
     if (!title) return res.status(400).json({ error: "Title is required" });
-    
-    if (!collection_id)                 
+
+    if (!collection_id)
       return res.status(400).json({ error: "Collection is required" });
 
     await conn.beginTransaction();
@@ -135,16 +135,16 @@ router.put("/:id", requireAuth, requireAnyRole(["admin", "employee"]), async (re
        ON DUPLICATE KEY UPDATE collection_id = VALUES(collection_id)`,
       [id, collection_id]
     );
-    
-     await conn.commit();  
+
+    await conn.commit();
 
     res.json({ message: "Artwork updated" });
   } catch (err) {
     await conn.rollback();
     console.error("PUT /artworks/:id error:", err);
     res.status(500).json({ error: "Failed to update artwork" });
-  }finally {
-    conn.release();                    
+  } finally {
+    conn.release();
   }
 });
 
@@ -176,7 +176,7 @@ router.get("/deleted", requireAuth, requireAnyRole(["admin"]), async (_req, res)
        WHERE aw.deleted_at IS NOT NULL
        ORDER BY aw.deleted_at DESC`
     );
-    res.json(artworks); 
+    res.json(artworks);
   } catch (err) {
     console.error("GET /artworks/deleted error:", err);
     res.status(500).json({ error: "Failed to fetch deleted artworks" });

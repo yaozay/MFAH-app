@@ -28,7 +28,7 @@ export default function Navbar() {
 
   const NavItems = () => (
     <>
-      
+
       <NavLink to="/membership" className={linkStyle}>
         Membership
         <ActiveUnderline />
@@ -49,6 +49,12 @@ export default function Navbar() {
         Exhibitions
         <ActiveUnderline />
       </NavLink>
+      {(!user || user.role === "visitor") && (
+        <NavLink to="/art" className={linkStyle}>
+          Art
+          <ActiveUnderline />
+        </NavLink>
+      )}
 
       {/* Role-based links */}
       {user && (

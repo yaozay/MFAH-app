@@ -342,7 +342,7 @@ router.get("/exhibition-popularity", async (req, res) => {
         ? `AND ${salesDateConds.join(" AND ")}`
         : "";
 
-        const dataSql = `
+    const dataSql = `
       SELECT 
         e.exhibition_id,
         e.title,
@@ -458,10 +458,10 @@ async function countNewMemberships(pool, start, end) {
   const dateCol = has("start_date")
     ? "start_date"
     : has("purchased_date")
-    ? "purchased_date"
-    : has("created_at")
-    ? "created_at"
-    : null;
+      ? "purchased_date"
+      : has("created_at")
+        ? "created_at"
+        : null;
 
   if (!dateCol) return 0;
 
