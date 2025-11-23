@@ -9,10 +9,8 @@ export default function Reports() {
     typeof window !== "undefined" ? localStorage.getItem("token") : "";
 
   const [artworksPerArtist, setArtworksPerArtist] = useState([]);
-  const [collectionValue, setCollectionValue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [loadingCollection, setLoadingCollection] = useState(false);
 
   // ===== Artworks per Artist filters =====
   const [artistQ, setArtistQ] = useState("");
@@ -27,29 +25,15 @@ export default function Reports() {
   // Giftshop Report states
   const [giftshopStart, setGiftshopStart] = useState("");
   const [giftshopEnd, setGiftshopEnd] = useState("");
-  const [productList, setProductList] = useState([]);
+  const [productList, setProductList] = useState([]); // currently unused, kept in case you add product filter later
   const [giftshopProductId, setGiftshopProductId] = useState("");
 
   const [giftshopReport, setGiftshopReport] = useState(null);
   const [giftshopReportLoading, setGiftshopReportLoading] = useState(false);
   const [giftshopReportError, setGiftshopReportError] = useState("");
-  const [giftshopPage, setGiftshopPage] = useState(1); 
+  const [giftshopPage, setGiftshopPage] = useState(1);
 
-  // ===== Collection Value filters =====
-  const [colFrom, setColFrom] = useState("");
-  const [colTo, setColTo] = useState("");
-  const [colQ, setColQ] = useState("");
-  const [colSort, setColSort] = useState("total_collection_value"); // total_collection_value | total_artworks
-  const [colDir, setColDir] = useState("desc");
-  const [collectionApplied, setCollectionApplied] = useState({
-    q: "",
-    from: "",
-    to: "",
-    sort: "total_collection_value",
-    dir: "desc",
-  });
-
-  // ===== Exhibition Popularity filters (unchanged logic) =====
+  // ===== Exhibition Popularity filters =====
   const [q, setQ] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -156,36 +140,6 @@ export default function Reports() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ===== Collection Value fetch (now uses applied.from/to on Apply) =====
-  useEffect(() => {
-    const fetchCollectionValue = async () => {
-      setLoadingCollection(true);
-
-      const p = new URLSearchParams();
-      if (collectionApplied.from) p.set("from", collectionApplied.from);
-      if (collectionApplied.to) p.set("to", collectionApplied.to);
-
-      try {
-        const res = await fetch(
-          `${API}/api/reports/collection-value?${p.toString()}`,
-          {
-            headers: token
-              ? { Authorization: `Bearer ${token}` }
-              : undefined,
-          }
-        );
-        const json = await res.json();
-        setCollectionValue(json);
-      } catch (err) {
-        console.error("collection value fetch err", err);
-      } finally {
-        setLoadingCollection(false);
-      }
-    };
-
-    fetchCollectionValue();
-  }, [token, collectionApplied]);
-
   // ===== Artworks per Artist: apply filters + sort on client =====
   const filteredArtworksPerArtist = useMemo(() => {
     let rows = [...artworksPerArtist];
@@ -222,41 +176,6 @@ export default function Reports() {
 
     return rows;
   }, [artworksPerArtist, artistApplied]);
-
-  // ===== Collection Value: apply name filter + sort on client =====
-  const filteredCollectionValue = useMemo(() => {
-    let rows = [...collectionValue];
-
-    const term = collectionApplied.q.trim().toLowerCase();
-    if (term) {
-      rows = rows.filter((c) =>
-        (c.collection_name || "").toLowerCase().includes(term)
-      );
-    }
-
-    rows.sort((a, b) => {
-      let av;
-      let bv;
-
-      switch (collectionApplied.sort) {
-        case "total_artworks":
-          av = Number(a.total_artworks ?? 0);
-          bv = Number(b.total_artworks ?? 0);
-          break;
-        case "total_collection_value":
-        default:
-          av = Number(a.total_collection_value ?? 0);
-          bv = Number(b.total_collection_value ?? 0);
-          break;
-      }
-
-      if (av < bv) return collectionApplied.dir === "asc" ? -1 : 1;
-      if (av > bv) return collectionApplied.dir === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return rows;
-  }, [collectionValue, collectionApplied]);
 
   // ===== Exhibition Popularity query string =====
   const popQuery = useMemo(() => {
@@ -368,7 +287,7 @@ export default function Reports() {
       if (!res.ok) throw new Error(json.error || "Failed to load report");
 
       setGiftshopReport(json);
-      setGiftshopPage(1); 
+      setGiftshopPage(1); // reset to first page each time
     } catch (err) {
       setGiftshopReportError(err.message);
     } finally {
@@ -384,18 +303,6 @@ export default function Reports() {
       sort: artistSort,
       dir: artistDir,
     });
-  };
-
-  const onApplyCollection = (e) => {
-    e.preventDefault();
-    setCollectionApplied((prev) => ({
-      ...prev,
-      q: colQ,
-      from: colFrom,
-      to: colTo,
-      sort: colSort,
-      dir: colDir,
-    }));
   };
 
   const onApplyPopularity = (e) => {
@@ -430,24 +337,6 @@ export default function Reports() {
     );
   };
 
-  const downloadCollectionCsv = () => {
-    if (!filteredCollectionValue.length) {
-      alert("No data to export.");
-      return;
-    }
-
-    downloadCsvFile(
-      "collection_value.csv",
-      ["collection_id", "collection_name", "total_artworks", "total_value"],
-      filteredCollectionValue.map((r) => [
-        r.collection_id,
-        r.collection_name,
-        r.total_artworks,
-        Number(r.total_collection_value ?? 0).toFixed(2),
-      ])
-    );
-  };
-
   const downloadPopularityCsv = async () => {
     try {
       const res = await fetch(
@@ -477,10 +366,12 @@ export default function Reports() {
     }
   };
 
+  // We still compute totalPages for popularity if you later add pagination controls
   const totalPages = Math.max(
     1,
     Math.ceil(
-      (popData.total || 0) / (popData.pageSize || applied.pageSize || 10)
+      (popData.total || 0) /
+        (popData.pageSize || applied.pageSize || 10)
     )
   );
 
@@ -488,10 +379,10 @@ export default function Reports() {
   const GIFT_PAGE_SIZE = 10;
   const giftshopResults = giftshopReport?.results || [];
   const giftshopTotal = giftshopResults.length;
-  const giftshopTotalPages = Math.max(
-    1,
-    Math.ceil(giftshopTotal / GIFT_PAGE_SIZE) || 1
-  );
+  const giftshopTotalPages =
+    giftshopTotal > 0
+      ? Math.max(1, Math.ceil(giftshopTotal / GIFT_PAGE_SIZE))
+      : 1;
   const giftshopStartIndex = (giftshopPage - 1) * GIFT_PAGE_SIZE;
   const giftshopEndIndex = giftshopPage * GIFT_PAGE_SIZE;
   const giftshopPageRows = giftshopResults.slice(
@@ -787,7 +678,7 @@ export default function Reports() {
 
         {artworksPerArtist.length > 0 ? (
           <>
-            {/* Filters (same behavior as before) */}
+            {/* Filters */}
             <form
               className="flex flex-wrap gap-3 items-end p-6"
               onSubmit={onApplyArtists}
@@ -829,7 +720,7 @@ export default function Reports() {
               </button>
             </form>
 
-            {/* New table: Artist + Collection + Count + Value */}
+            {/* Table */}
             <div className="overflow-x-auto px-6 pb-6">
               <div className="max-h-80 overflow-y-auto border border-neutral-200 rounded-xl">
                 <table className="min-w-full text-sm">
@@ -890,121 +781,6 @@ export default function Reports() {
             No data available.
           </div>
         )}
-      </section>
-
-      {/* Collection Value Report */}
-      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
-        <div className="border-b border-neutral-200 px-6 py-4 bg-rose-600">
-          <h2 className="text-2xl font-serif text-white">
-            Collection Value Report
-          </h2>
-          <p className="text-sm text-rose-100">
-            Total value of each collection — filter by acquisition date
-          </p>
-        </div>
-
-        {/* Filters: date + search + sort + buttons */}
-        <form
-          className="flex flex-wrap gap-3 items-end p-6"
-          onSubmit={onApplyCollection}
-        >
-          <input
-            type="date"
-            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-            value={colFrom}
-            onChange={(e) => setColFrom(e.target.value)}
-          />
-          <input
-            type="date"
-            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-            value={colTo}
-            onChange={(e) => setColTo(e.target.value)}
-          />
-          <input
-            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-rose-600 focus:outline-none"
-            placeholder="Search collection name..."
-            value={colQ}
-            onChange={(e) => setColQ(e.target.value)}
-          />
-          <select
-            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-            value={colSort}
-            onChange={(e) => setColSort(e.target.value)}
-          >
-            <option value="total_collection_value">Total Value</option>
-            <option value="total_artworks">Artworks</option>
-          </select>
-          <select
-            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-            value={colDir}
-            onChange={(e) => setColDir(e.target.value)}
-          >
-            <option value="desc">Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-          <button
-            type="submit"
-            className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
-          >
-            Apply
-          </button>
-          <button
-            type="button"
-            className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
-            onClick={downloadCollectionCsv}
-          >
-            Download CSV
-          </button>
-        </form>
-
-        {/* Table */}
-        <div className="overflow-x-auto px-6 pb-6">
-          {loadingCollection ? (
-            <p className="p-6 text-neutral-500">Loading...</p>
-          ) : filteredCollectionValue.length ? (
-            <div className="max-h-80 overflow-y-auto border border-neutral-200 rounded-xl">
-              <table className="min-w-full text-sm">
-                <thead className="bg-neutral-100">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-black">
-                      Collection
-                    </th>
-                    <th className="px-6 py-3 text-left text-black">
-                      Artworks
-                    </th>
-                    <th className="px-6 py-3 text-left text-black">
-                      Total Value
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCollectionValue.map((c) => (
-                    <tr
-                      key={c.collection_id}
-                      className="border-t border-neutral-200"
-                    >
-                      <td className="px-6 py-3 font-semibold text-black">
-                        {c.collection_name}
-                      </td>
-                      <td className="px-6 py-3 text-neutral-600">
-                        {c.total_artworks}
-                      </td>
-                      <td className="px-6 py-3 text-rose-600 font-medium">
-                        {c.total_collection_value
-                          ? fmtCurrency(c.total_collection_value)
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="px-8 py-12 text-center text-neutral-500">
-              No data available.
-            </div>
-          )}
-        </div>
       </section>
 
       {/* Exhibition Popularity */}
