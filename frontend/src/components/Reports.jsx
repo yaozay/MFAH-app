@@ -24,7 +24,7 @@ export default function Reports() {
     dir: "desc",
   });
 
-  // Giftshop Report states 
+  // Giftshop Report states
   const [giftshopStart, setGiftshopStart] = useState("");
   const [giftshopEnd, setGiftshopEnd] = useState("");
   const [productList, setProductList] = useState([]);
@@ -33,6 +33,7 @@ export default function Reports() {
   const [giftshopReport, setGiftshopReport] = useState(null);
   const [giftshopReportLoading, setGiftshopReportLoading] = useState(false);
   const [giftshopReportError, setGiftshopReportError] = useState("");
+  const [giftshopPage, setGiftshopPage] = useState(1); 
 
   // ===== Collection Value filters =====
   const [colFrom, setColFrom] = useState("");
@@ -355,15 +356,19 @@ export default function Reports() {
       params.set("end", giftshopEnd);
       if (giftshopProductId) params.set("product_id", giftshopProductId);
 
-      const res = await fetch(`${API}/api/giftshop/report?${params.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const res = await fetch(
+        `${API}/api/giftshop/report?${params.toString()}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        }
+      );
 
       const json = await res.json();
 
       if (!res.ok) throw new Error(json.error || "Failed to load report");
 
       setGiftshopReport(json);
+      setGiftshopPage(1); 
     } catch (err) {
       setGiftshopReportError(err.message);
     } finally {
@@ -450,9 +455,7 @@ export default function Reports() {
         {
           method: "GET",
           credentials: "include",
-          headers: token
-            ? { Authorization: `Bearer ${token}` }
-            : undefined,
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         }
       );
 
@@ -477,9 +480,23 @@ export default function Reports() {
   const totalPages = Math.max(
     1,
     Math.ceil(
-      (popData.total || 0) /
-        (popData.pageSize || applied.pageSize || 10)
+      (popData.total || 0) / (popData.pageSize || applied.pageSize || 10)
     )
+  );
+
+  // ===== Giftshop pagination helpers (10 per page) =====
+  const GIFT_PAGE_SIZE = 10;
+  const giftshopResults = giftshopReport?.results || [];
+  const giftshopTotal = giftshopResults.length;
+  const giftshopTotalPages = Math.max(
+    1,
+    Math.ceil(giftshopTotal / GIFT_PAGE_SIZE) || 1
+  );
+  const giftshopStartIndex = (giftshopPage - 1) * GIFT_PAGE_SIZE;
+  const giftshopEndIndex = giftshopPage * GIFT_PAGE_SIZE;
+  const giftshopPageRows = giftshopResults.slice(
+    giftshopStartIndex,
+    giftshopEndIndex
   );
 
   if (loading) {
@@ -512,18 +529,19 @@ export default function Reports() {
 
       {/* Giftshop Sales Report */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
-
         {/* Header */}
         <div className="border-b border-neutral-200 px-6 py-4 bg-rose-600">
-          <h2 className="text-2xl font-serif text-white">Giftshop Sales Report</h2>
+          <h2 className="text-2xl font-serif text-white">
+            Giftshop Sales Report
+          </h2>
           <p className="text-sm text-rose-100">
-            Top/worst selling products, revenue breakdowns, and transaction details
+            Top/worst selling products, revenue breakdowns, and transaction
+            details
           </p>
         </div>
 
         {/* Filters */}
         <form className="flex flex-wrap gap-3 items-end p-6">
-
           <div>
             <label className="text-sm text-neutral-600">Start Date</label>
             <input
@@ -549,14 +567,14 @@ export default function Reports() {
             onClick={loadGiftshopReport}
             className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
           >
-            Generate
+            {giftshopReportLoading ? "Loading..." : "Generate"}
           </button>
 
           <button
             type="button"
             className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
             onClick={() => {
-              if (!giftshopReport || !giftshopReport.results.length) {
+              if (!giftshopReport || !giftshopResults.length) {
                 alert("No data to export.");
                 return;
               }
@@ -570,16 +588,16 @@ export default function Reports() {
                   "supplier_name",
                   "quantity",
                   "unit_price",
-                  "total_price"
+                  "total_price",
                 ],
-                giftshopReport.results.map((r) => [
+                giftshopResults.map((r) => [
                   r.transaction_id,
                   r.sale_date,
                   r.product_name,
                   r.supplier_name,
                   r.quantity,
                   Number(r.unit_price).toFixed(2),
-                  Number(r.total_price).toFixed(2)
+                  Number(r.total_price).toFixed(2),
                 ])
               );
             }}
@@ -588,43 +606,66 @@ export default function Reports() {
           </button>
 
           {giftshopReportError && (
-            <p className="text-red-600 text-sm w-full mt-2">{giftshopReportError}</p>
+            <p className="text-red-600 text-sm w-full mt-2">
+              {giftshopReportError}
+            </p>
           )}
         </form>
 
-        {/* Summary */}
+        {/* Summary + Table */}
         {giftshopReport && (
           <div className="px-6 pb-6 space-y-4">
-
             <h3 className="text-lg font-semibold">Summary</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 text-sm">
+              <p>
+                <strong>Total Revenue:</strong>{" "}
+                {fmtCurrency(giftshopReport.summary.totalRevenue)}
+              </p>
+              <p>
+                <strong>Total Transactions:</strong>{" "}
+                {giftshopReport.summary.totalTransactions}
+              </p>
+              <p>
+                <strong>Products Sold:</strong>{" "}
+                {giftshopReport.summary.productsSold}
+              </p>
 
-              <p><strong>Total Revenue:</strong> {fmtCurrency(giftshopReport.summary.totalRevenue)}</p>
-              <p><strong>Total Transactions:</strong> {giftshopReport.summary.totalTransactions}</p>
-              <p><strong>Products Sold:</strong> {giftshopReport.summary.productsSold}</p>
-
-              <p><strong>Best Grossing Item:</strong> {giftshopReport.summary.bestGrossingItem?.[0] || "—"}</p>
-              <p><strong>Worst Grossing Item:</strong> {giftshopReport.summary.worstGrossingItem?.[0] || "—"}</p>
-              <p><strong>Most Sold Item:</strong> {giftshopReport.summary.mostSoldItem?.[0] || "—"}</p>
-              <p><strong>Least Sold Item:</strong> {giftshopReport.summary.leastSoldItem?.[0] || "—"}</p>
-              <p><strong>Top Grossing Supplier:</strong>
+              <p>
+                <strong>Best Grossing Item:</strong>{" "}
+                {giftshopReport.summary.bestGrossingItem?.[0] || "—"}
+              </p>
+              <p>
+                <strong>Worst Grossing Item:</strong>{" "}
+                {giftshopReport.summary.worstGrossingItem?.[0] || "—"}
+              </p>
+              <p>
+                <strong>Most Sold Item:</strong>{" "}
+                {giftshopReport.summary.mostSoldItem?.[0] || "—"}
+              </p>
+              <p>
+                <strong>Least Sold Item:</strong>{" "}
+                {giftshopReport.summary.leastSoldItem?.[0] || "—"}
+              </p>
+              <p>
+                <strong>Top Grossing Supplier:</strong>{" "}
                 {giftshopReport.summary.bestSupplier?.[0] || "—"}
               </p>
 
-              <p><strong>Lowest Grossing Supplier:</strong>
+              <p>
+                <strong>Lowest Grossing Supplier:</strong>{" "}
                 {giftshopReport.summary.worstSupplier?.[0] || "—"}
               </p>
 
-              <p><strong>Most Sold Supplier:</strong>
+              <p>
+                <strong>Most Sold Supplier:</strong>{" "}
                 {giftshopReport.summary.mostSoldSupplier?.[0] || "—"}
               </p>
 
-              <p><strong>Least Sold Supplier:</strong>
+              <p>
+                <strong>Least Sold Supplier:</strong>{" "}
                 {giftshopReport.summary.leastSoldSupplier?.[0] || "—"}
               </p>
-
-
             </div>
 
             {/* Table */}
@@ -632,21 +673,34 @@ export default function Reports() {
               <table className="min-w-full text-sm">
                 <thead className="bg-neutral-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-black">Transaction ID</th>
+                    <th className="px-6 py-3 text-left text-black">
+                      Transaction ID
+                    </th>
                     <th className="px-6 py-3 text-left text-black">Date</th>
                     <th className="px-6 py-3 text-left text-black">Product</th>
-                    <th className="px-6 py-3 text-left text-black">Supplier</th>
+                    <th className="px-6 py-3 text-left text-black">
+                      Supplier
+                    </th>
                     <th className="px-6 py-3 text-left text-black">Qty</th>
-                    <th className="px-6 py-3 text-left text-black">Unit Price</th>
-                    <th className="px-6 py-3 text-left text-black">Total Price</th>
+                    <th className="px-6 py-3 text-left text-black">
+                      Unit Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-black">
+                      Total Price
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {giftshopReport.results.length ? (
-                    giftshopReport.results.map((r) => (
-                      <tr key={r.transaction_id} className="border-t border-neutral-200">
+                  {giftshopPageRows.length ? (
+                    giftshopPageRows.map((r) => (
+                      <tr
+                        key={r.transaction_id}
+                        className="border-t border-neutral-200"
+                      >
                         <td className="px-6 py-3">{r.transaction_id}</td>
-                        <td className="px-6 py-3">{fmtDateMMDDYYYY(r.sale_date)}</td>
+                        <td className="px-6 py-3">
+                          {fmtDateMMDDYYYY(r.sale_date)}
+                        </td>
                         <td className="px-6 py-3">{r.product_name}</td>
                         <td className="px-6 py-3">{r.supplier_name}</td>
                         <td className="px-6 py-3">{r.quantity}</td>
@@ -660,7 +714,10 @@ export default function Reports() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="px-6 py-6 text-center text-neutral-500">
+                      <td
+                        colSpan="7"
+                        className="px-6 py-6 text-center text-neutral-500"
+                      >
                         No transactions in this date range.
                       </td>
                     </tr>
@@ -668,6 +725,51 @@ export default function Reports() {
                 </tbody>
               </table>
             </div>
+
+            {/* Giftshop Pagination Controls */}
+            {giftshopTotal > 0 && (
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-neutral-700">
+                <span>
+                  Showing{" "}
+                  <strong>
+                    {giftshopTotal === 0
+                      ? 0
+                      : giftshopStartIndex + 1}
+                    {"–"}
+                    {Math.min(giftshopEndIndex, giftshopTotal)}
+                  </strong>{" "}
+                  of <strong>{giftshopTotal}</strong> transactions
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                    onClick={() =>
+                      setGiftshopPage((p) => Math.max(1, p - 1))
+                    }
+                    disabled={giftshopPage <= 1}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page <strong>{giftshopPage}</strong> of{" "}
+                    <strong>{giftshopTotalPages}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                    onClick={() =>
+                      setGiftshopPage((p) =>
+                        Math.min(giftshopTotalPages, p + 1)
+                      )
+                    }
+                    disabled={giftshopPage >= giftshopTotalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -976,17 +1078,11 @@ export default function Reports() {
           <table className="min-w-full text-sm border-t border-neutral-200">
             <thead className="bg-neutral-100">
               <tr>
-                <th className="px-4 py-3 text-left text-black">
-                  Exhibition
-                </th>
+                <th className="px-4 py-3 text-left text-black">Exhibition</th>
                 <th className="px-4 py-3 text-left text-black">Start</th>
                 <th className="px-4 py-3 text-left text-black">End</th>
-                <th className="px-4 py-3 text-left text-black">
-                  Run Days
-                </th>
-                <th className="px-4 py-3 text-left text-black">
-                  Visitors
-                </th>
+                <th className="px-4 py-3 text-left text-black">Run Days</th>
+                <th className="px-4 py-3 text-left text-black">Visitors</th>
                 <th className="px-4 py-3 text-left text-black">
                   Top Ticket Type
                 </th>
@@ -996,13 +1092,9 @@ export default function Reports() {
               {popData.rows.length ? (
                 popData.rows.map((r, i) => {
                   const runDays =
-                    r.run_days ??
-                    calcRunDays(r.start_date, r.end_date);
+                    r.run_days ?? calcRunDays(r.start_date, r.end_date);
                   return (
-                    <tr
-                      key={i}
-                      className="border-b border-neutral-200"
-                    >
+                    <tr key={i} className="border-b border-neutral-200">
                       <td className="px-4 py-3 font-semibold text-black">
                         {r.title || "—"}
                       </td>
