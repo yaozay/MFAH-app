@@ -49,33 +49,6 @@ router.get(
 );
 
 
-/* -------------------------------------------------------------------------- */
-/* (B) Modern Artworks (after 1900)                                           */
-/* -------------------------------------------------------------------------- */
-
-router.get(
-  "/modern-artworks",
-  /* requireAuth, requireAnyRole(["admin","employee"]) */
-  async (_req, res) => {
-    try {
-      const [rows] = await pool.execute(`
-        SELECT 
-          title,
-          year_created,
-          art_type,
-          estimated_price
-        FROM Artworks
-        WHERE year_created >= 1900
-        ORDER BY year_created ASC;
-      `);
-
-      res.json(rows);
-    } catch (err) {
-      console.error("GET /reports/modern-artworks error:", err);
-      res.status(500).json({ error: "Failed to fetch report" });
-    }
-  }
-);
 
 /* -------------------------------------------------------------------------- */
 /* (C1) Basic Employees CSV                                                   */

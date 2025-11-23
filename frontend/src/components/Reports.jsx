@@ -9,7 +9,6 @@ export default function Reports() {
     typeof window !== "undefined" ? localStorage.getItem("token") : "";
 
   const [artworksPerArtist, setArtworksPerArtist] = useState([]);
-  const [modernArtworks, setModernArtworks] = useState([]);
   const [collectionValue, setCollectionValue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,20 +33,6 @@ export default function Reports() {
   const [giftshopReport, setGiftshopReport] = useState(null);
   const [giftshopReportLoading, setGiftshopReportLoading] = useState(false);
   const [giftshopReportError, setGiftshopReportError] = useState("");
-
-  // ===== Modern Artworks filters =====
-  const [modernQ, setModernQ] = useState("");
-  const [modernFromYear, setModernFromYear] = useState("");
-  const [modernToYear, setModernToYear] = useState("");
-  const [modernSort, setModernSort] = useState("year_created"); // year_created | estimated_price
-  const [modernDir, setModernDir] = useState("asc");
-  const [modernApplied, setModernApplied] = useState({
-    q: "",
-    fromYear: "",
-    toYear: "",
-    sort: "year_created",
-    dir: "asc",
-  });
 
   // ===== Collection Value filters =====
   const [colFrom, setColFrom] = useState("");
@@ -150,26 +135,14 @@ export default function Reports() {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const [r1, r2] = await Promise.all([
-          fetch(`${API}/api/reports/artworks-per-artist`, {
-            headers: token
-              ? { Authorization: `Bearer ${token}` }
-              : undefined,
-          }),
-          fetch(`${API}/api/reports/modern-artworks`, {
-            headers: token
-              ? { Authorization: `Bearer ${token}` }
-              : undefined,
-          }),
-        ]);
+        const res = await fetch(`${API}/api/reports/artworks-per-artist`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
 
-        if (!r1.ok || !r2.ok) throw new Error("Error fetching reports");
+        if (!res.ok) throw new Error("Error fetching reports");
 
-        const data1 = await r1.json();
-        const data2 = await r2.json();
-
+        const data1 = await res.json();
         setArtworksPerArtist(data1);
-        setModernArtworks(data2);
       } catch (err) {
         console.error("Reports fetch error:", err);
         setError("Failed to load reports");
@@ -248,64 +221,6 @@ export default function Reports() {
 
     return rows;
   }, [artworksPerArtist, artistApplied]);
-
-  // ===== Modern Artworks: apply filters + sort on client =====
-  const filteredModernArtworks = useMemo(() => {
-    let rows = [...modernArtworks];
-
-    const term = modernApplied.q.trim().toLowerCase();
-    if (term) {
-      rows = rows.filter((art) => {
-        const title = (art.title || "").toLowerCase();
-        const type = (art.art_type || "").toLowerCase();
-        return title.includes(term) || type.includes(term);
-      });
-    }
-
-    const fromY = modernApplied.fromYear
-      ? parseInt(modernApplied.fromYear, 10)
-      : null;
-    const toY = modernApplied.toYear
-      ? parseInt(modernApplied.toYear, 10)
-      : null;
-
-    if (fromY !== null) {
-      rows = rows.filter((art) => {
-        const y = parseInt(art.year_created, 10);
-        return Number.isFinite(y) ? y >= fromY : true;
-      });
-    }
-
-    if (toY !== null) {
-      rows = rows.filter((art) => {
-        const y = parseInt(art.year_created, 10);
-        return Number.isFinite(y) ? y <= toY : true;
-      });
-    }
-
-    rows.sort((a, b) => {
-      let av;
-      let bv;
-
-      switch (modernApplied.sort) {
-        case "estimated_price":
-          av = Number(a.estimated_price ?? 0);
-          bv = Number(b.estimated_price ?? 0);
-          break;
-        case "year_created":
-        default:
-          av = Number(a.year_created ?? 0);
-          bv = Number(b.year_created ?? 0);
-          break;
-      }
-
-      if (av < bv) return modernApplied.dir === "asc" ? -1 : 1;
-      if (av > bv) return modernApplied.dir === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return rows;
-  }, [modernArtworks, modernApplied]);
 
   // ===== Collection Value: apply name filter + sort on client =====
   const filteredCollectionValue = useMemo(() => {
@@ -456,7 +371,6 @@ export default function Reports() {
     }
   }
 
-
   // ===== Apply handlers =====
   const onApplyArtists = (e) => {
     e.preventDefault();
@@ -464,17 +378,6 @@ export default function Reports() {
       q: artistQ,
       sort: artistSort,
       dir: artistDir,
-    });
-  };
-
-  const onApplyModern = (e) => {
-    e.preventDefault();
-    setModernApplied({
-      q: modernQ,
-      fromYear: modernFromYear,
-      toYear: modernToYear,
-      sort: modernSort,
-      dir: modernDir,
     });
   };
 
@@ -518,24 +421,6 @@ export default function Reports() {
         r.artist_id,
         r.artist_name,
         r.artwork_count,
-      ])
-    );
-  };
-
-  const downloadModernCsv = () => {
-    if (!filteredModernArtworks.length) {
-      alert("No data to export.");
-      return;
-    }
-
-    downloadCsvFile(
-      "modern_artworks.csv",
-      ["title", "year_created", "art_type", "estimated_price"],
-      filteredModernArtworks.map((r) => [
-        r.title,
-        r.year_created,
-        r.art_type,
-        r.estimated_price,
       ])
     );
   };
@@ -593,7 +478,7 @@ export default function Reports() {
     1,
     Math.ceil(
       (popData.total || 0) /
-      (popData.pageSize || applied.pageSize || 10)
+        (popData.pageSize || applied.pageSize || 10)
     )
   );
 
@@ -905,134 +790,6 @@ export default function Reports() {
         )}
       </section>
 
-
-
-      {/* Modern Artworks */}
-      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
-        <div className="border-b border-neutral-200 px-6 py-4 bg-rose-600">
-          <h2 className="text-2xl font-serif text-white">
-            Modern Artworks (After 1900)
-          </h2>
-          <p className="text-sm text-rose-100">
-            Contemporary and modern art pieces
-          </p>
-        </div>
-
-        {modernArtworks.length > 0 ? (
-          <>
-            <form
-              className="flex flex-wrap gap-3 items-end p-6"
-              onSubmit={onApplyModern}
-            >
-              <input
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-rose-600 focus:outline-none"
-                placeholder="Search title or type..."
-                value={modernQ}
-                onChange={(e) => setModernQ(e.target.value)}
-              />
-              <input
-                type="number"
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm w-24"
-                placeholder="From year"
-                value={modernFromYear}
-                onChange={(e) => setModernFromYear(e.target.value)}
-              />
-              <input
-                type="number"
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm w-24"
-                placeholder="To year"
-                value={modernToYear}
-                onChange={(e) => setModernToYear(e.target.value)}
-              />
-              <select
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-                value={modernSort}
-                onChange={(e) => setModernSort(e.target.value)}
-              >
-                <option value="year_created">Year</option>
-                <option value="estimated_price">Estimated Value</option>
-              </select>
-              <select
-                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
-                value={modernDir}
-                onChange={(e) => setModernDir(e.target.value)}
-              >
-                <option value="asc">Asc</option>
-                <option value="desc">Desc</option>
-              </select>
-              <button
-                type="submit"
-                className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
-              >
-                Apply
-              </button>
-              <button
-                type="button"
-                className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
-                onClick={downloadModernCsv}
-              >
-                Download CSV
-              </button>
-            </form>
-
-            <div className="overflow-x-auto px-6 pb-6">
-              <div className="max-h-80 overflow-y-auto border border-neutral-200 rounded-xl">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-neutral-100">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-black">Title</th>
-                      <th className="px-6 py-3 text-left text-black">Year</th>
-                      <th className="px-6 py-3 text-left text-black">Type</th>
-                      <th className="px-6 py-3 text-left text-black">
-                        Estimated Value
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredModernArtworks.length ? (
-                      filteredModernArtworks.map((art, i) => (
-                        <tr
-                          key={i}
-                          className="border-t border-neutral-200"
-                        >
-                          <td className="px-6 py-3 font-semibold text-black">
-                            {art.title}
-                          </td>
-                          <td className="px-6 py-3 text-neutral-600">
-                            {art.year_created || "—"}
-                          </td>
-                          <td className="px-6 py-3 text-neutral-600">
-                            {art.art_type || "—"}
-                          </td>
-                          <td className="px-6 py-3 text-rose-600 font-medium">
-                            {art.estimated_price
-                              ? fmtCurrency(art.estimated_price)
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="px-6 py-4 text-center text-neutral-500"
-                        >
-                          No artworks match your filters.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="px-8 py-12 text-center text-neutral-500">
-            No data available.
-          </div>
-        )}
-      </section>
-
       {/* Collection Value Report */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
         <div className="border-b border-neutral-200 px-6 py-4 bg-rose-600">
@@ -1284,4 +1041,3 @@ export default function Reports() {
     </div>
   );
 }
-
