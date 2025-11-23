@@ -25,7 +25,7 @@ export default function Reports() {
   // Giftshop Report states
   const [giftshopStart, setGiftshopStart] = useState("");
   const [giftshopEnd, setGiftshopEnd] = useState("");
-  const [productList, setProductList] = useState([]); // currently unused, kept in case you add product filter later
+  const [productList, setProductList] = useState([]); // reserved for future product filter
   const [giftshopProductId, setGiftshopProductId] = useState("");
 
   const [giftshopReport, setGiftshopReport] = useState(null);
@@ -177,6 +177,49 @@ export default function Reports() {
     return rows;
   }, [artworksPerArtist, artistApplied]);
 
+  // ===== Artworks per Artist: summary (based on filtered rows) =====
+  const artworksSummary = useMemo(() => {
+    if (!filteredArtworksPerArtist.length) return null;
+
+    const artistIds = new Set();
+    const collectionIds = new Set();
+    let totalArtworks = 0;
+    let totalValue = 0;
+
+    let topArtistRow = null;
+    let topCollectionRow = null;
+
+    for (const row of filteredArtworksPerArtist) {
+      if (row.artist_id != null) artistIds.add(row.artist_id);
+      if (row.collection_id != null) collectionIds.add(row.collection_id);
+
+      const count = Number(row.artwork_count ?? 0);
+      const value = Number(row.total_value ?? 0);
+
+      totalArtworks += count;
+      totalValue += value;
+
+      if (!topArtistRow || count > Number(topArtistRow.artwork_count ?? 0)) {
+        topArtistRow = row;
+      }
+
+      if (!topCollectionRow || value > Number(topCollectionRow.total_value ?? 0)) {
+        topCollectionRow = row;
+      }
+    }
+
+    return {
+      artistCount: artistIds.size,
+      collectionCount: collectionIds.size,
+      totalArtworks,
+      totalValue,
+      topArtistName: topArtistRow?.artist_name ?? null,
+      topArtistCount: topArtistRow?.artwork_count ?? 0,
+      topCollectionName: topCollectionRow?.collection_name ?? null,
+      topCollectionValue: topCollectionRow?.total_value ?? 0,
+    };
+  }, [filteredArtworksPerArtist]);
+
   // ===== Exhibition Popularity query string =====
   const popQuery = useMemo(() => {
     const p = new URLSearchParams();
@@ -258,6 +301,39 @@ export default function Reports() {
       ignore = true;
     };
   }, [token, popQuery, applied.page, applied.pageSize]);
+
+  // ===== Exhibition Popularity: summary (current result set) =====
+  const exhibitionSummary = useMemo(() => {
+    const rows = popData.rows || [];
+    if (!rows.length) return null;
+
+    let totalVisitors = 0;
+    let totalRevenue = 0;
+    let topExhibitionRow = null;
+
+    for (const r of rows) {
+      const visitors = Number(r.total_tickets ?? 0);
+      const revenue = Number(r.total_revenue ?? 0);
+
+      totalVisitors += visitors;
+      totalRevenue += revenue;
+
+      if (
+        !topExhibitionRow ||
+        visitors > Number(topExhibitionRow.total_tickets ?? 0)
+      ) {
+        topExhibitionRow = r;
+      }
+    }
+
+    return {
+      exhibitionsCount: rows.length,
+      totalVisitors,
+      totalRevenue,
+      topExhibitionTitle: topExhibitionRow?.title ?? null,
+      topExhibitionVisitors: topExhibitionRow?.total_tickets ?? 0,
+    };
+  }, [popData.rows]);
 
   async function loadGiftshopReport() {
     setGiftshopReportError("");
@@ -366,7 +442,7 @@ export default function Reports() {
     }
   };
 
-  // We still compute totalPages for popularity if you later add pagination controls
+  // (Optional) total pages for popularity (if you add pagination UI later)
   const totalPages = Math.max(
     1,
     Math.ceil(
@@ -720,6 +796,56 @@ export default function Reports() {
               </button>
             </form>
 
+            {/* Summary */}
+            {artworksSummary && (
+              <div className="px-6 pb-2">
+                <h3 className="text-lg font-semibold mb-2">Summary</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 text-sm">
+                  <p>
+                    <strong>Total Artists:</strong>{" "}
+                    {fmtInt(artworksSummary.artistCount)}
+                  </p>
+                  <p>
+                    <strong>Total Collections:</strong>{" "}
+                    {fmtInt(artworksSummary.collectionCount)}
+                  </p>
+                  <p>
+                    <strong>Total Artworks (rows):</strong>{" "}
+                    {fmtInt(artworksSummary.totalArtworks)}
+                  </p>
+                  <p>
+                    <strong>Total Estimated Value:</strong>{" "}
+                    {fmtCurrency(artworksSummary.totalValue)}
+                  </p>
+                  <p>
+                    <strong>Top Artist (by artworks):</strong>{" "}
+                    {artworksSummary.topArtistName || "—"}{" "}
+                    {artworksSummary.topArtistName && (
+                      <span className="text-neutral-500">
+                        (
+                        {fmtInt(artworksSummary.topArtistCount)}
+                        {" "}
+                        works)
+                      </span>
+                    )}
+                  </p>
+                  <p>
+                    <strong>Top Collection (by value):</strong>{" "}
+                    {artworksSummary.topCollectionName || "—"}{" "}
+                    {artworksSummary.topCollectionName && (
+                      <span className="text-neutral-500">
+                        (
+                        {fmtCurrency(
+                          artworksSummary.topCollectionValue
+                        )}
+                        )
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Table */}
             <div className="overflow-x-auto px-6 pb-6">
               <div className="max-h-80 overflow-y-auto border border-neutral-200 rounded-xl">
@@ -825,6 +951,7 @@ export default function Reports() {
             <option value="title">Title</option>
             <option value="run_days">Run Days</option>
             <option value="total_tickets">Visitors</option>
+            <option value="total_revenue">Revenue</option>
           </select>
           <select
             className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
@@ -848,6 +975,40 @@ export default function Reports() {
             Download CSV
           </button>
         </form>
+
+        {/* Summary */}
+        {exhibitionSummary && (
+          <div className="px-6 pb-2">
+            <h3 className="text-lg font-semibold mb-2">Summary</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 text-sm">
+              <p>
+                <strong>Exhibitions in view:</strong>{" "}
+                {fmtInt(exhibitionSummary.exhibitionsCount)}
+              </p>
+              <p>
+                <strong>Total Visitors (current set):</strong>{" "}
+                {fmtInt(exhibitionSummary.totalVisitors)}
+              </p>
+              <p>
+                <strong>Total Revenue (current set):</strong>{" "}
+                {fmtCurrency(exhibitionSummary.totalRevenue)}
+              </p>
+              <p>
+                <strong>Top Exhibition (by visitors):</strong>{" "}
+                {exhibitionSummary.topExhibitionTitle || "—"}{" "}
+                {exhibitionSummary.topExhibitionTitle && (
+                  <span className="text-neutral-500">
+                    (
+                    {fmtInt(
+                      exhibitionSummary.topExhibitionVisitors
+                    )}{" "}
+                    visitors)
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <div className="overflow-x-auto px-6 pb-6">
