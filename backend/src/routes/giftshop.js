@@ -165,22 +165,22 @@ router.get("/suppliers", requireAuth, async (_req, res) => {
 
 
 router.post("/purchase", requireAuth, async (req, res) => {
-  const { tickets } = req.body || {};
+  const { items } = req.body || {};
 
-  if (!Array.isArray(tickets) || tickets.length === 0) {
-    return res.status(400).json({ error: "tickets array required" });
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "Items array required" });
   }
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    // FIXED: Always pull user ID from JWT `sub`
+    // Get user_id from JWT
     const userId = req.user?.sub ?? null;
 
+    // Resolve visitor_id
     let visitorId = req.user?.visitor_id ?? null;
 
-    // Resolve visitor_id
     if (!visitorId) {
       const [[userRow]] = await conn.query(
         "SELECT email, first_name, last_name FROM Users WHERE user_id = ?",
@@ -203,31 +203,52 @@ router.post("/purchase", requireAuth, async (req, res) => {
       }
     }
 
-    // Insert tickets
-    for (const t of tickets) {
-      const ticketTypeId = t.ticket_type_id;
-      const qty = Number(t.quantity ?? t.amount ?? 1);
+    // Process purchase items
+    for (const item of items) {
+      const { product_id, quantity } = item;
 
-      const [[ticketType]] = await conn.query(
-        "SELECT total_price FROM Ticket_Type WHERE ticket_type_id = ?",
-        [ticketTypeId]
+      if (!product_id || !quantity) {
+        throw new Error("Each item must include product_id and quantity");
+      }
+
+      // Get product info
+      const [[p]] = await conn.query(
+        "SELECT price, quantity FROM Shop_Products WHERE product_id = ?",
+        [product_id]
       );
 
-      const totalPrice = Number(ticketType.total_price) * qty;
+      if (!p) throw new Error("Product not found");
+      if (p.quantity < quantity) throw new Error("Not enough stock");
+
+      const totalPrice = p.price * quantity;
 
       await conn.query(
-        `INSERT INTO Ticket_Sales
-          (visitor_id, user_id, ticket_amount, purchased_date, visit_date, purchase_price, ticket_type_id)
-         VALUES (?, ?, ?, CURDATE(), CURDATE(), ?, ?)`,
-        [visitorId, userId, qty, totalPrice, ticketTypeId]
+        `
+          INSERT INTO Gift_Shop_Transactions
+            (department_id, visitor_id, product_id, quantity, sale_date, total_price, user_id)
+          VALUES
+            (5, ?, ?, ?, CURDATE(), ?, ?)
+        `,
+        [visitorId, product_id, quantity, totalPrice, userId]
+      );
+
+      // Update product stock
+      await conn.query(
+        `
+          UPDATE Shop_Products
+          SET quantity = quantity - ?
+          WHERE product_id = ?
+        `,
+        [quantity, product_id]
       );
     }
 
     await conn.commit();
-    res.json({ message: "Ticket purchase successful" });
+    res.json({ message: "Gift shop purchase complete" });
 
   } catch (err) {
     await conn.rollback();
+    console.error("Gift shop purchase error:", err);
     res.status(400).json({ error: err.message });
   } finally {
     conn.release();
