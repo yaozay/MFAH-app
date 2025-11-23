@@ -279,11 +279,13 @@ router.get("/exhibition-popularity", async (req, res) => {
     };
 
     const sortCol = SORT_MAP[sort] || SORT_MAP.total_revenue;
-    const sortDir = String(dir).toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortDir = dir.toLowerCase() === "asc" ? "ASC" : "DESC";
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSz = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 10));
     const offset = (pageNum - 1) * pageSz;
+
+
 
     const exhibitWhere = [];
     const exhibitParams = [];
@@ -294,8 +296,8 @@ router.get("/exhibition-popularity", async (req, res) => {
     }
 
     if (from && to) {
-      exhibitWhere.push("(e.end_date >= ? AND e.start_date <= ?)");
-      exhibitParams.push(from, to);
+      exhibitWhere.push("e.start_date <= ? AND e.end_date >= ?");
+      exhibitParams.push(to, from);
     } else if (from) {
       exhibitWhere.push("e.end_date >= ?");
       exhibitParams.push(from);
@@ -304,13 +306,8 @@ router.get("/exhibition-popularity", async (req, res) => {
       exhibitParams.push(to);
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const cutoff = to || today.toISOString().slice(0, 10);
-
+    // Require real exhibitions
     exhibitWhere.push("e.end_date IS NOT NULL");
-    exhibitWhere.push("e.end_date <= ?");
-    exhibitParams.push(cutoff);
 
     const exhibitWhereSql = exhibitWhere.length
       ? `WHERE ${exhibitWhere.join(" AND ")}`
@@ -322,8 +319,8 @@ router.get("/exhibition-popularity", async (req, res) => {
       ${exhibitWhereSql};
     `;
 
-    const [countRows] = await pool.query(countSql, exhibitParams);
-    const total = Number(countRows?.[0]?.total || 0);
+    const [[countRow]] = await pool.query(countSql, exhibitParams);
+    const total = Number(countRow?.total || 0);
 
     const salesDateConds = [];
     const salesParams = [];
@@ -349,8 +346,10 @@ router.get("/exhibition-popularity", async (req, res) => {
         e.start_date,
         e.end_date,
         DATEDIFF(e.end_date, e.start_date) + 1 AS run_days,
+
         COALESCE(s.total_tickets, 0) AS total_tickets,
         COALESCE(s.total_revenue, 0.00) AS total_revenue,
+
         (
           SELECT tt.name
           FROM Ticket_Sales ts
@@ -361,7 +360,9 @@ router.get("/exhibition-popularity", async (req, res) => {
           ORDER BY SUM(ts.ticket_amount) DESC
           LIMIT 1
         ) AS top_ticket_type
+
       FROM Exhibitions e
+
       LEFT JOIN (
         SELECT 
           e2.exhibition_id,
@@ -374,7 +375,9 @@ router.get("/exhibition-popularity", async (req, res) => {
         ${salesDateSql}
         GROUP BY e2.exhibition_id
       ) s ON s.exhibition_id = e.exhibition_id
+
       ${exhibitWhereSql}
+
       ORDER BY ${sortCol} ${sortDir}, e.exhibition_id ASC
       LIMIT ? OFFSET ?;
     `;
@@ -394,6 +397,7 @@ router.get("/exhibition-popularity", async (req, res) => {
         "run_days",
         "total_tickets",
         "total_revenue",
+        "top_ticket_type",
       ];
 
       const fmtDate = (v) => {
@@ -407,15 +411,16 @@ router.get("/exhibition-popularity", async (req, res) => {
         ...rows.map((r) =>
           [
             r.exhibition_id,
-            (r.title ?? "").toString().replaceAll('"', '""'),
+            r.title ?? "",
             fmtDate(r.start_date),
             fmtDate(r.end_date),
             r.run_days,
             r.total_tickets,
-            Number(r.total_revenue || 0).toFixed(2),
+            Number(r.total_revenue).toFixed(2),
+            r.top_ticket_type ?? "",
           ]
-            .map((v) => (v ?? "").toString().replaceAll('"', '""'))
-            .map((v) => (/["\n,]/.test(v) ? `"${v}"` : v))
+            .map((v) => v.toString().replaceAll('"', '""'))
+            .map((v) => (/[,\"\n]/.test(v) ? `"${v}"` : v))
             .join(",")
         ),
       ].join("\n");
@@ -428,12 +433,15 @@ router.get("/exhibition-popularity", async (req, res) => {
       return res.status(200).send(csv);
     }
 
+
     res.json({ total, page: pageNum, pageSize: pageSz, rows });
+
   } catch (err) {
     console.error("GET /reports/exhibition-popularity error:", err);
     res.status(500).json({ error: "Failed to fetch report" });
   }
 });
+
 
 /* -------------------------------------------------------------------------- */
 /* (E) Admin Metrics Helpers                                                  */
