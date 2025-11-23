@@ -911,7 +911,7 @@ export default function Reports() {
 
       {/* Exhibition Popularity */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
-        <div className="px-6 py-4 bg-rose-600">
+        <div className="border-b border-neutral-200 px-6 py-4 bg-rose-600">
           <h2 className="text-2xl font-serif text-white">
             Exhibition Popularity
           </h2>
@@ -999,9 +999,7 @@ export default function Reports() {
                 {exhibitionSummary.topExhibitionTitle && (
                   <span className="text-neutral-500">
                     (
-                    {fmtInt(
-                      exhibitionSummary.topExhibitionVisitors
-                    )}{" "}
+                    {fmtInt(exhibitionSummary.topExhibitionVisitors)}{" "}
                     visitors)
                   </span>
                 )}
@@ -1012,61 +1010,70 @@ export default function Reports() {
 
         {/* Table */}
         <div className="overflow-x-auto px-6 pb-6">
-          <table className="min-w-full text-sm border-t border-neutral-200">
-            <thead className="bg-neutral-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-black">Exhibition</th>
-                <th className="px-4 py-3 text-left text-black">Start</th>
-                <th className="px-4 py-3 text-left text-black">End</th>
-                <th className="px-4 py-3 text-left text-black">Run Days</th>
-                <th className="px-4 py-3 text-left text-black">Visitors</th>
-                <th className="px-4 py-3 text-left text-black">
-                  Top Ticket Type
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {popData.rows.length ? (
-                popData.rows.map((r, i) => {
-                  const runDays =
-                    r.run_days ?? calcRunDays(r.start_date, r.end_date);
-                  return (
-                    <tr key={i} className="border-b border-neutral-200">
-                      <td className="px-4 py-3 font-semibold text-black">
-                        {r.title || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-neutral-600">
-                        {fmtDateMMDDYYYY(r.start_date)}
-                      </td>
-                      <td className="px-4 py-3 text-neutral-600">
-                        {fmtDateMMDDYYYY(r.end_date)}
-                      </td>
-                      <td className="px-4 py-3 text-neutral-600">
-                        {fmtInt(runDays)}
-                      </td>
-                      <td className="px-4 py-3 text-neutral-600">
-                        {fmtInt(r.total_tickets)}
-                      </td>
-                      <td className="px-4 py-3 text-rose-600 font-medium">
-                        {r.top_ticket_type || "—"}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
+          <div className="max-h-80 overflow-y-auto border border-neutral-200 rounded-xl">
+            <table className="min-w-full text-sm">
+              <thead className="bg-neutral-100">
                 <tr>
-                  <td
-                    className="px-4 py-6 text-center text-neutral-500"
-                    colSpan={6}
-                  >
-                    No results.
-                  </td>
+                  <th className="px-4 py-3 text-left text-black">
+                    Exhibition
+                  </th>
+                  <th className="px-4 py-3 text-left text-black">Start</th>
+                  <th className="px-4 py-3 text-left text-black">End</th>
+                  <th className="px-4 py-3 text-left text-black">
+                    Run Days
+                  </th>
+                  <th className="px-4 py-3 text-left text-black">
+                    Visitors
+                  </th>
+                  <th className="px-4 py-3 text-left text-black">
+                    Top Ticket Type
+                  </th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {popData.rows.length ? (
+                  popData.rows.map((r, i) => {
+                    const runDays =
+                      r.run_days ?? calcRunDays(r.start_date, r.end_date);
+                    return (
+                      <tr key={i} className="border-t border-neutral-200">
+                        <td className="px-4 py-3 font-semibold text-black">
+                          {r.title || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-600">
+                          {fmtDateMMDDYYYY(r.start_date)}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-600">
+                          {fmtDateMMDDYYYY(r.end_date)}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-600">
+                          {fmtInt(runDays)}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-600">
+                          {fmtInt(r.total_tickets)}
+                        </td>
+                        <td className="px-4 py-3 text-rose-600 font-medium">
+                          {r.top_ticket_type || "—"}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      className="px-4 py-6 text-center text-neutral-500"
+                      colSpan={6}
+                    >
+                      No results.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
+
     </div>
   );
 }
