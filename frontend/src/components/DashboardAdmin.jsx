@@ -38,51 +38,8 @@ export default function DashboardAdmin() {
 
   const [loading, setLoading] = useState(false);
 
-  // ---- Metrics ----
-  const now = new Date();
-  const defaultMonth = `${now.getFullYear()}-${String(
-    now.getMonth() + 1
-  ).padStart(2, "0")}`;
-
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
-  const [metrics, setMetrics] = useState({
-    total_visitors: 0,
-    ticket_sales: 0,
-    shop_sales: 0,
-  });
-  const [metricsLoading, setMetricsLoading] = useState(false);
-  const [metricsError, setMetricsError] = useState(null);
-
-  const [giftshopData, setGiftshopData] = useState([]);
-  const [giftshopLoading, setGiftshopLoading] = useState(false);
-  const [giftshopError, setGiftshopError] = useState(null);
-
-  const [supplierData, setSupplierData] = useState([]);
-  const [supplierLoading, setSupplierLoading] = useState(false);
-  const [supplierError, setSupplierError] = useState(null);
-
-  const fmtInt = (n) =>
-    new Intl.NumberFormat(undefined, {
-      maximumFractionDigits: 0,
-    }).format(n ?? 0);
-
-  const fmtCurrency = (n) =>
-    new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: "USD",
-    }).format(Number.isFinite(n) ? n : 0);
-
-  const firstDayISO = (yyyyMm) => `${yyyyMm}-01`;
-  const lastDayISO = (yyyyMm) => {
-    const [y, m] = yyyyMm.split("-").map((s) => parseInt(s, 10));
-    const d = new Date(y, m, 0);
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${d.getFullYear()}-${mm}-${dd}`;
-  };
-
   // -----------------------------
-  // Pending Events (existing)
+  // Pending Events
   // -----------------------------
   const [pendingEvents, setPendingEvents] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(false);
@@ -145,7 +102,7 @@ export default function DashboardAdmin() {
   };
 
   // -----------------------------
-  // Pending Exhibitions (NEW)
+  // Pending Exhibitions
   // -----------------------------
   const [pendingExhibitions, setPendingExhibitions] = useState([]);
   const [pendingExhLoading, setPendingExhLoading] = useState(false);
@@ -207,105 +164,12 @@ export default function DashboardAdmin() {
     }
   };
 
-  // ---- Fetch metrics ----
+  // ---- Fetch dashboard data (non-metrics) ----
   useEffect(() => {
     if (pane !== "dashboard") return;
     loadPendingEvents();
     loadPendingExhibitions();
   }, [pane]);
-
-  useEffect(() => {
-    if (pane !== "dashboard") return;
-    let ignore = false;
-    (async () => {
-      setMetricsLoading(true);
-      try {
-        const start = firstDayISO(selectedMonth);
-        const end = lastDayISO(selectedMonth);
-        const res = await fetch(
-          `${API_BASE}/api/reports/admin-metrics?start=${start}&end=${end}`,
-          {
-            credentials: "include",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          }
-        );
-        if (!res.ok) throw new Error(`Metrics request failed: ${res.status}`);
-        const json = await res.json();
-        if (!ignore) {
-          setMetrics({
-            total_visitors: Number(json.total_visitors ?? 0),
-            ticket_sales: Number(json.ticket_sales ?? 0),
-            shop_sales: Number(json.shop_sales ?? 0),
-          });
-        }
-      } catch (err) {
-        if (!ignore) setMetricsError(String(err.message || err));
-      } finally {
-        if (!ignore) setMetricsLoading(false);
-      }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, [selectedMonth, pane, token]);
-
-  useEffect(() => {
-    if (pane !== "dashboard") return;
-    let ignore = false;
-    (async () => {
-      setGiftshopLoading(true);
-      try {
-        const start = firstDayISO(selectedMonth);
-        const end = lastDayISO(selectedMonth);
-        const res = await fetch(
-          `${API_BASE}/api/reports/member-giftshop-purchases?start=${start}&end=${end}`,
-          {
-            credentials: "include",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          }
-        );
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        const json = await res.json();
-        if (!ignore) setGiftshopData(json);
-      } catch (err) {
-        if (!ignore) setGiftshopError(String(err.message || err));
-      } finally {
-        if (!ignore) setGiftshopLoading(false);
-      }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, [selectedMonth, pane, token]);
-
-  useEffect(() => {
-    if (pane !== "dashboard") return;
-    let ignore = false;
-    (async () => {
-      setSupplierLoading(true);
-      try {
-        const start = firstDayISO(selectedMonth);
-        const end = lastDayISO(selectedMonth);
-        const res = await fetch(
-          `${API_BASE}/api/reports/supplier-giftshop-sales?start=${start}&end=${end}`,
-          {
-            credentials: "include",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          }
-        );
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        const json = await res.json();
-        if (!ignore) setSupplierData(json);
-      } catch (err) {
-        if (!ignore) setSupplierError(String(err.message || err));
-      } finally {
-        if (!ignore) setSupplierLoading(false);
-      }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, [selectedMonth, pane, token]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
@@ -435,7 +299,6 @@ export default function DashboardAdmin() {
     return `${mm}/${dd}/${yyyy}`;
   }
 
-
   return (
     <div className="p-6 space-y-6 bg-gradient-to-b from-white to-neutral-50 min-h-screen text-neutral-900">
       <div className="flex items-center justify-between">
@@ -454,19 +317,21 @@ export default function DashboardAdmin() {
         <div className="inline-flex bg-neutral-100 rounded-3xl p-1 shadow-inner">
           <button
             onClick={() => setPane("dashboard")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "dashboard"
-              ? "bg-white shadow text-neutral-900"
-              : "text-neutral-600 hover:text-neutral-800"
-              }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
+              pane === "dashboard"
+                ? "bg-white shadow text-neutral-900"
+                : "text-neutral-600 hover:text-neutral-800"
+            }`}
           >
             Dashboard
           </button>
           <button
             onClick={() => setPane("users")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "users"
-              ? "bg-white shadow text-neutral-900"
-              : "text-neutral-600 hover:text-neutral-800"
-              }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
+              pane === "users"
+                ? "bg-white shadow text-neutral-900"
+                : "text-neutral-600 hover:text-neutral-800"
+            }`}
           >
             Users
           </button>
@@ -496,8 +361,6 @@ export default function DashboardAdmin() {
           )}
         </>
       )}
-
-
 
       {pane === "dashboard" && (
         <section className="space-y-4 mt-6">
@@ -563,10 +426,7 @@ export default function DashboardAdmin() {
         </section>
       )}
 
-      {/* =======================================
-           EXHIBITION APPROVAL QUEUE (NEW)
-      ======================================== */}
-
+      {/* EXHIBITION APPROVAL QUEUE */}
       {pane === "dashboard" && (
         <section className="space-y-4 mt-6">
           <h2 className="text-xl font-semibold text-neutral-800">
@@ -606,14 +466,11 @@ export default function DashboardAdmin() {
                       className="border-t border-neutral-200"
                     >
                       <td className="px-3 py-2">{ex.title}</td>
-
-                      {/* FIXED DATE FORMATTING */}
                       <td className="px-3 py-2">
                         {ex.start_date ? formatDate(ex.start_date) : "—"}{" "}
                         –{" "}
                         {ex.end_date ? formatDate(ex.end_date) : "—"}
                       </td>
-
                       <td className="px-3 py-2">
                         {ex.venue_name ||
                           (ex.venue_id ? `Venue #${ex.venue_id}` : "—")}
@@ -653,164 +510,9 @@ export default function DashboardAdmin() {
         </section>
       )}
 
-
-      {/* THE REST OF YOUR ORIGINAL DASHBOARD (metrics, reports, employees, users) */}
+      {/* EMPLOYEE SEARCH + TABLE */}
       {pane === "dashboard" ? (
         <>
-          {/* Monthly Performance */}
-          <section className="space-y-4">
-            <div className="flex items-end justify-between gap-3">
-              <h2 className="text-xl font-semibold text-neutral-800">
-                Monthly Performance
-              </h2>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-600">Month</label>
-                <input
-                  type="month"
-                  className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {metricsLoading ? (
-              <div className="p-4 text-neutral-500">Loading metrics…</div>
-            ) : metricsError ? (
-              <div className="p-4 text-red-500">
-                Failed to load metrics: {metricsError}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <MetricCard
-                  title="Total Visitors"
-                  value={fmtInt(metrics.total_visitors)}
-                />
-                <MetricCard
-                  title="Ticket Sales"
-                  value={fmtCurrency(metrics.ticket_sales)}
-                />
-                <MetricCard
-                  title="Shop Sales"
-                  value={fmtCurrency(metrics.shop_sales)}
-                />
-              </div>
-            )}
-          </section>
-
-          {/* Giftshop Purchases */}
-          <section className="space-y-4 mt-8">
-            <h2 className="text-xl font-semibold text-neutral-800">
-              Member Gift Shop Purchases
-            </h2>
-            <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
-              {giftshopLoading ? (
-                <div className="p-4 text-neutral-500">
-                  Loading gift shop purchases…
-                </div>
-              ) : giftshopError ? (
-                <div className="p-4 text-red-500">
-                  Failed to load report: {giftshopError}
-                </div>
-              ) : giftshopData.length === 0 ? (
-                <div className="p-4 text-neutral-500">
-                  No data available for this month.
-                </div>
-              ) : (
-                <table className="min-w-full text-sm text-neutral-800">
-                  <thead className="bg-neutral-100">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-semibold">
-                        Membership Type
-                      </th>
-                      <th className="px-3 py-2 text-left font-semibold">
-                        Total Transactions
-                      </th>
-                      <th className="px-3 py-2 text-left font-semibold">
-                        Average Purchase
-                      </th>
-                      <th className="px-3 py-2 text-left font-semibold">
-                        Total Spent
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {giftshopData.map((row, idx) => (
-                      <tr key={idx} className="border-t border-neutral-200">
-                        <td className="px-3 py-2">{row.membership_type}</td>
-                        <td className="px-3 py-2">
-                          {row.total_transactions}
-                        </td>
-                        <td className="px-3 py-2">
-                          {fmtCurrency(parseFloat(row.avg_purchase_value))}
-                        </td>
-                        <td className="px-3 py-2">
-                          {fmtCurrency(parseFloat(row.total_spent))}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </section>
-
-          {/* Supplier Sales */}
-          <section className="space-y-4 mt-8">
-            <h2 className="text-xl font-semibold text-neutral-800">
-              Supplier Gift Shop Sales
-            </h2>
-            <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
-              {supplierLoading ? (
-                <div className="p-4 text-neutral-500">
-                  Loading supplier sales…
-                </div>
-              ) : supplierError ? (
-                <div className="p-4 text-red-500">
-                  Failed to load report: {supplierError}
-                </div>
-              ) : supplierData.length === 0 ? (
-                <div className="p-4 text-neutral-500">No supplier data.</div>
-              ) : (
-                <table className="min-w-full text-sm text-neutral-800">
-                  <thead className="bg-neutral-100">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-semibold">
-                        Supplier Name
-                      </th>
-                      <th className="px-3 py-2 text-right font-semibold">
-                        Total Sales
-                      </th>
-                      <th className="px-3 py-2 text-right font-semibold">
-                        Transactions
-                      </th>
-                      <th className="px-3 py-2 text-right font-semibold">
-                        Unique Products Sold
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {supplierData.map((row, idx) => (
-                      <tr key={idx} className="border-t border-neutral-200">
-                        <td className="px-3 py-2">{row.supplier_name}</td>
-                        <td className="px-3 py-2 text-right">
-                          {fmtCurrency(parseFloat(row.total_sales))}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {row.total_transactions}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {row.unique_products_sold}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </section>
-
-          {/* Employee Search */}
           <h1 className="text-lg font-semibold text-neutral-800 mt-10">
             Employee Search
           </h1>
@@ -864,7 +566,6 @@ export default function DashboardAdmin() {
             </button>
           </form>
 
-          {/* Employee Table */}
           <div className="rounded-xl border border-neutral-300 bg-white shadow-sm overflow-x-auto max-h-96 overflow-y-auto">
             {loading ? (
               <div className="p-4 text-neutral-500">Loading…</div>
@@ -902,10 +603,11 @@ export default function DashboardAdmin() {
                       <td className="px-3 py-2">
                         {r.user_id ? (
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${r.is_active
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-neutral-200 text-neutral-700"
-                              }`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              r.is_active
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-neutral-200 text-neutral-700"
+                            }`}
                           >
                             {r.is_active ? "Active" : "Inactive"}
                           </span>
@@ -931,10 +633,11 @@ export default function DashboardAdmin() {
                               onClick={() =>
                                 toggleActive(r.user_id, r.is_active)
                               }
-                              className={`px-2 py-1 rounded-md text-xs ${r.is_active
-                                ? "bg-red-500 hover:bg-red-400 text-white"
-                                : "bg-emerald-600 hover:bg-emerald-500 text-white"
-                                }`}
+                              className={`px-2 py-1 rounded-md text-xs ${
+                                r.is_active
+                                  ? "bg-red-500 hover:bg-red-400 text-white"
+                                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                              }`}
                               title={
                                 r.is_active ? "Disable login" : "Enable login"
                               }
@@ -960,20 +663,7 @@ export default function DashboardAdmin() {
   );
 }
 
-// ------------------------------------------------------
-// Reusable Components
-// ------------------------------------------------------
-
-function MetricCard({ title, value }) {
-  return (
-    <div className="rounded-xl bg-white border border-neutral-200 shadow-sm p-5 flex flex-col">
-      <div className="text-sm text-neutral-500">{title}</div>
-      <div className="text-2xl font-semibold mt-2 text-neutral-800">
-        {value}
-      </div>
-    </div>
-  );
-}
+/* ------------------------- Users Pane stays same ------------------------- */
 
 function UsersPane() {
   const API_BASE = import.meta.env.VITE_API_BASE;
@@ -986,7 +676,6 @@ function UsersPane() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // 🔹 Fetch ALL users once (no filters in URL)
   const fetchUsers = async () => {
     setLoading(true);
     setErr("");
@@ -996,13 +685,11 @@ function UsersPane() {
         credentials: "include",
       });
 
-      // try to parse JSON only if it's actually JSON
       let json;
       const ct = res.headers.get("content-type") || "";
       if (ct.includes("application/json")) {
         json = await res.json();
       } else {
-        // non-JSON – treat as generic error if not ok
         if (!res.ok) {
           throw new Error(`Failed to fetch users (status ${res.status})`);
         }
@@ -1015,7 +702,7 @@ function UsersPane() {
 
       const rows = Array.isArray(json) ? json : json.rows || [];
       setUsers(rows);
-      setFiltered(rows); // initially show all
+      setFiltered(rows);
     } catch (e) {
       setErr(String(e.message || e));
       setUsers([]);
@@ -1030,7 +717,6 @@ function UsersPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 🔹 Apply search + role filter on the frontend
   const applyFilters = () => {
     const needle = q.trim().toLowerCase();
     const selectedRole = role.trim().toLowerCase();
@@ -1054,7 +740,6 @@ function UsersPane() {
     setFiltered(rows);
   };
 
-  // 🔹 Create user (afterwards re-fetch everything)
   const createUser = async () => {
     const first_name = prompt("Enter first name:") || "";
     const last_name = prompt("Enter last name:") || "";
@@ -1092,14 +777,13 @@ function UsersPane() {
 
       if (!res.ok) throw new Error(json.error || "Create failed");
 
-      await fetchUsers();   // refresh list
+      await fetchUsers();
       alert("User created.");
     } catch (e) {
       alert("Error: " + e.message);
     }
   };
 
-  // 🔹 Delete user (update state so row disappears, handle non-JSON safely)
   const deleteUser = async (id, email) => {
     if (!confirm(`Delete user ${email}? This cannot be undone.`)) return;
 
@@ -1124,7 +808,6 @@ function UsersPane() {
         throw new Error(json.error || `Delete failed (status ${res.status})`);
       }
 
-      // remove from local state
       setUsers((prev) => prev.filter((u) => u.user_id !== id));
       setFiltered((prev) => prev.filter((u) => u.user_id !== id));
     } catch (e) {
