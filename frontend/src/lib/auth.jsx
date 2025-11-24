@@ -54,6 +54,7 @@ export default function AuthProvider({ children }) {
   }, [token]);
 
   function login(accessToken, userObj) {
+    localStorage.removeItem("cart_guest");
     setToken(accessToken);
     setUser(userObj);
     localStorage.setItem("token", accessToken);
@@ -61,12 +62,17 @@ export default function AuthProvider({ children }) {
   }
 
   function logout() {
+
+    if (user?.user_id) {
+      localStorage.removeItem(`cart_${user.user_id}`);
+    }
+
     setToken(null);
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
-    window.location.href = "/"; 
+    window.location.href = "/";
   }
 
   return (

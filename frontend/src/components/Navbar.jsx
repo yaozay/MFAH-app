@@ -69,10 +69,13 @@ export default function Navbar() {
                 Artworks
                 <ActiveUnderline />
               </NavLink>
-              <NavLink to="/reports" className={linkStyle}>
-                Reports
-                <ActiveUnderline />
-              </NavLink>
+              {user.role === "admin" && (
+                <NavLink to="/reports" className={linkStyle}>
+                  Reports
+                  <ActiveUnderline />
+                </NavLink>
+              )}
+
             </>
           )}
 

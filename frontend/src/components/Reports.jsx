@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../lib/auth";
+import { useNavigate } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_BASE;
 
@@ -12,9 +13,19 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return navigate("/login");
+    if (user.role !== "admin") return navigate("/unauthorized");
+  }, [user]);
+
+
   // ===== Artworks per Artist filters =====
   const [artistQ, setArtistQ] = useState("");
-  const [artistSort, setArtistSort] = useState("artwork_count"); // artwork_count | artist_id
+  const [artistSort, setArtistSort] = useState("artwork_count");
   const [artistDir, setArtistDir] = useState("desc");
   const [artistApplied, setArtistApplied] = useState({
     q: "",
@@ -25,7 +36,7 @@ export default function Reports() {
   // Giftshop Report states
   const [giftshopStart, setGiftshopStart] = useState("");
   const [giftshopEnd, setGiftshopEnd] = useState("");
-  const [productList, setProductList] = useState([]); // reserved for future product filter
+  const [productList, setProductList] = useState([]);
   const [giftshopProductId, setGiftshopProductId] = useState("");
 
   const [giftshopReport, setGiftshopReport] = useState(null);
@@ -60,6 +71,95 @@ export default function Reports() {
     loading: false,
   });
 
+  // =========================
+  // Revenue Report
+  // =========================
+  const [revenue, setRevenue] = useState([]);
+  const [revLoading, setRevLoading] = useState(false);
+  const [revError, setRevError] = useState("");
+
+  const [revTotals, setRevTotals] = useState({
+    tickets: 0,
+    memberships: 0,
+    giftshop: 0,
+    grand_total: 0,
+  });
+
+  const [revQuery, setRevQuery] = useState("");
+  const [revType, setRevType] = useState("");
+  const [revStart, setRevStart] = useState("");
+  const [revEnd, setRevEnd] = useState("");
+
+  const loadRevenue = async () => {
+    setRevLoading(true);
+    setRevError("");
+
+    try {
+      const params = new URLSearchParams();
+      if (revQuery) params.set("q", revQuery);
+      if (revType) params.set("type", revType);
+      if (revStart) params.set("start", revStart);
+      if (revEnd) params.set("end", revEnd);
+
+      const res = await fetch(
+        `${API}/api/revenue-detailed?${params.toString()}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
+        }
+      );
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to load revenue");
+
+      setRevenue(json.rows || []);
+      setRevTotals(json.totals || {});
+    } catch (err) {
+      setRevError(String(err.message));
+      setRevenue([]);
+      setRevTotals({
+        tickets: 0,
+        memberships: 0,
+        giftshop: 0,
+        grand_total: 0,
+      });
+    } finally {
+      setRevLoading(false);
+    }
+  };
+  const downloadRevenueCsv = () => {
+    if (!revenue.length) {
+      alert("No revenue data to export.");
+      return;
+    }
+
+    downloadCsvFile(
+      "revenue_report.csv",
+      [
+        "transaction_date",
+        "customer_name",
+        "transaction_type",
+        "item_name",
+        "quantity",
+        "unit_price",
+        "total_amount"
+      ],
+      revenue.map((row) => [
+        row.transaction_date ?? "",
+        row.customer_name ?? "",
+        row.transaction_type ?? "",
+        row.item_name ?? "",
+        row.quantity ?? 0,
+        Number(row.unit_price ?? 0).toFixed(2),
+        Number(row.total_amount ?? 0).toFixed(2),
+      ])
+    );
+  };
+
+  useEffect(() => {
+    loadRevenue();
+  }, []);
+
   // ===== Format helpers =====
   const fmtCurrency = (n) =>
     new Intl.NumberFormat(undefined, {
@@ -90,7 +190,7 @@ export default function Reports() {
     return ms >= 0 ? Math.floor(ms / (1000 * 60 * 60 * 24)) + 1 : null;
   };
 
-  // Small helper to build & download CSV on the client
+
   const downloadCsvFile = (filename, header, rows) => {
     const escapeCell = (v) => {
       const s = (v ?? "").toString();
@@ -116,7 +216,7 @@ export default function Reports() {
     window.URL.revokeObjectURL(url);
   };
 
-  // ===== INITIAL: basic data fetches (no filters) =====
+
   useEffect(() => {
     const fetchReports = async () => {
       try {
@@ -137,7 +237,6 @@ export default function Reports() {
     };
 
     fetchReports();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ===== Artworks per Artist: apply filters + sort on client =====
@@ -177,7 +276,7 @@ export default function Reports() {
     return rows;
   }, [artworksPerArtist, artistApplied]);
 
-  // ===== Artworks per Artist: summary (based on filtered rows) =====
+  // ===== Artworks per Artist: summary =====
   const artworksSummary = useMemo(() => {
     if (!filteredArtworksPerArtist.length) return null;
 
@@ -302,7 +401,7 @@ export default function Reports() {
     };
   }, [token, popQuery, applied.page, applied.pageSize]);
 
-  // ===== Exhibition Popularity: summary (current result set) =====
+  // ===== Exhibition Popularity=====
   const exhibitionSummary = useMemo(() => {
     const rows = popData.rows || [];
     if (!rows.length) return null;
@@ -363,7 +462,7 @@ export default function Reports() {
       if (!res.ok) throw new Error(json.error || "Failed to load report");
 
       setGiftshopReport(json);
-      setGiftshopPage(1); // reset to first page each time
+      setGiftshopPage(1);
     } catch (err) {
       setGiftshopReportError(err.message);
     } finally {
@@ -371,7 +470,7 @@ export default function Reports() {
     }
   }
 
-  // ===== Apply handlers =====
+
   const onApplyArtists = (e) => {
     e.preventDefault();
     setArtistApplied({
@@ -447,7 +546,7 @@ export default function Reports() {
     1,
     Math.ceil(
       (popData.total || 0) /
-        (popData.pageSize || applied.pageSize || 10)
+      (popData.pageSize || applied.pageSize || 10)
     )
   );
 
@@ -493,6 +592,156 @@ export default function Reports() {
       <h1 className="text-3xl font-serif mb-6 text-neutral-800">
         Reports Dashboard
       </h1>
+      <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12 mt-4">
+        {/* Header */}
+        <div className="border-b border-neutral-200 px-6 py-4 bg-rose-600">
+          <h2 className="text-2xl font-serif text-white">
+            Financial Revenue Report
+          </h2>
+          <p className="text-sm text-rose-100">
+            Tickets • Memberships • Gift Shop • Customer transactions
+          </p>
+        </div>
+
+        {/* Filters */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            loadRevenue();
+          }}
+          className="flex flex-wrap gap-3 items-end p-6"
+        >
+          <input
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm flex-1"
+            placeholder="Search customer or item…"
+            value={revQuery}
+            onChange={(e) => setRevQuery(e.target.value)}
+          />
+
+          <select
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={revType}
+            onChange={(e) => setRevType(e.target.value)}
+          >
+            <option value="">All Types</option>
+            <option value="ticket">Ticket</option>
+            <option value="membership">Membership</option>
+            <option value="giftshop">Gift Shop</option>
+          </select>
+
+          <input
+            type="date"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={revStart}
+            onChange={(e) => setRevStart(e.target.value)}
+          />
+
+          <input
+            type="date"
+            className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+            value={revEnd}
+            onChange={(e) => setRevEnd(e.target.value)}
+          />
+
+          <button
+            type="submit"
+            className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
+          >
+            Apply
+          </button>
+          <button
+            type="button"
+            onClick={downloadRevenueCsv}
+            className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
+          >
+            Download CSV
+          </button>
+
+        </form>
+
+
+        {/* Summary */}
+        <div className="px-6 pb-4">
+          <h3 className="text-lg font-semibold mb-2">Summary</h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-2 text-sm">
+            <p>
+              <strong>Ticket Revenue:</strong>{" "}
+              {fmtCurrency(revTotals.tickets)}
+            </p>
+            <p>
+              <strong>Membership Revenue:</strong>{" "}
+              {fmtCurrency(revTotals.memberships)}
+            </p>
+            <p>
+              <strong>Gift Shop Revenue:</strong>{" "}
+              {fmtCurrency(revTotals.giftshop)}
+            </p>
+            <p>
+              <strong>Grand Total:</strong>{" "}
+              <span className="text-rose-600 font-semibold">
+                {fmtCurrency(revTotals.grand_total)}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto px-6 pb-6">
+          <div className="max-h-80 overflow-y-auto border border-neutral-200 rounded-xl">
+            {revLoading ? (
+              <div className="p-4 text-neutral-500">Loading…</div>
+            ) : revError ? (
+              <div className="p-4 text-red-500">{revError}</div>
+            ) : revenue.length === 0 ? (
+              <div className="p-4 text-neutral-500">
+                No transactions found.
+              </div>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead className="bg-neutral-100">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-black">Date</th>
+                    <th className="px-6 py-3 text-left text-black">Customer</th>
+                    <th className="px-6 py-3 text-left text-black">Type</th>
+                    <th className="px-6 py-3 text-left text-black">Item</th>
+                    <th className="px-6 py-3 text-left text-black">Qty</th>
+                    <th className="px-6 py-3 text-left text-black">Unit Price</th>
+                    <th className="px-6 py-3 text-left text-black">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {revenue.map((row) => (
+                    <tr
+                      key={`${row.transaction_type}-${row.transaction_id}`}
+                      className="border-t border-neutral-200"
+                    >
+                      <td className="px-6 py-3">
+                        {row.transaction_date
+                          ? fmtDateMMDDYYYY(row.transaction_date)
+                          : "—"}
+                      </td>
+                      <td className="px-6 py-3">{row.customer_name}</td>
+                      <td className="px-6 py-3 capitalize">
+                        {row.transaction_type}
+                      </td>
+                      <td className="px-6 py-3">{row.item_name}</td>
+                      <td className="px-6 py-3">{row.quantity}</td>
+                      <td className="px-6 py-3 text-rose-600 font-medium">
+                        {fmtCurrency(row.unit_price)}
+                      </td>
+                      <td className="px-6 py-3 text-rose-600 font-medium">
+                        {fmtCurrency(row.total_amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </section>
+
 
       {/* Giftshop Sales Report */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">

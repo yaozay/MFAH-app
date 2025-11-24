@@ -1,17 +1,31 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useAuth } from "../../lib/auth";
 
 const CartContext = createContext();
 const TAX_RATE = 0.0825;
 
 export function CartProvider({ children }) {
+  const { user } = useAuth();
+
+  // Use a unique cart key based on the logged-in user
+  const CART_KEY = user ? `cart_${user.user_id}` : "cart_guest";
+
+  // Load the correct cart for this user
   const [cartItems, setCartItems] = useState(() => {
-    const stored = localStorage.getItem("cart");
+    const stored = localStorage.getItem(CART_KEY);
     return stored ? JSON.parse(stored) : [];
   });
 
+  // Save cart under user-specific key
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cartItems));
-  }, [cartItems]);
+    localStorage.setItem(CART_KEY, JSON.stringify(cartItems));
+  }, [cartItems, CART_KEY]);
+
+  // Whenever the user changes, load their cart
+  useEffect(() => {
+    const stored = localStorage.getItem(CART_KEY);
+    setCartItems(stored ? JSON.parse(stored) : []);
+  }, [CART_KEY]);
 
   const addToCart = (item, overrideType = null) => {
     const finalType = overrideType || item.type;
@@ -29,7 +43,7 @@ export function CartProvider({ children }) {
 
       if (existing) {
         if (finalType === "membership") {
-          return prev;
+          return prev; // cannot add 2 memberships
         }
 
         return prev.map((i) =>
@@ -68,7 +82,10 @@ export function CartProvider({ children }) {
     );
   };
 
-  const clearCart = () => setCartItems([]);
+  const clearCart = () => {
+    setCartItems([]);
+    localStorage.removeItem(CART_KEY);
+  };
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.qty,
