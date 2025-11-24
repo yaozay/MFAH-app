@@ -127,6 +127,34 @@ export default function Reports() {
       setRevLoading(false);
     }
   };
+  const downloadRevenueCsv = () => {
+    if (!revenue.length) {
+      alert("No revenue data to export.");
+      return;
+    }
+
+    downloadCsvFile(
+      "revenue_report.csv",
+      [
+        "transaction_date",
+        "customer_name",
+        "transaction_type",
+        "item_name",
+        "quantity",
+        "unit_price",
+        "total_amount"
+      ],
+      revenue.map((row) => [
+        row.transaction_date ?? "",
+        row.customer_name ?? "",
+        row.transaction_type ?? "",
+        row.item_name ?? "",
+        row.quantity ?? 0,
+        Number(row.unit_price ?? 0).toFixed(2),
+        Number(row.total_amount ?? 0).toFixed(2),
+      ])
+    );
+  };
 
   useEffect(() => {
     loadRevenue();
@@ -621,7 +649,16 @@ export default function Reports() {
           >
             Apply
           </button>
+          <button
+            type="button"
+            onClick={downloadRevenueCsv}
+            className="bg-rose-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-rose-700 transition"
+          >
+            Download CSV
+          </button>
+
         </form>
+
 
         {/* Summary */}
         <div className="px-6 pb-4">
