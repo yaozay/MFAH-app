@@ -36,7 +36,7 @@ export default function Reports() {
   // Giftshop Report states
   const [giftshopStart, setGiftshopStart] = useState("");
   const [giftshopEnd, setGiftshopEnd] = useState("");
-  const [productList, setProductList] = useState([]); // reserved for future product filter
+  const [productList, setProductList] = useState([]);
   const [giftshopProductId, setGiftshopProductId] = useState("");
 
   const [giftshopReport, setGiftshopReport] = useState(null);
@@ -128,7 +128,6 @@ export default function Reports() {
     }
   };
 
-  // Load revenue ONCE when Reports opens
   useEffect(() => {
     loadRevenue();
   }, []);
@@ -163,7 +162,7 @@ export default function Reports() {
     return ms >= 0 ? Math.floor(ms / (1000 * 60 * 60 * 24)) + 1 : null;
   };
 
-  // Small helper to build & download CSV on the client
+
   const downloadCsvFile = (filename, header, rows) => {
     const escapeCell = (v) => {
       const s = (v ?? "").toString();
@@ -189,7 +188,7 @@ export default function Reports() {
     window.URL.revokeObjectURL(url);
   };
 
-  // ===== INITIAL: basic data fetches (no filters) =====
+
   useEffect(() => {
     const fetchReports = async () => {
       try {
@@ -210,7 +209,6 @@ export default function Reports() {
     };
 
     fetchReports();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ===== Artworks per Artist: apply filters + sort on client =====
@@ -250,7 +248,7 @@ export default function Reports() {
     return rows;
   }, [artworksPerArtist, artistApplied]);
 
-  // ===== Artworks per Artist: summary (based on filtered rows) =====
+  // ===== Artworks per Artist: summary =====
   const artworksSummary = useMemo(() => {
     if (!filteredArtworksPerArtist.length) return null;
 
@@ -375,7 +373,7 @@ export default function Reports() {
     };
   }, [token, popQuery, applied.page, applied.pageSize]);
 
-  // ===== Exhibition Popularity: summary (current result set) =====
+  // ===== Exhibition Popularity=====
   const exhibitionSummary = useMemo(() => {
     const rows = popData.rows || [];
     if (!rows.length) return null;
@@ -436,7 +434,7 @@ export default function Reports() {
       if (!res.ok) throw new Error(json.error || "Failed to load report");
 
       setGiftshopReport(json);
-      setGiftshopPage(1); // reset to first page each time
+      setGiftshopPage(1);
     } catch (err) {
       setGiftshopReportError(err.message);
     } finally {
@@ -444,7 +442,7 @@ export default function Reports() {
     }
   }
 
-  // ===== Apply handlers =====
+
   const onApplyArtists = (e) => {
     e.preventDefault();
     setArtistApplied({
