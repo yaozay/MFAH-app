@@ -569,9 +569,6 @@ export default function DashboardAdmin() {
       {/* ================================
     FINANCIAL REVENUE REPORT
 ================================ */}
-      {/* ================================
-    FINANCIAL REVENUE REPORT
-================================ */}
       {pane === "dashboard" && (
         <section className="mt-10 space-y-4">
           <h1 className="text-lg font-semibold text-neutral-800">
