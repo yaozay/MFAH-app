@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../lib/auth";
+import { useNavigate } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_BASE;
 
@@ -11,6 +12,16 @@ export default function Reports() {
   const [artworksPerArtist, setArtworksPerArtist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return navigate("/login");
+    if (user.role !== "admin") return navigate("/unauthorized");
+  }, [user]);
+
 
   // ===== Artworks per Artist filters =====
   const [artistQ, setArtistQ] = useState("");
