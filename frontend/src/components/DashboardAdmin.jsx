@@ -39,6 +39,64 @@ export default function DashboardAdmin() {
   const [loading, setLoading] = useState(false);
 
   // -----------------------------
+  // Revenue Report
+  // -----------------------------
+  const [revenue, setRevenue] = useState([]);
+  const [revLoading, setRevLoading] = useState(false);
+  const [revError, setRevError] = useState("");
+
+  const [revQuery, setRevQuery] = useState("");
+  const [revType, setRevType] = useState("");
+  const [revStart, setRevStart] = useState("");
+  const [revEnd, setRevEnd] = useState("");
+
+
+  const loadRevenue = async () => {
+    setRevLoading(true);
+    setRevError("");
+
+    try {
+      const params = new URLSearchParams();
+      if (revQuery) params.set("q", revQuery);
+      if (revType) params.set("type", revType);
+      if (revStart) params.set("start", revStart);
+      if (revEnd) params.set("end", revEnd);
+
+      const res = await fetch(`${API_BASE}/api/revenue-detailed?${params.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to load revenue");
+
+      setRevenue(json.rows || []);
+      setRevTotals(json.totals || {});
+
+    } catch (err) {
+      setRevError(String(err.message));
+      setRevenue([]);
+    } finally {
+      setRevLoading(false);
+    }
+  };
+
+  const [revTotals, setRevTotals] = useState({
+    tickets: 0,
+    memberships: 0,
+    giftshop: 0,
+    grand_total: 0,
+  });
+
+
+  useEffect(() => {
+    if (pane !== "dashboard") return;
+    loadRevenue();
+  }, [pane]);
+
+
+
+  // -----------------------------
   // Pending Events
   // -----------------------------
   const [pendingEvents, setPendingEvents] = useState([]);
@@ -317,21 +375,19 @@ export default function DashboardAdmin() {
         <div className="inline-flex bg-neutral-100 rounded-3xl p-1 shadow-inner">
           <button
             onClick={() => setPane("dashboard")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
-              pane === "dashboard"
-                ? "bg-white shadow text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-800"
-            }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "dashboard"
+              ? "bg-white shadow text-neutral-900"
+              : "text-neutral-600 hover:text-neutral-800"
+              }`}
           >
             Dashboard
           </button>
           <button
             onClick={() => setPane("users")}
-            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${
-              pane === "users"
-                ? "bg-white shadow text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-800"
-            }`}
+            className={`px-6 py-2 rounded-2xl text-sm font-medium transition ${pane === "users"
+              ? "bg-white shadow text-neutral-900"
+              : "text-neutral-600 hover:text-neutral-800"
+              }`}
           >
             Users
           </button>
@@ -510,6 +566,150 @@ export default function DashboardAdmin() {
         </section>
       )}
 
+      {/* ================================
+    FINANCIAL REVENUE REPORT
+================================ */}
+      {/* ================================
+    FINANCIAL REVENUE REPORT
+================================ */}
+      {pane === "dashboard" && (
+        <section className="mt-10 space-y-4">
+          <h1 className="text-lg font-semibold text-neutral-800">
+            Financial Revenue Report
+          </h1>
+
+          {/* Filters */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              loadRevenue();
+            }}
+            className="flex flex-wrap gap-2 items-end"
+          >
+            <input
+              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm flex-1"
+              placeholder="Search customer or item"
+              value={revQuery}
+              onChange={(e) => setRevQuery(e.target.value)}
+            />
+
+            <select
+              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+              value={revType}
+              onChange={(e) => setRevType(e.target.value)}
+            >
+              <option value="">All Types</option>
+              <option value="ticket">Ticket</option>
+              <option value="membership">Membership</option>
+              <option value="giftshop">Gift Shop</option>
+            </select>
+
+            <input
+              type="date"
+              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+              value={revStart}
+              onChange={(e) => setRevStart(e.target.value)}
+            />
+
+            <input
+              type="date"
+              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+              value={revEnd}
+              onChange={(e) => setRevEnd(e.target.value)}
+            />
+
+            <button
+              type="submit"
+              className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-500 text-sm"
+            >
+              Apply
+            </button>
+          </form>
+
+          {/* Totals Summary Box */}
+          <div className="flex gap-6 bg-neutral-100 border border-neutral-300 rounded-xl p-4 text-sm text-neutral-800">
+            <div>
+              <div className="font-semibold">Ticket Revenue</div>
+              <div className="text-emerald-700 font-bold">
+                ${revTotals.tickets.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div>
+              <div className="font-semibold">Membership Revenue</div>
+              <div className="text-emerald-700 font-bold">
+                ${revTotals.memberships.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div>
+              <div className="font-semibold">Gift Shop Revenue</div>
+              <div className="text-emerald-700 font-bold">
+                ${revTotals.giftshop.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div className="ml-auto">
+              <div className="font-semibold">Grand Total</div>
+              <div className="text-rose-600 font-extrabold text-lg">
+                ${revTotals.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+          </div>
+
+          {/* Data Table */}
+          <div className="rounded-xl border border-neutral-300 bg-white shadow-sm overflow-x-auto max-h-96 overflow-y-auto">
+            {revLoading ? (
+              <div className="p-4 text-neutral-500">Loading…</div>
+            ) : revError ? (
+              <div className="p-4 text-red-500">{revError}</div>
+            ) : revenue.length === 0 ? (
+              <div className="p-4 text-neutral-500">No transactions found.</div>
+            ) : (
+              <table className="min-w-full text-sm text-neutral-800">
+                <thead className="bg-neutral-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold">Date</th>
+                    <th className="px-3 py-2 text-left font-semibold">Customer</th>
+                    <th className="px-3 py-2 text-left font-semibold">Type</th>
+                    <th className="px-3 py-2 text-left font-semibold">Item</th>
+                    <th className="px-3 py-2 text-left font-semibold">Qty</th>
+                    <th className="px-3 py-2 text-left font-semibold">Unit</th>
+                    <th className="px-3 py-2 text-left font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {revenue.map((row) => (
+                    <tr
+                      key={`${row.transaction_type}-${row.transaction_id}`}
+                      className="border-t border-neutral-200"
+                    >
+                      <td className="px-3 py-2">
+                        {row.transaction_date
+                          ? new Date(row.transaction_date).toLocaleDateString()
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2">{row.customer_name}</td>
+                      <td className="px-3 py-2 capitalize">{row.transaction_type}</td>
+                      <td className="px-3 py-2">{row.item_name}</td>
+                      <td className="px-3 py-2">{row.quantity}</td>
+                      <td className="px-3 py-2">
+                        ${Number(row.unit_price).toFixed(2)}
+                      </td>
+                      <td className="px-3 py-2 font-semibold">
+                        ${Number(row.total_amount).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
+
+
+
       {/* EMPLOYEE SEARCH + TABLE */}
       {pane === "dashboard" ? (
         <>
@@ -603,11 +803,10 @@ export default function DashboardAdmin() {
                       <td className="px-3 py-2">
                         {r.user_id ? (
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                              r.is_active
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-neutral-200 text-neutral-700"
-                            }`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${r.is_active
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-neutral-200 text-neutral-700"
+                              }`}
                           >
                             {r.is_active ? "Active" : "Inactive"}
                           </span>
@@ -633,11 +832,10 @@ export default function DashboardAdmin() {
                               onClick={() =>
                                 toggleActive(r.user_id, r.is_active)
                               }
-                              className={`px-2 py-1 rounded-md text-xs ${
-                                r.is_active
-                                  ? "bg-red-500 hover:bg-red-400 text-white"
-                                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
-                              }`}
+                              className={`px-2 py-1 rounded-md text-xs ${r.is_active
+                                ? "bg-red-500 hover:bg-red-400 text-white"
+                                : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                                }`}
                               title={
                                 r.is_active ? "Disable login" : "Enable login"
                               }

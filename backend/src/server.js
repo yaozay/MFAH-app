@@ -18,6 +18,7 @@ import ticketsRouter from "./routes/tickets.js";
 import NotificationRouter from "./routes/notification.js"
 import purchaseHistoryRouter from "./routes/purchase_history.js";
 import giftShopReportRouter from "./routes/giftshopReport.js";
+import revenueRouter from "./routes/revenue.js";
 
 dotenv.config();
 
@@ -76,6 +77,7 @@ app.use("/api/tickets", ticketsRouter);
 app.use("/api/notifications", NotificationRouter)
 app.use("/api/purchase-history", purchaseHistoryRouter);
 app.use("/api/giftshop/report", giftShopReportRouter);
+app.use("/api/revenue-detailed", revenueRouter);
 
 
 app.get("/health", (req, res) => res.json({ ok: true }));
