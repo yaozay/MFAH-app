@@ -11,6 +11,17 @@ export default function GiftshopForm() {
 
   const [suppliers, setSuppliers] = useState([]);
 
+  // Required fields list
+  const requiredFields = [
+    "sku",
+    "name",
+    "category",
+    "price",
+    "quantity",
+    "supplier_id",
+    "image_url"
+  ];
+
   const [form, setForm] = useState({
     sku: "",
     name: "",
@@ -86,13 +97,12 @@ export default function GiftshopForm() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.name || !form.price) return alert("Name and price required.");
-  
+
     const method = editing ? "PUT" : "POST";
     const url = editing
       ? `${API}/api/giftshop/${editing.product_id}`
       : `${API}/api/giftshop`;
-  
+
     try {
       const res = await fetch(url, {
         method,
@@ -107,34 +117,27 @@ export default function GiftshopForm() {
           supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
         }),
       });
-  
-      // Try to read JSON even on error
+
       let data = null;
       try {
         data = await res.json();
-      } catch {
-        // non-JSON / 204 – ignore
-      }
-  
+      } catch {}
+
       const backendMsg =
         (data && (data.error || data.message)) || "";
-  
-      // Special case: backend bug – it updates but returns this error.
+
       const weirdButOkay =
         !res.ok &&
         res.status === 404 &&
         editing &&
         backendMsg === "Product not found or deleted";
-  
+
       if (!res.ok && !weirdButOkay) {
-        // Real error → show it
         throw new Error(
           backendMsg || `Failed to save product (status ${res.status})`
         );
       }
-  
-      // If we reach here: either success OR that weird 404 we’re treating as success
-  
+
       setForm({
         sku: "",
         name: "",
@@ -145,18 +148,17 @@ export default function GiftshopForm() {
         supplier_id: "",
       });
       setEditing(null);
-  
-      // Refresh products so you see the updated values
+
       const updated = await fetch(`${API}/api/giftshop`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProducts(await updated.json());
     } catch (err) {
       console.error("Save failed:", err);
-      alert(err.message); // you can remove this alert entirely if you never want popups
+      alert(err.message);
     }
   }
-  
+
   async function handleDelete(id) {
     if (!confirm("Delete this product?")) return;
     try {
@@ -239,20 +241,31 @@ export default function GiftshopForm() {
                 <div key={key} className="flex flex-col">
                   <label className="text-sm font-serif text-neutral-700 mb-1">
                     {key.charAt(0).toUpperCase() + key.slice(1)}
+                    {requiredFields.includes(key) && (
+                      <span className="text-red-600"> *</span>
+                    )}
                   </label>
+
                   <input
-                    type={key === "price" || key === "quantity" ? "number" : "text"}
+                    required={requiredFields.includes(key)}
+                    type={
+                      key === "price" || key === "quantity" ? "number" : "text"
+                    }
                     value={form[key]}
-                    onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, [key]: e.target.value })
+                    }
                     className="border rounded-md p-2 text-sm"
                   />
                 </div>
               ))}
+
               <div className="flex flex-col">
                 <label className="text-sm font-serif text-neutral-700 mb-1">
-                  Supplier
+                  Supplier <span className="text-red-600">*</span>
                 </label>
                 <select
+                  required
                   value={form.supplier_id}
                   onChange={(e) =>
                     setForm({ ...form, supplier_id: e.target.value })
@@ -270,9 +283,10 @@ export default function GiftshopForm() {
 
               <div className="flex flex-col sm:col-span-2">
                 <label className="text-sm font-serif text-neutral-700 mb-1">
-                  Image URL
+                  Image URL <span className="text-red-600">*</span>
                 </label>
                 <input
+                  required
                   type="text"
                   value={form.image_url}
                   onChange={(e) =>
@@ -336,9 +350,7 @@ export default function GiftshopForm() {
                     <span className="text-gray-400 text-sm">No image</span>
                   )}
                 </div>
-                <h3 className="font-serif text-lg text-neutral-800 mb-1">
-                  {p.name}
-                </h3>
+                <h3 className="font-serif text-lg text-neutral-800 mb-1">{p.name}</h3>
                 <p className="text-sm text-neutral-500 mb-2">
                   {p.category || "General"}
                 </p>
@@ -373,9 +385,7 @@ export default function GiftshopForm() {
           </h2>
 
           {deletedProducts.length === 0 ? (
-            <p className="text-sm text-neutral-500">
-              No deleted products found.
-            </p>
+            <p className="text-sm text-neutral-500">No deleted products found.</p>
           ) : (
             <table className="min-w-full bg-white border border-neutral-200 rounded-lg overflow-hidden">
               <thead className="bg-rose-600 text-white">
