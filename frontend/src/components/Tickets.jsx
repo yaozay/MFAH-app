@@ -176,43 +176,46 @@ export default function Tickets() {
     <div className="min-h-screen bg-neutral-100 py-16 px-6">
       {/* Admin Mode Toggle */}
       {user?.role === "admin" && (
-        <div className="mb-8 flex justify-center">
-          <div className="w-full sm:w-3/4 lg:w-1/2 flex items-center justify-between">
-            <div>
-              <h2 className="text-xs font-serif tracking-wide uppercase text-neutral-500">
-                Ticket Management
-              </h2>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                {manage ? "Editing mode enabled" : "View-only mode"}
-              </p>
-            </div>
+      <div className="mb-8 flex justify-center">
+        <div className="w-full sm:w-3/4 lg:w-1/2 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-serif text-neutral-900">
+              {manage ? "You’re managing tickets" : "Ticket options"}
+            </p>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              {manage
+                ? "Edit or delete ticket types below."
+                : "Switch to manage mode to update tickets."}
+            </p>
+          </div>
+          {/* buttons stay the same */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setManage((prev) => !prev)}
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition
+                ${
+                  manage
+                    ? "bg-neutral-900 text-white border-neutral-900 shadow-sm"
+                    : "bg-white text-neutral-800 border-neutral-300 hover:border-neutral-500 hover:bg-neutral-50"
+                }`}
+            >
+              <span>{manage ? "Exit manage mode" : "Manage tickets"}</span>
+            </button>
 
-            <div className="flex items-center gap-3">
+            {manage && (
               <button
-                onClick={() => setManage((prev) => !prev)}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition
-                  ${
-                    manage
-                      ? "bg-neutral-900 text-white border-neutral-900 shadow-sm"
-                      : "bg-white text-neutral-800 border-neutral-300 hover:border-neutral-500 hover:bg-neutral-50"
-                  }`}
+                onClick={openCreate}
+                className="inline-flex items-center gap-2 rounded-full bg-rose-600 text-white text-sm font-medium px-4 py-2 shadow-sm hover:bg-rose-700 transition"
               >
-                <span>{manage ? "Exit Manage" : "Manage Tickets"}</span>
+                <span className="text-base leading-none">＋</span>
+                <span>New ticket</span>
               </button>
-
-              {manage && (
-                <button
-                  onClick={openCreate}
-                  className="inline-flex items-center gap-2 rounded-full bg-rose-600 text-white text-sm font-medium px-4 py-2 shadow-sm hover:bg-rose-700 transition"
-                >
-                  <span className="text-base leading-none">＋</span>
-                  <span>New Ticket</span>
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
+    )}
+
 
       {/* Tickets List */}
       <div className="flex flex-col items-center gap-6">
