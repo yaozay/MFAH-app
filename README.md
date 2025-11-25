@@ -53,26 +53,6 @@ This full-stack application provides a comprehensive platform for Houston Museum
 - Latest version of Node.js
 - MySQL installed locally
 
-### Starting The Client
-```bash
-cd client             # Navigate to the client directory
-npm install           # Install dependencies
-npm run dev           # Start the development server
-```
-
-> [!NOTE]
-> The client will open automatically in your default browser at http://localhost:5173 (or the port Vite assigns).
-
-### Starting The Server
-```bash
-cd server             # Navigate to the server directory
-npm install           # Install dependencies
-npm start             # Start the server
-```
-
-> [!NOTE]
-> The server will run on http://localhost:3000 (or the port specified in your .env file).
-
 ### Database Configuration
 
 This project uses AWS RDS for database hosting. Ensure your `.env` file contains the correct AWS RDS endpoint and credentials to connect successfully. The database should be configured with the proper schema before running the application.
