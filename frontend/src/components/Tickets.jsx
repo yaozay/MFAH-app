@@ -173,7 +173,21 @@ export default function Tickets() {
   };
 
   return (
+    
     <div className="min-h-screen bg-neutral-100 py-16 px-6">
+      {/* -------------------------------------- HEADER -------------------------------------- */}
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-serif text-neutral-800 mb-4 tracking-wide">
+          Tickets
+        </h1>
+
+        <div className="w-20 h-px bg-neutral-300 mx-auto mb-6"></div>
+
+        <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+          Explore our ticket options and choose the perfect way to experience the museum.
+        </p>
+      </div>
+
       {/* Admin Mode Toggle */}
       {user?.role === "admin" && (
       <div className="mb-8 flex justify-center">
