@@ -1,4 +1,88 @@
-# MFAH 3380 TEAM PROJECT
+# HOUSTON MUSEUM OF FINE ARTS
+
+Full-stack web application built with React, Node.js, and MySQL for COSC 3380: Database Systems
+
+## Project Description
+
+This full-stack application provides a comprehensive platform for Houston Museum of Fine Arts. Built with modern web technologies, it delivers a seamless user experience through an intuitive interface while maintaining robust backend functionality and reliable data management.
+
+### Key Features 🚀
+
+#### Visitor Experience
+- [Feature 1: e.g., Browse and explore available items/content]
+
+#### Employee Experience
+- [Feature 1: e.g., Data entry for everything visitor can see]
+
+#### Administrative Capabilities
+- [Admin Feature 1: e.g., Manage user accounts and permissions]
+- [Admin Feature 2: e.g., Report Dashboard]
+
+
+## Technologies
+
+### Frontend
+
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+
+### Backend
+
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+
+### Database
+
+![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
+
+### Deployment
+
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)
+![AWS RDS](https://img.shields.io/badge/AWS_RDS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white)
+
+### Version Control
+
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)
+
+## Hosting Locally
+
+### Prerequisites
+
+- Git installed on your machine
+- Latest version of Node.js
+- MySQL installed locally
+
+### Starting The Client
+```bash
+cd client             # Navigate to the client directory
+npm install           # Install dependencies
+npm run dev           # Start the development server
+```
+
+> [!NOTE]
+> The client will open automatically in your default browser at http://localhost:5173 (or the port Vite assigns).
+
+### Starting The Server
+```bash
+cd server             # Navigate to the server directory
+npm install           # Install dependencies
+npm start             # Start the server
+```
+
+> [!NOTE]
+> The server will run on http://localhost:3000 (or the port specified in your .env file).
+
+### Database Configuration
+
+This project uses AWS RDS for database hosting. Ensure your `.env` file contains the correct AWS RDS endpoint and credentials to connect successfully. The database should be configured with the proper schema before running the application.
+
+## Deployment
+
+- **Frontend**: Deployed on Vercel with automatic deployments from the main branch
+- **Backend**: Deployed on Render with environment variables configured
+- **Database**: Hosted on AWS RDS (MySQL instance)
+
 
 ## Getting Started
 
