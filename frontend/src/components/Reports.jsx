@@ -13,15 +13,12 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-
-
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) return navigate("/login");
     if (user.role !== "admin") return navigate("/unauthorized");
   }, [user]);
-
 
   // ===== Artworks per Artist filters =====
   const [artistQ, setArtistQ] = useState("");
@@ -32,6 +29,8 @@ export default function Reports() {
     sort: "artwork_count",
     dir: "desc",
   });
+  const [artistPage, setArtistPage] = useState(1);
+  const ARTIST_PAGE_SIZE = 10;
 
   // Giftshop Report states
   const [giftshopStart, setGiftshopStart] = useState("");
@@ -89,6 +88,8 @@ export default function Reports() {
   const [revType, setRevType] = useState("");
   const [revStart, setRevStart] = useState("");
   const [revEnd, setRevEnd] = useState("");
+  const [revPage, setRevPage] = useState(1);
+  const REV_PAGE_SIZE = 10;
 
   const loadRevenue = async () => {
     setRevLoading(true);
@@ -114,6 +115,7 @@ export default function Reports() {
 
       setRevenue(json.rows || []);
       setRevTotals(json.totals || {});
+      setRevPage(1); // reset pagination on new query
     } catch (err) {
       setRevError(String(err.message));
       setRevenue([]);
@@ -123,10 +125,20 @@ export default function Reports() {
         giftshop: 0,
         grand_total: 0,
       });
+      setRevPage(1);
     } finally {
       setRevLoading(false);
     }
   };
+
+  // Revenue pagination derived values
+  const revTotal = revenue.length;
+  const revTotalPages =
+    revTotal > 0 ? Math.max(1, Math.ceil(revTotal / REV_PAGE_SIZE)) : 1;
+  const revStartIndex = (revPage - 1) * REV_PAGE_SIZE;
+  const revEndIndex = revPage * REV_PAGE_SIZE;
+  const revPageRows = revenue.slice(revStartIndex, revEndIndex);
+
   const downloadRevenueCsv = () => {
     if (!revenue.length) {
       alert("No revenue data to export.");
@@ -142,7 +154,7 @@ export default function Reports() {
         "item_name",
         "quantity",
         "unit_price",
-        "total_amount"
+        "total_amount",
       ],
       revenue.map((row) => [
         row.transaction_date ?? "",
@@ -190,7 +202,6 @@ export default function Reports() {
     return ms >= 0 ? Math.floor(ms / (1000 * 60 * 60 * 24)) + 1 : null;
   };
 
-
   const downloadCsvFile = (filename, header, rows) => {
     const escapeCell = (v) => {
       const s = (v ?? "").toString();
@@ -215,7 +226,6 @@ export default function Reports() {
     a.remove();
     window.URL.revokeObjectURL(url);
   };
-
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -275,6 +285,19 @@ export default function Reports() {
 
     return rows;
   }, [artworksPerArtist, artistApplied]);
+
+  // Artist pagination derived values
+  const artistTotal = filteredArtworksPerArtist.length;
+  const artistTotalPages =
+    artistTotal > 0
+      ? Math.max(1, Math.ceil(artistTotal / ARTIST_PAGE_SIZE))
+      : 1;
+  const artistStartIndex = (artistPage - 1) * ARTIST_PAGE_SIZE;
+  const artistEndIndex = artistPage * ARTIST_PAGE_SIZE;
+  const artistPageRows = filteredArtworksPerArtist.slice(
+    artistStartIndex,
+    artistEndIndex
+  );
 
   // ===== Artworks per Artist: summary =====
   const artworksSummary = useMemo(() => {
@@ -344,9 +367,7 @@ export default function Reports() {
           `${API}/api/reports/exhibition-popularity?${popQuery}`,
           {
             credentials: "include",
-            headers: token
-              ? { Authorization: `Bearer ${token}` }
-              : undefined,
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           }
         );
 
@@ -401,7 +422,7 @@ export default function Reports() {
     };
   }, [token, popQuery, applied.page, applied.pageSize]);
 
-  // ===== Exhibition Popularity=====
+  // ===== Exhibition Popularity summary =====
   const exhibitionSummary = useMemo(() => {
     const rows = popData.rows || [];
     if (!rows.length) return null;
@@ -470,7 +491,6 @@ export default function Reports() {
     }
   }
 
-
   const onApplyArtists = (e) => {
     e.preventDefault();
     setArtistApplied({
@@ -478,6 +498,7 @@ export default function Reports() {
       sort: artistSort,
       dir: artistDir,
     });
+    setArtistPage(1);
   };
 
   const onApplyPopularity = (e) => {
@@ -541,13 +562,10 @@ export default function Reports() {
     }
   };
 
-  // (Optional) total pages for popularity (if you add pagination UI later)
+  // Total pages for popularity
   const totalPages = Math.max(
     1,
-    Math.ceil(
-      (popData.total || 0) /
-      (popData.pageSize || applied.pageSize || 10)
-    )
+    Math.ceil((popData.total || 0) / (popData.pageSize || applied.pageSize || 10))
   );
 
   // ===== Giftshop pagination helpers (10 per page) =====
@@ -592,6 +610,8 @@ export default function Reports() {
       <h1 className="text-3xl font-serif mb-6 text-neutral-800">
         Reports Dashboard
       </h1>
+
+      {/* Revenue Report */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12 mt-4">
         {/* Header */}
         <div className="border-b border-neutral-200 px-6 py-4 bg-rose-600">
@@ -656,9 +676,7 @@ export default function Reports() {
           >
             Download CSV
           </button>
-
         </form>
-
 
         {/* Summary */}
         <div className="px-6 pb-4">
@@ -693,7 +711,7 @@ export default function Reports() {
               <div className="p-4 text-neutral-500">Loading…</div>
             ) : revError ? (
               <div className="p-4 text-red-500">{revError}</div>
-            ) : revenue.length === 0 ? (
+            ) : revTotal === 0 ? (
               <div className="p-4 text-neutral-500">
                 No transactions found.
               </div>
@@ -706,12 +724,14 @@ export default function Reports() {
                     <th className="px-6 py-3 text-left text-black">Type</th>
                     <th className="px-6 py-3 text-left text-black">Item</th>
                     <th className="px-6 py-3 text-left text-black">Qty</th>
-                    <th className="px-6 py-3 text-left text-black">Unit Price</th>
+                    <th className="px-6 py-3 text-left text-black">
+                      Unit Price
+                    </th>
                     <th className="px-6 py-3 text-left text-black">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {revenue.map((row) => (
+                  {revPageRows.map((row) => (
                     <tr
                       key={`${row.transaction_type}-${row.transaction_id}`}
                       className="border-t border-neutral-200"
@@ -739,9 +759,47 @@ export default function Reports() {
               </table>
             )}
           </div>
+
+          {/* Revenue Pagination */}
+          {revTotal > 0 && (
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-neutral-700">
+              <span>
+                Showing{" "}
+                <strong>
+                  {revTotal === 0 ? 0 : revStartIndex + 1}
+                  {"–"}
+                  {Math.min(revEndIndex, revTotal)}
+                </strong>{" "}
+                of <strong>{revTotal}</strong> transactions
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                  onClick={() => setRevPage((p) => Math.max(1, p - 1))}
+                  disabled={revPage <= 1}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page <strong>{revPage}</strong> of{" "}
+                  <strong>{revTotalPages}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                  onClick={() =>
+                    setRevPage((p) => Math.min(revTotalPages, p + 1))
+                  }
+                  disabled={revPage >= revTotalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
-
 
       {/* Giftshop Sales Report */}
       <section className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm mb-12">
@@ -931,7 +989,7 @@ export default function Reports() {
                   ) : (
                     <tr>
                       <td
-                        colSpan="7"
+                        colSpan={7}
                         className="px-6 py-6 text-center text-neutral-500"
                       >
                         No transactions in this date range.
@@ -948,9 +1006,7 @@ export default function Reports() {
                 <span>
                   Showing{" "}
                   <strong>
-                    {giftshopTotal === 0
-                      ? 0
-                      : giftshopStartIndex + 1}
+                    {giftshopTotal === 0 ? 0 : giftshopStartIndex + 1}
                     {"–"}
                     {Math.min(giftshopEndIndex, giftshopTotal)}
                   </strong>{" "}
@@ -1071,10 +1127,7 @@ export default function Reports() {
                     {artworksSummary.topArtistName || "—"}{" "}
                     {artworksSummary.topArtistName && (
                       <span className="text-neutral-500">
-                        (
-                        {fmtInt(artworksSummary.topArtistCount)}
-                        {" "}
-                        works)
+                        ({fmtInt(artworksSummary.topArtistCount)} works)
                       </span>
                     )}
                   </p>
@@ -1116,8 +1169,8 @@ export default function Reports() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredArtworksPerArtist.length ? (
-                      filteredArtworksPerArtist.map((row) => (
+                    {artistPageRows.length ? (
+                      artistPageRows.map((row) => (
                         <tr
                           key={`${row.artist_id}-${row.collection_id ?? "none"}`}
                           className="border-t border-neutral-200 bg-white"
@@ -1149,6 +1202,49 @@ export default function Reports() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Artworks pagination */}
+              {artistTotal > 0 && (
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-neutral-700">
+                  <span>
+                    Showing{" "}
+                    <strong>
+                      {artistTotal === 0 ? 0 : artistStartIndex + 1}
+                      {"–"}
+                      {Math.min(artistEndIndex, artistTotal)}
+                    </strong>{" "}
+                    of <strong>{artistTotal}</strong> rows
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                      onClick={() =>
+                        setArtistPage((p) => Math.max(1, p - 1))
+                      }
+                      disabled={artistPage <= 1}
+                    >
+                      Previous
+                    </button>
+                    <span>
+                      Page <strong>{artistPage}</strong> of{" "}
+                      <strong>{artistTotalPages}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                      onClick={() =>
+                        setArtistPage((p) =>
+                          Math.min(artistTotalPages, p + 1)
+                        )
+                      }
+                      disabled={artistPage >= artistTotalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -1247,9 +1343,7 @@ export default function Reports() {
                 {exhibitionSummary.topExhibitionTitle || "—"}{" "}
                 {exhibitionSummary.topExhibitionTitle && (
                   <span className="text-neutral-500">
-                    (
-                    {fmtInt(exhibitionSummary.topExhibitionVisitors)}{" "}
-                    visitors)
+                    ({fmtInt(exhibitionSummary.topExhibitionVisitors)} visitors)
                   </span>
                 )}
               </p>
@@ -1320,9 +1414,60 @@ export default function Reports() {
               </tbody>
             </table>
           </div>
+
+          {/* Exhibition Pagination */}
+          {popData.total > 0 && (
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-neutral-700">
+              <span>
+                Showing{" "}
+                <strong>
+                  {popData.total === 0
+                    ? 0
+                    : (popData.page - 1) * popData.pageSize + 1}
+                  {"–"}
+                  {Math.min(
+                    popData.page * popData.pageSize,
+                    popData.total
+                  )}
+                </strong>{" "}
+                of <strong>{popData.total}</strong> exhibitions
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                  onClick={() =>
+                    setApplied((prev) => ({
+                      ...prev,
+                      page: Math.max(1, prev.page - 1),
+                    }))
+                  }
+                  disabled={applied.page <= 1}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page <strong>{applied.page}</strong> of{" "}
+                  <strong>{totalPages}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="px-3 py-1 rounded-lg border border-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+                  onClick={() =>
+                    setApplied((prev) => ({
+                      ...prev,
+                      page: Math.min(totalPages, prev.page + 1),
+                    }))
+                  }
+                  disabled={applied.page >= totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
-
     </div>
   );
 }
