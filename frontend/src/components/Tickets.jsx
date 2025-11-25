@@ -16,31 +16,37 @@ export default function Tickets() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null); // ticket or null
 
-  const headersAuth = useMemo(() => ({
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }), [token]);
+  const headersAuth = useMemo(
+    () => ({
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }),
+    [token]
+  );
 
   useEffect(() => {
     fetch(`${API_BASE}/api/tickets/types`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         setTicketTypes(data);
       })
-      .catch(err => console.error("Error loading tickets:", err));
+      .catch((err) => console.error("Error loading tickets:", err));
   }, []);
 
   const handleQuantityChange = (id, quantity) => {
-    setSelectedTickets(prev => ({
+    setSelectedTickets((prev) => ({
       ...prev,
       [id]: Math.max(0, quantity),
     }));
   };
 
-  const subtotal = Object.entries(selectedTickets).reduce((sum, [id, qty]) => {
-    const ticket = ticketTypes.find(t => t.id === parseInt(id));
-    return sum + (ticket ? ticket.total_price * qty : 0);
-  }, 0);
+  const subtotal = Object.entries(selectedTickets).reduce(
+    (sum, [id, qty]) => {
+      const ticket = ticketTypes.find((t) => t.id === parseInt(id));
+      return sum + (ticket ? ticket.total_price * qty : 0);
+    },
+    0
+  );
 
   const TX_SALES_TAX = 0.0825;
   const salesTax = parseFloat((subtotal * TX_SALES_TAX).toFixed(2));
@@ -53,7 +59,7 @@ export default function Tickets() {
     }
     Object.entries(selectedTickets).forEach(([id, qty]) => {
       if (qty > 0) {
-        const t = ticketTypes.find(ticket => ticket.id === parseInt(id));
+        const t = ticketTypes.find((ticket) => ticket.id === parseInt(id));
         addToCart(
           {
             id: t.id,
@@ -112,7 +118,9 @@ export default function Tickets() {
         if (!res.ok) return alert(data.message || "Ticket update failed");
       }
 
-      setTicketTypes((prev) => prev.map(t => t.id === body.id ? body : t));
+      setTicketTypes((prev) =>
+        prev.map((t) => (t.id === body.id ? body : t))
+      );
     } catch (err) {
       console.error(err);
       alert("An error occurred while saving ticket");
@@ -131,7 +139,7 @@ export default function Tickets() {
         const data = await res.json();
         alert(data.message || "Ticket deletion failed");
       } else {
-        setTicketTypes(prev => prev.filter(t => t.id !== ticketId));
+        setTicketTypes((prev) => prev.filter((t) => t.id !== ticketId));
       }
     } catch (err) {
       console.error(err);
@@ -149,7 +157,7 @@ export default function Tickets() {
 
     Object.entries(selectedTickets).forEach(([id, qty]) => {
       if (qty > 0) {
-        const t = ticketTypes.find(ticket => ticket.id === parseInt(id));
+        const t = ticketTypes.find((ticket) => ticket.id === parseInt(id));
         addToCart(
           {
             id: t.id,
@@ -162,44 +170,82 @@ export default function Tickets() {
         addedSomething = true;
       }
     });
-
   };
-
 
   return (
     <div className="min-h-screen bg-neutral-100 py-16 px-6">
       {/* Admin Mode Toggle */}
       {user?.role === "admin" && (
-        <div className="mb-6 flex" style={{ marginLeft: '12.5%' }}>
-          {/* Align with ticket boxes (same left margin) */}
-          <button onClick={() => setManage(!manage)}>
-            {manage ? "Hide Manage" : "Manage Tickets"}
-          </button>
-          {manage && <button onClick={openCreate}>+ New Ticket</button>}
+        <div className="mb-8 flex justify-center">
+          <div className="w-full sm:w-3/4 lg:w-1/2 flex items-center justify-between">
+            <div>
+              <h2 className="text-xs font-serif tracking-wide uppercase text-neutral-500">
+                Ticket Management
+              </h2>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {manage ? "Editing mode enabled" : "View-only mode"}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setManage((prev) => !prev)}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition
+                  ${
+                    manage
+                      ? "bg-neutral-900 text-white border-neutral-900 shadow-sm"
+                      : "bg-white text-neutral-800 border-neutral-300 hover:border-neutral-500 hover:bg-neutral-50"
+                  }`}
+              >
+                <span>{manage ? "Exit Manage" : "Manage Tickets"}</span>
+              </button>
+
+              {manage && (
+                <button
+                  onClick={openCreate}
+                  className="inline-flex items-center gap-2 rounded-full bg-rose-600 text-white text-sm font-medium px-4 py-2 shadow-sm hover:bg-rose-700 transition"
+                >
+                  <span className="text-base leading-none">＋</span>
+                  <span>New Ticket</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Tickets List */}
       <div className="flex flex-col items-center gap-6">
-        {ticketTypes.map(ticket => (
+        {ticketTypes.map((ticket) => (
           <div
             key={ticket.id}
             className="ticket-item w-full sm:w-3/4 lg:w-1/2 bg-white rounded-lg shadow-md p-6 border border-black hover:shadow-lg transition-all"
           >
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-4">
               <div className="flex-1">
-                <h2 className="text-xl font-semibold font-sans text-neutral-800 mb-1">{ticket.name}</h2>
-                <p className="text-sm text-neutral-600">{ticket.description}</p>
+                <h2 className="text-xl font-semibold font-sans text-neutral-800 mb-1">
+                  {ticket.name}
+                </h2>
+                <p className="text-sm text-neutral-600">
+                  {ticket.description}
+                </p>
               </div>
-              <span className="text-3xl font-bold text-neutral-800">${ticket.total_price}</span>
+              <span className="text-3xl font-bold text-neutral-800">
+                ${ticket.total_price}
+              </span>
             </div>
 
             <div className="flex justify-end items-center gap-0 pt-4 border-t border-neutral-200">
-              <label className="text-sm font-medium text-neutral-700 mr-2">Quantity:</label>
+              <label className="text-sm font-medium text-neutral-700 mr-2">
+                Quantity:
+              </label>
               <div className="flex items-center gap-0 border-2 border-neutral-200 rounded-lg overflow-hidden">
                 <button
                   onClick={() =>
-                    handleQuantityChange(ticket.id, (selectedTickets[ticket.id] || 0) - 1)
+                    handleQuantityChange(
+                      ticket.id,
+                      (selectedTickets[ticket.id] || 0) - 1
+                    )
                   }
                   className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 transition"
                 >
@@ -208,14 +254,20 @@ export default function Tickets() {
                 <input
                   type="number"
                   value={selectedTickets[ticket.id] || 0}
-                  onChange={e =>
-                    handleQuantityChange(ticket.id, parseInt(e.target.value) || 0)
+                  onChange={(e) =>
+                    handleQuantityChange(
+                      ticket.id,
+                      parseInt(e.target.value) || 0
+                    )
                   }
                   className="w-16 text-center border-l border-r border-neutral-200 py-2 text-neutral-900 focus:outline-none focus:bg-neutral-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   onClick={() =>
-                    handleQuantityChange(ticket.id, (selectedTickets[ticket.id] || 0) + 1)
+                    handleQuantityChange(
+                      ticket.id,
+                      (selectedTickets[ticket.id] || 0) + 1
+                    )
                   }
                   className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 transition"
                 >
@@ -226,10 +278,16 @@ export default function Tickets() {
 
             {manage && (
               <div className="mt-4 flex gap-2">
-                <button onClick={() => openEdit(ticket)} className="px-3 py-2 text-sm border rounded">
+                <button
+                  onClick={() => openEdit(ticket)}
+                  className="px-3 py-2 text-sm border rounded"
+                >
                   Edit
                 </button>
-                <button onClick={() => deleteTicket(ticket.id)} className="px-3 py-2 text-sm border rounded text-red-700">
+                <button
+                  onClick={() => deleteTicket(ticket.id)}
+                  className="px-3 py-2 text-sm border rounded text-red-700"
+                >
                   Delete
                 </button>
               </div>
@@ -258,24 +316,64 @@ export default function Tickets() {
               <h3 className="text-lg font-semibold">
                 {editing?.id == null ? "Create Ticket" : "Edit Ticket"}
               </h3>
-              <button onClick={() => { setModalOpen(false); setEditing(null); }} className="text-neutral-600 hover:text-black">
+              <button
+                onClick={() => {
+                  setModalOpen(false);
+                  setEditing(null);
+                }}
+                className="text-neutral-600 hover:text-black"
+              >
                 ✕
               </button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-3">
-              <LabeledInput label="Name" value={editing?.name || ""} onChange={v => setEditing({ ...editing, name: v })} />
-              <LabeledInput label="Price" value={editing?.total_price || ""} onChange={v => setEditing({ ...editing, total_price: v })} />
-              <LabeledInput label="Description" value={editing?.description || ""} onChange={v => setEditing({ ...editing, description: v })} />
-              <LabeledSelect label="Active" value={editing?.is_active} onChange={v => setEditing({ ...editing, is_active: v })} />
-              <LabeledSelect label="Featured" value={editing?.is_featured} onChange={v => setEditing({ ...editing, is_featured: v })} />
+              <LabeledInput
+                label="Name"
+                value={editing?.name || ""}
+                onChange={(v) => setEditing({ ...editing, name: v })}
+              />
+              <LabeledInput
+                label="Price"
+                value={editing?.total_price || ""}
+                onChange={(v) =>
+                  setEditing({ ...editing, total_price: v })
+                }
+              />
+              <LabeledInput
+                label="Description"
+                value={editing?.description || ""}
+                onChange={(v) =>
+                  setEditing({ ...editing, description: v })
+                }
+              />
+              <LabeledSelect
+                label="Active"
+                value={editing?.is_active}
+                onChange={(v) =>
+                  setEditing({ ...editing, is_active: v })
+                }
+              />
+              <LabeledSelect
+                label="Featured"
+                value={editing?.is_featured}
+                onChange={(v) =>
+                  setEditing({ ...editing, is_featured: v })
+                }
+              />
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
-              <button className="px-3 py-2 border rounded" onClick={() => setModalOpen(false)}>
+              <button
+                className="px-3 py-2 border rounded"
+                onClick={() => setModalOpen(false)}
+              >
                 Cancel
               </button>
-              <button className="px-3 py-2 rounded-lg bg-neutral-800 text-white hover:bg-neutral-900" onClick={saveTicket}>
+              <button
+                className="px-3 py-2 rounded-lg bg-neutral-800 text-white hover:bg-neutral-900"
+                onClick={saveTicket}
+              >
                 {editing?.id ? "Save Changes" : "Create Ticket"}
               </button>
             </div>
@@ -284,10 +382,8 @@ export default function Tickets() {
       )}
     </div>
   );
-
 }
 
-// Helper components for inputs and selects
 function LabeledInput({ label, value, onChange }) {
   return (
     <div>
@@ -296,7 +392,7 @@ function LabeledInput({ label, value, onChange }) {
         type="text"
         className="w-full mt-1 border rounded-lg p-2"
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
       />
     </div>
   );
@@ -309,7 +405,7 @@ function LabeledSelect({ label, value, onChange }) {
       <select
         className="w-full mt-1 border rounded-lg p-2"
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
       >
         <option value={1}>Yes</option>
         <option value={0}>No</option>
