@@ -9,14 +9,14 @@ This full-stack application provides a comprehensive platform for Houston Museum
 ### Key Features 🚀
 
 #### Visitor Experience
-- [Browse and explore available items/content]
+- Browse and explore available items/content
 
 #### Employee Experience
-- [Data entry for everything visitor can see]
+- Data entry for everything visitor can see
 
 #### Administrative Capabilities
-- [Manage user accounts and permissions]
-- [Report Dashboard]
+- Manage user accounts and permissions
+- Report Dashboard
 
 
 ## Technologies
