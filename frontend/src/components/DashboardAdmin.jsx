@@ -675,6 +675,18 @@ function UsersPane() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  // --- Add User form state ---
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createErr, setCreateErr] = useState("");
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    role: "visitor",
+  });
+
   const fetchUsers = async () => {
     setLoading(true);
     setErr("");
@@ -739,16 +751,20 @@ function UsersPane() {
     setFiltered(rows);
   };
 
-  const createUser = async () => {
-    const first_name = prompt("Enter first name:") || "";
-    const last_name = prompt("Enter last name:") || "";
-    const email = prompt("Enter email:") || "";
-    const password = prompt("Enter password:") || "";
-    const roleInput =
-      prompt("Enter role (admin, employee, visitor):", "visitor") || "visitor";
+  const handleCreateChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
 
-    if (!email || !password) return alert("Email and password are required.");
+  const createUser = async (e) => {
+    e.preventDefault();
+    setCreateErr("");
 
+    if (!form.email || !form.password) {
+      setCreateErr("Email and password are required.");
+      return;
+    }
+
+    setCreating(true);
     try {
       const res = await fetch(`${API_BASE}/api/users`, {
         method: "POST",
@@ -758,11 +774,11 @@ function UsersPane() {
         },
         credentials: "include",
         body: JSON.stringify({
-          first_name,
-          last_name,
-          email,
-          password,
-          role: roleInput,
+          first_name: form.first_name.trim() || null,
+          last_name: form.last_name.trim() || null,
+          email: form.email.trim(),
+          password: form.password,
+          role: form.role || "visitor",
         }),
       });
 
@@ -776,10 +792,22 @@ function UsersPane() {
 
       if (!res.ok) throw new Error(json.error || "Create failed");
 
+      // refresh list
       await fetchUsers();
-      alert("User created.");
+
+      // reset form + close
+      setForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        password: "",
+        role: "visitor",
+      });
+      setShowCreate(false);
     } catch (e) {
-      alert("Error: " + e.message);
+      setCreateErr(e.message || "Error creating user.");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -816,11 +844,12 @@ function UsersPane() {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Header + filters + Add User button */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h2 className="text-xl font-semibold text-neutral-800">
           User Management
         </h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           <input
             className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
             placeholder="Search name/email"
@@ -847,16 +876,120 @@ function UsersPane() {
           </button>
 
           <button
-            onClick={createUser}
+            onClick={() => setShowCreate((s) => !s)}
             className="px-3 py-2 rounded-lg text-sm bg-rose-500 text-white hover:bg-rose-400"
           >
-            + Add User
+            {showCreate ? "Close" : "+ Add User"}
           </button>
         </div>
       </div>
 
+      {/* Add User inline card */}
+      {showCreate && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 shadow-sm p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-neutral-800">
+            Create New User
+          </h3>
+
+          {createErr && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              {createErr}
+            </div>
+          )}
+
+          <form
+            onSubmit={createUser}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+          >
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-neutral-700">
+                First Name
+              </label>
+              <input
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+                value={form.first_name}
+                onChange={(e) =>
+                  handleCreateChange("first_name", e.target.value)
+                }
+                placeholder="First name"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-neutral-700">
+                Last Name
+              </label>
+              <input
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+                value={form.last_name}
+                onChange={(e) =>
+                  handleCreateChange("last_name", e.target.value)
+                }
+                placeholder="Last name"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-neutral-700">
+                Email<span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="email"
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+                value={form.email}
+                onChange={(e) => handleCreateChange("email", e.target.value)}
+                placeholder="email@example.com"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-neutral-700">
+                Temporary Password<span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="password"
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+                value={form.password}
+                onChange={(e) =>
+                  handleCreateChange("password", e.target.value)
+                }
+                placeholder="Set initial password"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-neutral-700">
+                Role
+              </label>
+              <select
+                className="border border-neutral-300 rounded-lg px-3 py-2 text-sm"
+                value={form.role}
+                onChange={(e) => handleCreateChange("role", e.target.value)}
+              >
+                <option value="visitor">Visitor</option>
+                <option value="employee">Employee</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={creating}
+                className="px-4 py-2 rounded-lg text-sm bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {creating ? "Creating…" : "Create User"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {err && <div className="text-sm text-red-600">{err}</div>}
 
+      {/* Users table */}
       <div className="rounded-xl border border-neutral-300 overflow-x-auto bg-white shadow-sm">
         {loading ? (
           <div className="p-4 text-neutral-500">Loading users…</div>
