@@ -1,6 +1,6 @@
 # HOUSTON MUSEUM OF FINE ARTS
 
-Full-stack web application built with React, Node.js, and MySQL for COSC 3380: Database Systems
+Full-stack web application for Houston Museum of Fine Arts built with React, Node.js, and MySQL for COSC 3380: Database Systems
 
 ## Project Description
 
