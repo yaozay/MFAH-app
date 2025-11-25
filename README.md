@@ -149,9 +149,9 @@ Then open a **Pull Request** on GitHub to merge your branch into `main`.
 
 ## Team Members
 
-Yahya Ozay
-Thu Pham
-Nick Polycrates
-Brayan Chavez
+Yahya Ozay - 
+Thu Pham - 
+Nick Polycrates - 
+Brayan Chavez - 
 Kevin Santhosh
 
